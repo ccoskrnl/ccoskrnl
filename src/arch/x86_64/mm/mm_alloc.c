@@ -1,0 +1,826 @@
+#include "../../../include/types.h"
+#include "../../../include/libk/stdlib.h"
+#include "../../../include/libk/string.h"
+#include "mm.h"
+
+extern pool *_mm_pools;
+extern pool_free_list_head _mm_non_paged_pool_free_list_array[NON_PAGED_POOL_LIST_HEADS_MAXIMUM];
+
+status_t _mm_alloc_pages(uint64_t size, void **addr)
+{
+    status_t status;
+    // the number of requested pages
+    uint64_t number_of_pages;
+    // previous page
+    pool_free_page_entry *prev_page;
+    // next page
+    pool_free_page_entry *rear_page;
+
+    // the start addr routine returned
+    pool_free_page_entry *start_page;
+    
+    pool_free_list_head *free_list;
+    mmpte *pte;
+    pool_free_page_entry **allocate_address;
+
+    // check if the parameters are legal.
+    assert(size != 0);
+
+    allocate_address = (pool_free_page_entry **)addr;
+
+    // We perfrom page-alignment on the size of requested.
+    // Hence, we obtain the number of requested pages.
+    number_of_pages = page_aligned(size) >> PAGE_SHIFT;
+
+    // lower memory pool manager uses finite lists to manage all free
+    // pages the memory pool has. the amount of lists be defined by 
+    // NON_PAGED_POOL_LIST_HEADS_MAXIMUM macro. the first item of list array 
+    // collected all free pages which their size exceeded the defined maximum limit.
+
+    // check if these has a suitable lists contained all requested size free pages.
+    if (number_of_pages < NON_PAGED_POOL_LIST_HEADS_MAXIMUM)
+    {
+        // we found the list and it is non-empty.
+        free_list = &_mm_non_paged_pool_free_list_array[number_of_pages];
+        if (free_list->total > 0)
+        {
+
+            if (free_list->total > 1)
+            {
+                // remove the last item in the list.
+                // start_page points suitable size page at this time, 
+                // we can return the page after we have set the necessary attributes.
+                start_page = free_list->rear;
+                free_list->rear = start_page->node.blink;
+                free_list->rear->node.flink = 0;
+                free_list->total--;
+            }
+            else if (free_list->total == 1)
+            {
+                start_page = free_list->rear;
+                free_list->rear = 0;
+                free_list->front = 0;
+                free_list->total--;
+            }
+
+            // clear flags
+            start_page->node.flink = 0;
+            start_page->node.blink = 0;
+            start_page->owner = 0;
+            start_page->number_of_pages = 0;
+
+            // update corresponding item in PFN database.
+            pte = __get_pte_by_virt_addr(start_page);
+            _mm_pfn_db_start[pte->pte.hardware.address].state.StartOfAllocation = 1;
+            _mm_pfn_db_start[(pte->pte.hardware.address) + (number_of_pages - 1)].state.EndOfAllocation = 1;
+            *allocate_address = start_page;
+            status = ST_SUCCESS;
+            goto __exit_alloc;
+        }
+    }
+
+    // in this case, we not found suitable list, hence, we need to
+    // find a continuous page and split it as appropriate.
+    free_list = &_mm_non_paged_pool_free_list_array[0];
+    if (free_list->total == 0)
+    {
+        status = NO_MORE_FREE_MEMORY;
+        goto __exit_alloc;
+    }
+
+    rear_page = free_list->rear;
+
+    // 如果链表末尾的最后一项大于请求的页面数
+    if (rear_page->number_of_pages > number_of_pages)
+    {
+        rear_page->number_of_pages -= number_of_pages;
+
+        start_page = (pool_free_page_entry *)(((rear_page->number_of_pages) << PAGE_SHIFT) + (uint64_t)rear_page);
+
+        for (size_t i = 0; i < number_of_pages; i++)
+        {
+            pool_free_page_entry *page = start_page;
+            page->node.blink = 0;
+            page->node.flink = 0;
+            page->number_of_pages = 0;
+            page->owner = 0;
+            page += 0x1000;
+        }
+
+        // 更新 PFN 数据库
+        pte = __get_pte_by_virt_addr(start_page);
+        _mm_pfn_db_start[pte->pte.hardware.address].state.StartOfAllocation = 1;
+        _mm_pfn_db_start[(pte->pte.hardware.address) + (number_of_pages - 1)].state.EndOfAllocation = 1;
+        *allocate_address = start_page;
+        status = ST_SUCCESS;
+
+        // 根据剩余的页面考虑是否更新当前节点所在的数组，否则不需要更新
+        if (rear_page->number_of_pages < NON_PAGED_POOL_LIST_HEADS_MAXIMUM)
+        {
+            if (free_list->total == 1)
+            {
+                free_list->front = NULL;
+                free_list->rear = NULL;
+            }
+            else
+            {
+                // 更新链表末尾的项
+                free_list->rear = free_list->rear->node.blink;
+            }
+            free_list->total--;
+
+            // 添加到对应的链表中
+            free_list = &_mm_non_paged_pool_free_list_array[rear_page->number_of_pages];
+            if (free_list->total == 0)
+            {
+                free_list->front = rear_page;
+                free_list->rear = rear_page;
+            }
+            else
+            {
+                rear_page->node.blink = free_list->rear;
+                free_list->rear->node.flink = rear_page;
+                free_list->rear = rear_page;
+            }
+
+            free_list++;
+        }
+    }
+
+    // 如果链表末尾的最后一项等于请求的页面数
+    else if (rear_page->number_of_pages == number_of_pages)
+    {
+        if (free_list->total == 1)
+        {
+            free_list->rear = NULL;
+            free_list->front = NULL;
+            free_list->total = 0;
+        }
+        else
+        {
+            start_page = rear_page;
+            rear_page->node.blink->node.flink = NULL;
+            free_list->rear = rear_page->node.blink;
+            free_list->total--;
+        }
+        // 更新 PFN 数据库
+        pte = __get_pte_by_virt_addr(start_page);
+        _mm_pfn_db_start[pte->pte.hardware.address].state.StartOfAllocation = 1;
+        _mm_pfn_db_start[(pte->pte.hardware.address) + (number_of_pages - 1)].state.EndOfAllocation = 1;
+        *allocate_address = start_page;
+        status = ST_SUCCESS;
+    }
+
+    // 根据剩余的页面考虑是否更新当前节点所在的数组，否则不需要更新
+    else
+    {
+        if (free_list->total == 1)
+        {
+            status = NO_MORE_FREE_MEMORY;
+        }
+        // 向前遍历
+        else
+        {
+
+            // 只有链表节点数量大于1时才可以向前遍历
+            do
+            {
+                prev_page = rear_page->node.blink;
+                // 合并 prev rear
+                prev_page->number_of_pages += rear_page->number_of_pages;
+                rear_page->node.blink = 0;
+                rear_page->node.flink = 0;
+
+                for (size_t i = 0; i < rear_page->number_of_pages; i++)
+                {
+                    pool_free_page_entry *page = rear_page;
+                    page->owner = prev_page;
+                    page += PAGE_SIZE;
+                }
+                rear_page->number_of_pages = 0;
+
+                rear_page = prev_page;
+                free_list->rear = rear_page;
+                free_list->total--;
+
+            } while ((rear_page->number_of_pages < number_of_pages) && (free_list->total >= 1));
+
+            // 如果仍然小于，请求失败
+            if (rear_page->number_of_pages < number_of_pages)
+            {
+                status = NO_MORE_FREE_MEMORY;
+            }
+            else
+            {
+                // 如果链表末尾的最后一项大于请求的页面数
+                if (rear_page->number_of_pages > number_of_pages)
+                {
+                    rear_page->number_of_pages -= number_of_pages;
+
+                    start_page = (pool_free_page_entry *)(((rear_page->number_of_pages) << PAGE_SHIFT) + (uint64_t)rear_page);
+
+                    for (size_t i = 0; i < number_of_pages; i++)
+                    {
+                        pool_free_page_entry *page = start_page;
+                        page->node.blink = 0;
+                        page->node.flink = 0;
+                        page->number_of_pages = 0;
+                        page->owner = 0;
+                        page += 0x1000;
+                    }
+
+                    // 更新 PFN 数据库
+                    pte = __get_pte_by_virt_addr(start_page);
+                    _mm_pfn_db_start[pte->pte.hardware.address].state.StartOfAllocation = 1;
+                    _mm_pfn_db_start[(pte->pte.hardware.address) + (number_of_pages - 1)].state.EndOfAllocation = 1;
+                    *allocate_address = start_page;
+                    status = ST_SUCCESS;
+
+                    // 根据剩余的页面考虑是否更新当前节点所在的数组，否则不需要更新
+                    if (rear_page->number_of_pages < NON_PAGED_POOL_LIST_HEADS_MAXIMUM)
+                    {
+                        if (free_list->total == 1)
+                        {
+                            free_list->front = NULL;
+                            free_list->rear = NULL;
+                        }
+                        else
+                        {
+                            // 更新链表末尾的项
+                            free_list->rear = free_list->rear->node.blink;
+                        }
+                        free_list->total--;
+
+                        // 添加到对应的链表中
+                        free_list = &_mm_non_paged_pool_free_list_array[rear_page->number_of_pages];
+                        if (free_list->total == 0)
+                        {
+                            free_list->front = rear_page;
+                            free_list->rear = rear_page;
+                        }
+                        else
+                        {
+                            rear_page->node.blink = free_list->rear;
+                            free_list->rear->node.flink = rear_page;
+                            free_list->rear = rear_page;
+                        }
+
+                        free_list++;
+                    }
+                }
+
+                // 如果链表末尾的最后一项等于请求的页面数
+                else if (rear_page->number_of_pages == number_of_pages)
+                {
+                    if (free_list->total == 1)
+                    {
+                        free_list->rear = NULL;
+                        free_list->front = NULL;
+                        free_list->total = 0;
+                    }
+                    else
+                    {
+                        start_page = rear_page;
+                        rear_page->node.blink->node.flink = NULL;
+                        free_list->rear = rear_page->node.blink;
+                        free_list->total--;
+                    }
+                    // 更新 PFN 数据库
+                    pte = __get_pte_by_virt_addr(start_page);
+                    _mm_pfn_db_start[pte->pte.hardware.address].state.StartOfAllocation = 1;
+                    _mm_pfn_db_start[(pte->pte.hardware.address) + (number_of_pages - 1)].state.EndOfAllocation = 1;
+                    *allocate_address = start_page;
+                    status = ST_SUCCESS;
+                }
+            }
+        }
+    }
+
+__exit_alloc:
+
+    return status;
+}
+
+void _mm_free_pages(void *addr)
+{
+    status_t status;
+    pfn_number index;
+    mmpte *pte;
+    pool_free_page_entry *start_addr;
+    pool_free_page_entry *page;
+    pool_free_list_head *free_list;
+
+    // 清除 PFN 数据库的标志
+    start_addr = page = addr;
+    pte = __get_pte_by_virt_addr(addr);
+    index = pte->pte.hardware.address;
+    _mm_pfn_db_start[index].state.StartOfAllocation = 0;
+    memzero(page,PAGE_SIZE);
+
+    start_addr->number_of_pages++;
+    while (_mm_pfn_db_start[index].state.EndOfAllocation == 0)
+    {
+        page = (pool_free_page_entry *)((uint64_t)page + PAGE_SIZE);
+        memzero(page, PAGE_SIZE);
+        page->owner = start_addr;
+
+        start_addr->number_of_pages++;
+        index++;
+    }
+    _mm_pfn_db_start[index].state.EndOfAllocation = 0;
+
+    // 考虑要添加哪一个空闲内存页链表
+    if (start_addr->number_of_pages < NON_PAGED_POOL_LIST_HEADS_MAXIMUM)
+    {
+
+        free_list = &_mm_non_paged_pool_free_list_array[start_addr->number_of_pages];
+    }
+    else
+    {
+        free_list = &_mm_non_paged_pool_free_list_array[0];
+    }
+
+    if (free_list->total == 0)
+    {
+        free_list->rear = start_addr;
+        free_list->front = start_addr;
+    }
+    else
+    {
+        start_addr->node.blink = free_list->rear;
+        free_list->rear->node.flink = start_addr;
+        free_list->rear = start_addr;
+    }
+
+    free_list->total++;
+}
+
+
+/*  Upper Memory Pool Services  */
+void *_mm_malloc(uint64_t size, uint16_t pool_index)
+{
+    list_node *ret_block;
+    pool_header *ret_block_head;
+
+    list_node *split_block;
+    pool_header *split_block_head;
+
+    pool_header *next_block_head;
+
+    boolean does_it_need_to_be_updated;
+
+    pool *pool_desc;
+    list_node *free_list;
+    uint64_t suitable_block_size;
+    uint64_t list_index;
+
+    does_it_need_to_be_updated = false;
+
+    // Adjust the size of requested block. There are three situations here.
+
+    // case 1: the requested smaller than smallest block
+    if (size < POOL_SMALLEST_BLOCK)
+    {
+        // For this case, we just adjust the size of requested block to
+        // smallest size.
+        size = POOL_SMALLEST_BLOCK;
+    }
+
+    // case 2: adjust the size to Multiple of PAGE_SIZE
+    else if (size & POOL_BLOCK_SHIFT_MASK)
+    {
+        size = (size & ~POOL_BLOCK_SHIFT_MASK) + (1 << POOL_BLOCK_SHIFT);
+    }
+    
+    // case3 : the size larger than maximum allocatable block.
+    if (size > POOL_BUDDY_MAX)
+    {
+        // In the case, we calls lower dynamic memory management routine.
+        // We perfrom page-alignment on the size of requested.
+        // It is noteworthy that there exist serious internal-fragmention wasting.
+        // For reason of page-alignment, (aligned_size - requested_size) bytes 
+        // will be treated as internal-fragmention.
+
+        // Now, let's me assume that caller passes size = 0x1001 each time to
+        // call the function so that will cause the function will perform 
+        // page-alignment on the size. Actually, the size after page-aligend is
+        // 0x2000. In other words, 0xFFF bytes will be treated as 
+        // internal-fragmention.
+
+        size = page_aligned(size);
+
+        if (ST_ERROR(_mm_alloc_pages(size, (void **)&ret_block)))
+        {
+            return NULL;
+        }
+        else
+        {
+            return (void *)ret_block;
+        }
+    }
+
+    // found corresponding pool by pool_index.
+    pool_desc = &_mm_pools[pool_index];
+
+    // To find suitable list.
+    list_index = size >> POOL_BLOCK_SHIFT;
+
+    // Check if corresponding list is not empty. Otherwise,
+    // increase the requested size and continue to check until
+    // found list is not empty.
+    do
+    {
+        free_list = &pool_desc->list_heads[list_index];
+        if (free_list->flink != 0)
+        {
+            break;
+        }
+
+    } while (list_index++ < POOL_LIST_HEADS);
+
+    // When list_index larger than or equal to POOL_LIST_HEADS, it's means
+    // we not found suitable list. In this situation, we need to call lower
+    // dynamic memory management function to allocate a new free page to 
+    // respond the request.
+
+    // The new free page will be split. The front block will be returned
+    // and the back block will be added to suitable free list.
+    if (list_index >= POOL_LIST_HEADS)
+    {
+        uint64_t new_page;
+
+        // if out of memory resource, request failed. 
+        if (ST_ERROR(_mm_alloc_pages(size, (void **)&new_page)))
+        {
+            return NULL;
+        }
+
+        // split the new allocated page.
+        else
+        {
+            // split_block points back block here.
+            split_block_head = (pool_header *)(new_page + size + POOL_HEAD_OVERHEAD);
+            split_block = (list_node *)((uint64_t)split_block_head + POOL_HEAD_OVERHEAD);
+
+            // it will be added to free list.
+            split_block_head->prev_size = (size) >> POOL_BLOCK_SHIFT;
+            split_block_head->block_size =
+                (POOL_PAGE_SIZE - size - (POOL_HEAD_OVERHEAD << 1)) >> POOL_BLOCK_SHIFT;
+            split_block_head->pool_type = POOL_TYPE_FREE;
+            split_block_head->pool_index = pool_index;
+            split_block_head->pool_tag = 0;
+
+            // set the block header of block will be returned.
+            ret_block_head = (pool_header *)new_page;
+            ret_block = (list_node *)((uint64_t)ret_block_head + POOL_HEAD_OVERHEAD);
+            ret_block_head->prev_size = 0;
+            ret_block_head->block_size = split_block_head->prev_size;
+            ret_block_head->pool_type = POOL_TYPE_ACTIVE;
+            ret_block_head->pool_index = pool_index;
+            ret_block_head->pool_tag = 0;
+
+            // add the split_block to free list
+            free_list = &pool_desc->list_heads[split_block_head->block_size];
+            _list_push(free_list, split_block);
+
+            // return constructed block a moment ago.
+            return (void *)ret_block;
+        }
+    }
+
+    // Assuming we found a suitable list.
+    suitable_block_size = list_index << POOL_BLOCK_SHIFT;
+
+    // Using the last item to construct a block which need to return to caller
+    split_block = free_list->blink;
+    split_block_head = (pool_header *)((uint64_t)split_block - POOL_HEAD_OVERHEAD);
+
+    // Suppose that the split_block we get just now is not stored at the final position of page
+    // it belonged, meaning we need to update the pool head of block that closely following split_block 
+    if (((uint64_t)split_block + (split_block_head->block_size << POOL_BLOCK_SHIFT)) < page_aligned(split_block))
+    {
+        does_it_need_to_be_updated = true;
+        next_block_head = (pool_header *)((uint64_t)split_block + (split_block_head->block_size << POOL_BLOCK_SHIFT));
+    }
+
+    // check if the size of remained block after suitable_block_size minus
+    // requested size lesses than POOL_FREE_BLOCK_OVERHEAD, then return the
+    // suitable_block and not to split. Otherwise, split it and add remianed
+    // block to corresponding list.
+    if ((suitable_block_size - size) < (POOL_FREE_BLOCK_OVERHEAD))
+    {
+        ret_block_head = split_block_head;
+        ret_block_head->pool_type = POOL_TYPE_ACTIVE;
+        ret_block = split_block;
+
+        // remove the block from original list.
+        _list_remove(ret_block);
+
+        return (void *)ret_block;
+    }
+
+    // Now we already known the suitable_block need to split, but there
+    // has two cases need to consider.
+
+    // if previous block is not equal to zero, it means current sutiable_block
+    // is not the first block in page which it belonged.
+    if (split_block_head->prev_size)
+    {
+
+        split_block_head->block_size -= ((size + POOL_HEAD_OVERHEAD) >> POOL_BLOCK_SHIFT);
+
+        // remove the block from original list.
+        _list_remove(split_block);
+
+        // add to new list
+        free_list = &pool_desc->list_heads[split_block_head->block_size];
+        _list_push(free_list, split_block);
+
+        ret_block_head =
+            (pool_header *)((uint64_t)split_block + (split_block_head->block_size << POOL_BLOCK_SHIFT));
+        ret_block = (list_node *)((uint64_t)ret_block_head + POOL_HEAD_OVERHEAD);
+
+        ret_block_head->prev_size = split_block_head->block_size;
+        ret_block_head->block_size = (size >> POOL_BLOCK_SHIFT);
+        ret_block_head->pool_type = POOL_TYPE_ACTIVE;
+        ret_block_head->pool_tag = 0;
+
+        if (does_it_need_to_be_updated)
+        {
+            // update the next_block's head
+            next_block_head->prev_size = ret_block_head->block_size;
+        }
+    }
+
+    // another case, split_block is stored at the first position of page it belonged
+    else
+    {
+        ret_block_head = split_block_head;
+        ret_block = split_block;
+
+        split_block_head = (pool_header *)((uint64_t)ret_block + size);
+        split_block = (list_node *)((uint64_t)split_block_head + POOL_HEAD_OVERHEAD);
+
+        // remove from original list
+        ret_block_head->block_size = (size >> POOL_BLOCK_SHIFT);
+        ret_block_head->pool_type = POOL_TYPE_ACTIVE;
+        ret_block_head->pool_tag = 0;
+        _list_remove(ret_block);
+
+        split_block_head->block_size =
+            (suitable_block_size - size - (POOL_HEAD_OVERHEAD >> 1)) >> POOL_BLOCK_SHIFT;
+        split_block_head->prev_size = ret_block_head->block_size;
+        split_block_head->pool_index = pool_index;
+        split_block_head->pool_type = POOL_TYPE_FREE;
+        split_block_head->pool_tag = 0;
+
+        if (does_it_need_to_be_updated)
+        {
+            next_block_head->prev_size = split_block_head->block_size;
+        }
+
+        free_list = &pool_desc->list_heads[split_block_head->block_size];
+        _list_push(free_list, split_block);
+    }
+
+    return (void *)ret_block;
+}
+
+void _mm_free(void *addr, uint16_t pool_index)
+{
+    pool_header *released_block_head;
+    pool_header *prev_block_head;
+    pool_header *next_block_head;
+    pool_header *predict_block_head;
+    boolean does_back_block_need_to_update;
+
+    list_node *released_block;
+    list_node *prev_block;
+    list_node *next_block;
+
+    pool *pool_desc;
+    list_node *free_list;
+
+    uint16_t free_size;
+
+
+    // The variable indicates whether it is necessary to update the header
+    // of the active block that follows the last free block that follows
+    // released block.
+
+    // The default value is false. Because if released_block is the last block
+    // in current page, we don't enter situation 1 loop, which means this variable
+    // is not to be updated.
+    does_back_block_need_to_update = false;
+
+
+    // check if addr is not page_aligned. Otherwise, we diectly
+    // call lower dynamic memory management function.
+    if (is_page_aligned(addr))
+    {
+        return _mm_free_pages(addr);
+    }
+
+    // locate at corresponding pool
+    pool_desc = &_mm_pools[pool_index];
+
+    // be released block
+    released_block = (list_node *)(addr);
+    released_block_head = (pool_header *)((uint64_t)released_block - POOL_HEAD_OVERHEAD);
+
+    // check pool_type
+    if (released_block_head->pool_type != POOL_TYPE_ACTIVE)
+    {
+        // Buggy
+        krnl_panic();
+    }
+
+    // "tag mechanism", not implemented.
+    if (released_block_head->pool_tag != 0)
+    {
+        // Buggy
+        krnl_panic();
+    }
+
+    // record releasalbe size.
+    free_size = (released_block_head->block_size << POOL_BLOCK_SHIFT) + POOL_HEAD_OVERHEAD;
+
+    // situation 1: the be released block is not the last block in the page.
+    if (((uint64_t)released_block + (released_block_head->block_size << POOL_BLOCK_SHIFT)) < page_aligned(released_block))
+    {
+
+        // record next block
+        next_block_head = (pool_header *)((uint64_t)released_block +
+                                          (released_block_head->block_size << POOL_BLOCK_SHIFT));
+        next_block = (list_node *)((uint64_t)next_block_head + POOL_HEAD_OVERHEAD);
+
+        // check if prev_size in next block header is not equal to the size of released block
+        // Normally, they are equal.
+        if (released_block_head->block_size != next_block_head->prev_size)
+        {
+            // Buggy
+            krnl_panic();
+        }
+
+        // It is necessary to update the header of the active block that follows the 
+        // last free block that follows released block.
+        // Because of all free blocks that follows released_block will be merged with
+        // released_blcok. For this reason, the size of released_block will be changed.
+        // The prev_size of the active block alose must to be changed.
+
+        // On another situation, the block that closly following released_block is active.
+        // We also need to update the header.
+
+        // In a word, if existing a active block in range of behind the released_block, it's
+        // header must to be update.
+        does_back_block_need_to_update = true;
+
+        // We walk the list, record which blocks we need to merge.
+        while (next_block_head->pool_type == POOL_TYPE_FREE)
+        {
+            free_size += (next_block_head->block_size << POOL_BLOCK_SHIFT) + POOL_HEAD_OVERHEAD;
+            free_list = &pool_desc->list_heads[next_block_head->block_size];
+            _list_remove(next_block);
+
+            // check if address of next_block_head is outside the scope of current page.
+            if (((uint64_t)next_block + (next_block_head->block_size << POOL_BLOCK_SHIFT)) >= page_aligned(released_block))
+            {
+                // becauce of the last block in current page is free. There is nothing to
+                // update in the range behind the released_block. We don't to update.
+                does_back_block_need_to_update = false;
+
+                break;
+            }
+
+            // the next block
+            next_block_head = (pool_header *)((uint64_t)next_block +
+                                              (next_block_head->block_size << POOL_BLOCK_SHIFT));
+            next_block = (list_node *)((uint64_t)next_block_head + POOL_HEAD_OVERHEAD);
+        }
+    }
+
+    // situation 2: the be released block is not the first block in the page.
+    if (released_block_head->prev_size != 0)
+    {
+
+        prev_block = (list_node *)((uint64_t)released_block_head -
+                                   (released_block_head->prev_size << POOL_BLOCK_SHIFT));
+        prev_block_head = (pool_header *)((uint64_t)prev_block - POOL_HEAD_OVERHEAD);
+
+        // if the block in front of released_block is free.
+        if (prev_block_head->pool_type == POOL_TYPE_FREE)
+        {
+
+            // walk forward.
+            while (true)
+            {
+                free_size += (prev_block_head->block_size << POOL_BLOCK_SHIFT) + POOL_HEAD_OVERHEAD;
+                free_list = &pool_desc->list_heads[prev_block_head->block_size];
+
+                // remove the block from origianl list.
+                _list_remove(prev_block);
+
+                // If the block(prev_block) of current block is the first block in current page.
+                if (prev_block_head->prev_size == 0)
+                {
+                    break;
+                }
+
+                // The predict block is in front of the block in front of current block.
+                predict_block_head = (pool_header *)((uint64_t)prev_block_head -
+                                                     (prev_block_head->prev_size << POOL_BLOCK_SHIFT) - POOL_HEAD_OVERHEAD);
+
+                if (predict_block_head->pool_type != POOL_TYPE_FREE)
+                {
+                    break;
+                }
+
+                // the block in front of the released_block.
+                prev_block = (list_node *)((uint64_t)prev_block_head -
+                                           (prev_block_head->block_size << POOL_BLOCK_SHIFT));
+                prev_block_head = (pool_header *)((uint64_t)prev_block - POOL_HEAD_OVERHEAD);
+            }
+
+            // check if we walked forward all block, in this case, the sum of size of all can be merged block
+            // may be equal to PAGE_SIZE, we need to free the page.
+            if (free_size == POOL_PAGE_SIZE)
+            {
+                return _mm_free_pages(prev_block_head);
+            }
+
+            // Otherwise, the reason that caused while loop break is that encountered non-free block
+            // when walking forward. But we need to re-locate the free block that closest to the page starting
+            // position because we used the predict_block.
+            else
+            {
+
+                // the prev_block was removed from original list in while loop and the free_size was
+                // recorded the size of the prev_block.
+                // adjust the free_size to decrease POOL_HEAD_OVERHEAD.
+                free_size -= POOL_HEAD_OVERHEAD;
+                prev_block_head->block_size = free_size >> POOL_BLOCK_SHIFT;
+
+                // add free block to suitable list 
+                // free_list = &pool_desc->list_heads[(free_size >> POOL_BLOCK_SHIFT)];
+                // _list_push(free_list, prev_block);
+            }
+        }
+        else
+        {
+            goto __free_released_block;
+        }
+
+        memzero((void *)((uint64_t)prev_block), free_size);
+
+        if (does_back_block_need_to_update)
+        {
+            // update the prev_size of next_block_head
+            next_block_head->prev_size = prev_block_head->block_size;
+        }
+
+        // add merged block to suitable list 
+        free_list = &pool_desc->list_heads[(free_size >> POOL_BLOCK_SHIFT)];
+        _list_push(free_list, prev_block);
+    }
+
+    // situation 3: released_block is the frist block in page.
+    else
+    {
+
+__free_released_block:
+
+        if (free_size == PAGE_SIZE)
+        {
+            _mm_free_pages(released_block_head);
+        }
+        else
+        {
+            free_size -= POOL_HEAD_OVERHEAD;
+
+            released_block_head->block_size = (free_size >> POOL_BLOCK_SHIFT);
+            released_block_head->pool_tag = 0;
+            released_block_head->pool_type = POOL_TYPE_FREE;
+
+            if (does_back_block_need_to_update)
+            {
+                next_block_head->prev_size = released_block_head->block_size;
+            }
+
+            memzero((void *)released_block, free_size);
+            
+            free_list = &pool_desc->list_heads[released_block_head->block_size];
+            _list_push(free_list, released_block);
+        }
+    }
+}
+
+// default kernel memory pool
+void *_mm_kmalloc(uint64_t size)
+{
+    return _mm_malloc(size, POOL_INDEX_KERNEL_DEFAULT);
+}
+
+void _mm_kfree(void *addr)
+{
+    _mm_free(addr, POOL_INDEX_KERNEL_DEFAULT);
+}

@@ -1,0 +1,254 @@
+#include "../../include/libk/stdio.h"
+#include "../../include/libk/string.h"
+#include "../../include/libk/math.h"
+#include "../../include/libk/limits.h"
+
+#define MAXPUTBUF                   0x80
+
+#define FLOAT_BINARY_64             64
+
+// b = the radix, 2 or 10
+
+// p = the number f digits in the significand (precision)
+#define FLOAT_BINARY_64_P_BIT           53
+
+// s is 0 or 1.
+#define FLOAT_BINARY_64_S_BIT           1
+#define FLOAT_BINARY_64_T_BIT           (FLOAT_BINARY_64_P_BIT - 1)
+
+// In normailzed values, The exponent field is interpreted as representing a
+// signed integer in biased form.
+#define FLOAT_BINARY_64_W_BIT           \
+    (FLOAT_BINARY_64 - FLOAT_BINARY_64_S_BIT - (FLOAT_BINARY_64_P_BIT - 1))
+
+// emax = the maximum exponent e
+#define FLOAT_BINARY_64_EMAX        1023  
+
+// emin = the minimum exponent e
+// emin shall be 1 - emax for all formats.
+#define FLOAT_BINARY_64_EMIM        (1 - FLOAT_BINARY_64_EMAX)  
+
+#define FLOAT_BINARY_64_BIAS        (powdu(2,FLOAT_BINARY_64_W_BIT - 1) - 1)    // 1023
+
+/**
+ * 
+ * q is any integer emin <= q + p - 1 <= emax
+ * c is a number represented by a digit string of the form
+*/
+
+#define __get_sign_of_double(f)     (f & (0x8000000000000000))
+
+static char putbuf[MAXPUTBUF];
+
+static int calculate_bits_for_decimal_digit(int d) {
+    double power_of_ten = powdu(10, d - 1);
+    double log_base_2 = log2_int(power_of_ten);
+    int bits_required = (int)(log_base_2) + 1;
+    return bits_required;
+}
+
+// Function to reverse a string
+static void reverse(char *str, int length) {
+    int start = 0;
+    int end = length - 1;
+    while (start < end) {
+        char temp = str[start];
+        str[start] = str[end];
+        str[end] = temp;
+        start++;
+        end--;
+    }
+}
+
+static long long2str(long num, char* str, long min_digtis, int base)
+{
+    long i = 0;
+    boolean is_negative = false;
+
+    if (num == 0)
+    {
+        str[i++] = '0';
+        str[i] = '\0';
+        return 1;
+    }
+
+    if (num < 0)
+    {
+        num = -num;
+        str[i++] = '-';
+        is_negative = true;
+    }
+        
+
+    while (num)
+    {
+        str[i++] = (num % base) + '0';
+        num = num / base;
+    }
+
+    while (i <= min_digtis)
+    {
+        str[i++] = '0';
+    }
+
+    str[i] = '\0'; 
+    if (is_negative)
+    {
+        reverse(str+1, i-1);
+    }
+    else
+    {
+        reverse(str, i);
+    }
+
+    return i;
+
+}
+
+void uint64_to_hexstr(uint64_t value, char* buffer) {
+    const char hex_digits[] = "0123456789ABCDEF";
+    int i;
+    for (i = 0; i < 16; i++) {
+        buffer[15 - i] = hex_digits[value & 0xF];
+        value >>= 4;
+    }
+    buffer[16] = '\0'; // Null-terminate the string
+}
+
+void puts(const char *s)
+{
+    int len = strlen(s);
+    for (int i = 0; i < len; i++)
+    {
+        putc(s[i]);
+    }
+}
+
+void putss(const char *s1, const char *s2)
+{
+    if (s1 != NULL)
+    {
+        puts(s1);
+    }
+    if (s2 != NULL)
+    {
+        puts(s2);
+    }
+    
+}
+
+void putsd(const char *s, int64_t d)
+{
+    if (s != NULL)
+    {
+        puts(s);
+    }
+    long2str(d, putbuf, INT64_MIN, 10);
+    puts(putbuf);
+    
+}
+
+void putsx(const char *s, uint64_t x)
+{
+    if (s != NULL)
+    {
+        puts(s);
+    }
+    putbuf[0] = '0';
+    putbuf[1] = 'x';
+    uint64_to_hexstr(x, putbuf+2);
+    puts(putbuf);
+}
+
+void putsf(const char *s, double f)
+{
+    char* str;
+
+    uint64_t exp;
+    union 
+    {
+        uint64_t d;
+        double f;
+    } uf;
+
+    uint64_t u;
+    uint64_t m;
+
+    if (s != NULL)
+    {
+        puts(s);
+    }
+    
+    uf.f = f;
+    str = putbuf;
+
+    if (uf.d & 0x8000000000000000)
+    {
+        str[0] = '-';     
+        str++;
+    }
+
+    exp = (uf.d & 0x7FF0000000000000) >> 52;
+     
+    if (exp == 0x0)
+    {
+        str[0] = '0';
+        str[1] = '\0';
+    }
+    else if (exp == 0x7ff)
+    {
+        str[0] = 'i';
+        str[1] = 'n';
+        str[2] = 'f';
+        str[3] = '\0';
+    }
+    /**
+     * If 1 <= E <= 2^W - 2
+     * 
+    */
+    else
+    {
+        uf.d &= 0x7FFFFFFFFFFFFFFF;               
+        u = (uint64_t)uf.f;
+        m = (uint64_t)((uf.f - u) * 1000000);
+
+        long2str(u, str, 0, 10);
+
+        str += strlen(str);
+        *str = '.';
+        str++;
+        long2str(m, str, 0, 10);
+    }
+
+    puts(putbuf);
+
+}
+
+void putsds(const char *s, int64_t d, const char *s1)
+{
+    putsd(s, d);
+    if (s1 != NULL)
+    {
+        puts(s1);
+    }
+    
+}
+void putsxs(const char *s, uint64_t x, const char *s1)
+{
+    putsx(s, x);
+    if (s1 != NULL)
+    {
+        puts(s1);
+    }
+
+}
+
+void putsfs(const char *s, double f, const char *s1)
+{
+    putsf(s, f);
+    if (s1 != NULL)
+    {
+        puts(s1);
+    }
+
+}

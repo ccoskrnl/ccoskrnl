@@ -1,0 +1,54 @@
+## @file
+#  Brief Description of UEFI MyHelloWorld
+#
+#  Detailed Description of UEFI MyWizardDriver
+#
+#  Copyright for UEFI  MyHelloWorld
+#
+#  License for UEFI  MyHelloWorld
+#
+##
+
+[Defines]
+  INF_VERSION                    = 1.25
+  BASE_NAME                      = CcLoader
+  FILE_GUID                      = a6d90a08-c621-47ad-9540-86940278b0ad
+  MODULE_TYPE                    = UEFI_APPLICATION
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = UefiMain
+#
+# The following information is for reference only and not required by the build tools.
+#
+#  VALID_ARCHITECTURES           = IA32 X64 IPF EBC Etc...
+#
+
+[Sources]
+  CcLoader.c
+  CcReadFile.c
+  CcWrapper.c
+  CcAcpiRoutines.c
+  CcDisplayRoutines.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  UefiApplicationEntryPoint
+  UefiLib
+  UefiBootServicesTableLib
+
+[Guids]
+  gEfiFileInfoGuid
+  gEfiAcpiTableGuid
+[Ppis]
+
+[Protocols]
+  gEfiHiiImageExProtocolGuid
+  gEfiHiiImageDecoderProtocolGuid
+  gEfiRngProtocolGuid
+  gEfiGraphicsOutputProtocolGuid
+  gEfiSimpleFileSystemProtocolGuid
+  gEfiAcpiSdtProtocolGuid
+[FeaturePcd]
+
+[Pcd]
