@@ -24,6 +24,11 @@ all: $(TARGET)
 $(TARGET): $(SUBDIRS) $(LINK_SCRIPT) 
 	@echo "Linking objects to $@"
 	@$(LD) $(LDFLAGS) -T $(LINK_SCRIPT) -o $@ $(OBJS)
+
+	@if [ -f $(ESP_DIR)/krnl ]; then \
+		rm $(ESP_DIR)/krnl; \
+	fi
+
 	@cp -v $(TARGET) $(ESP_DIR)
 	@echo ""
 	@echo "Krnl Creation Completed at $@"

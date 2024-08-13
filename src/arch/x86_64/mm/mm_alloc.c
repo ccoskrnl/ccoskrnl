@@ -29,7 +29,7 @@ status_t _mm_alloc_pages(uint64_t size, void **addr)
     allocate_address = (pool_free_page_entry **)addr;
 
     // We perfrom page-alignment on the size of requested.
-    // Hence, we obtain the number of requested pages.
+    // Hence, we obtain the number of pages of requested size.
     number_of_pages = page_aligned(size) >> PAGE_SHIFT;
 
     // lower memory pool manager uses finite lists to manage all free
@@ -37,17 +37,18 @@ status_t _mm_alloc_pages(uint64_t size, void **addr)
     // NON_PAGED_POOL_LIST_HEADS_MAXIMUM macro. the first item of list array 
     // collected all free pages which their size exceeded the defined maximum limit.
 
-    // check if these has a suitable lists contained all requested size free pages.
+    // check if these has a suitable lists that contained continuous free pages that
+    // the number of the pages equals the requested amount.
     if (number_of_pages < NON_PAGED_POOL_LIST_HEADS_MAXIMUM)
     {
-        // we found the list and it is non-empty.
+        // we found the list and have ensured it is non-empty.
         free_list = &_mm_non_paged_pool_free_list_array[number_of_pages];
         if (free_list->total > 0)
         {
 
             if (free_list->total > 1)
             {
-                // remove the last item in the list.
+                // remove the last item of the list.
                 // start_page points suitable size page at this time, 
                 // we can return the page after we have set the necessary attributes.
                 start_page = free_list->rear;
@@ -80,7 +81,7 @@ status_t _mm_alloc_pages(uint64_t size, void **addr)
     }
 
     // in this case, we not found suitable list, hence, we need to
-    // find a continuous page and split it as appropriate.
+    // find a continuous series of pages and split it as appropriate.
     free_list = &_mm_non_paged_pool_free_list_array[0];
     if (free_list->total == 0)
     {
@@ -88,13 +89,23 @@ status_t _mm_alloc_pages(uint64_t size, void **addr)
         goto __exit_alloc;
     }
 
+
+    // iterate backward through the list
+
+    // get the last item of the list
     rear_page = free_list->rear;
 
-    // 如果链表末尾的最后一项大于请求的页面数
+__construct_pages:
+
+    // inspect if the number of the continuous pages greater than requested amount.
     if (rear_page->number_of_pages > number_of_pages)
     {
+        // divide the continuous pages into two continuous pages
+        // the front will be added into corresponding list, and the
+        // back will be returned to caller. 
         rear_page->number_of_pages -= number_of_pages;
 
+        // start_page records the start of continuous pages which will be returned
         start_page = (pool_free_page_entry *)(((rear_page->number_of_pages) << PAGE_SHIFT) + (uint64_t)rear_page);
 
         for (size_t i = 0; i < number_of_pages; i++)
@@ -107,16 +118,17 @@ status_t _mm_alloc_pages(uint64_t size, void **addr)
             page += 0x1000;
         }
 
-        // 更新 PFN 数据库
         pte = __get_pte_by_virt_addr(start_page);
         _mm_pfn_db_start[pte->pte.hardware.address].state.StartOfAllocation = 1;
         _mm_pfn_db_start[(pte->pte.hardware.address) + (number_of_pages - 1)].state.EndOfAllocation = 1;
         *allocate_address = start_page;
         status = ST_SUCCESS;
 
-        // 根据剩余的页面考虑是否更新当前节点所在的数组，否则不需要更新
+        // we need to add the front into corresponding list if its number_of_pages
+        // less than NON_PAGED_POOL_LIST_HEADS_MAXIMUM. 
         if (rear_page->number_of_pages < NON_PAGED_POOL_LIST_HEADS_MAXIMUM)
         {
+            // remove the remained continuous pages from the list that it belonged.
             if (free_list->total == 1)
             {
                 free_list->front = NULL;
@@ -124,12 +136,11 @@ status_t _mm_alloc_pages(uint64_t size, void **addr)
             }
             else
             {
-                // 更新链表末尾的项
                 free_list->rear = free_list->rear->node.blink;
             }
             free_list->total--;
 
-            // 添加到对应的链表中
+            // add it back into new list
             free_list = &_mm_non_paged_pool_free_list_array[rear_page->number_of_pages];
             if (free_list->total == 0)
             {
@@ -147,7 +158,7 @@ status_t _mm_alloc_pages(uint64_t size, void **addr)
         }
     }
 
-    // 如果链表末尾的最后一项等于请求的页面数
+    // inspect if the number of the continuous pages equals requested amount.
     else if (rear_page->number_of_pages == number_of_pages)
     {
         if (free_list->total == 1)
@@ -163,30 +174,31 @@ status_t _mm_alloc_pages(uint64_t size, void **addr)
             free_list->rear = rear_page->node.blink;
             free_list->total--;
         }
-        // 更新 PFN 数据库
+
         pte = __get_pte_by_virt_addr(start_page);
         _mm_pfn_db_start[pte->pte.hardware.address].state.StartOfAllocation = 1;
         _mm_pfn_db_start[(pte->pte.hardware.address) + (number_of_pages - 1)].state.EndOfAllocation = 1;
         *allocate_address = start_page;
         status = ST_SUCCESS;
+
     }
 
-    // 根据剩余的页面考虑是否更新当前节点所在的数组，否则不需要更新
     else
     {
         if (free_list->total == 1)
         {
             status = NO_MORE_FREE_MEMORY;
         }
-        // 向前遍历
+
+        // iterate backward through the list
         else
         {
-
-            // 只有链表节点数量大于1时才可以向前遍历
-            do
+            while (free_list->total > 1 && (rear_page->number_of_pages < number_of_pages)) 
             {
                 prev_page = rear_page->node.blink;
-                // 合并 prev rear
+                
+                // merge the previous continuous pages and this continuous pages into 
+                // single continuous pages. 
                 prev_page->number_of_pages += rear_page->number_of_pages;
                 rear_page->node.blink = 0;
                 rear_page->node.flink = 0;
@@ -202,97 +214,10 @@ status_t _mm_alloc_pages(uint64_t size, void **addr)
                 rear_page = prev_page;
                 free_list->rear = rear_page;
                 free_list->total--;
-
-            } while ((rear_page->number_of_pages < number_of_pages) && (free_list->total >= 1));
-
-            // 如果仍然小于，请求失败
-            if (rear_page->number_of_pages < number_of_pages)
-            {
-                status = NO_MORE_FREE_MEMORY;
+            
             }
-            else
-            {
-                // 如果链表末尾的最后一项大于请求的页面数
-                if (rear_page->number_of_pages > number_of_pages)
-                {
-                    rear_page->number_of_pages -= number_of_pages;
 
-                    start_page = (pool_free_page_entry *)(((rear_page->number_of_pages) << PAGE_SHIFT) + (uint64_t)rear_page);
-
-                    for (size_t i = 0; i < number_of_pages; i++)
-                    {
-                        pool_free_page_entry *page = start_page;
-                        page->node.blink = 0;
-                        page->node.flink = 0;
-                        page->number_of_pages = 0;
-                        page->owner = 0;
-                        page += 0x1000;
-                    }
-
-                    // 更新 PFN 数据库
-                    pte = __get_pte_by_virt_addr(start_page);
-                    _mm_pfn_db_start[pte->pte.hardware.address].state.StartOfAllocation = 1;
-                    _mm_pfn_db_start[(pte->pte.hardware.address) + (number_of_pages - 1)].state.EndOfAllocation = 1;
-                    *allocate_address = start_page;
-                    status = ST_SUCCESS;
-
-                    // 根据剩余的页面考虑是否更新当前节点所在的数组，否则不需要更新
-                    if (rear_page->number_of_pages < NON_PAGED_POOL_LIST_HEADS_MAXIMUM)
-                    {
-                        if (free_list->total == 1)
-                        {
-                            free_list->front = NULL;
-                            free_list->rear = NULL;
-                        }
-                        else
-                        {
-                            // 更新链表末尾的项
-                            free_list->rear = free_list->rear->node.blink;
-                        }
-                        free_list->total--;
-
-                        // 添加到对应的链表中
-                        free_list = &_mm_non_paged_pool_free_list_array[rear_page->number_of_pages];
-                        if (free_list->total == 0)
-                        {
-                            free_list->front = rear_page;
-                            free_list->rear = rear_page;
-                        }
-                        else
-                        {
-                            rear_page->node.blink = free_list->rear;
-                            free_list->rear->node.flink = rear_page;
-                            free_list->rear = rear_page;
-                        }
-
-                        free_list++;
-                    }
-                }
-
-                // 如果链表末尾的最后一项等于请求的页面数
-                else if (rear_page->number_of_pages == number_of_pages)
-                {
-                    if (free_list->total == 1)
-                    {
-                        free_list->rear = NULL;
-                        free_list->front = NULL;
-                        free_list->total = 0;
-                    }
-                    else
-                    {
-                        start_page = rear_page;
-                        rear_page->node.blink->node.flink = NULL;
-                        free_list->rear = rear_page->node.blink;
-                        free_list->total--;
-                    }
-                    // 更新 PFN 数据库
-                    pte = __get_pte_by_virt_addr(start_page);
-                    _mm_pfn_db_start[pte->pte.hardware.address].state.StartOfAllocation = 1;
-                    _mm_pfn_db_start[(pte->pte.hardware.address) + (number_of_pages - 1)].state.EndOfAllocation = 1;
-                    *allocate_address = start_page;
-                    status = ST_SUCCESS;
-                }
-            }
+            goto __construct_pages;
         }
     }
 
@@ -310,7 +235,7 @@ void _mm_free_pages(void *addr)
     pool_free_page_entry *page;
     pool_free_list_head *free_list;
 
-    // 清除 PFN 数据库的标志
+    // clear the flag in corresponding pfn item.
     start_addr = page = addr;
     pte = __get_pte_by_virt_addr(addr);
     index = pte->pte.hardware.address;
@@ -329,7 +254,7 @@ void _mm_free_pages(void *addr)
     }
     _mm_pfn_db_start[index].state.EndOfAllocation = 0;
 
-    // 考虑要添加哪一个空闲内存页链表
+    // inspect which list do we need to add it to
     if (start_addr->number_of_pages < NON_PAGED_POOL_LIST_HEADS_MAXIMUM)
     {
 

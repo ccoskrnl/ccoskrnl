@@ -1044,37 +1044,45 @@ static void dynamic_memory_management_test()
     status = _mm_alloc_pages((5 << PAGE_SHIFT), (void **)&alloc0);
     if (ST_ERROR(status))
     {
-        return;
+        krnl_panic();
     }
+
     _mm_free_pages(alloc0);
 
-    status = _mm_alloc_pages((5 << PAGE_SHIFT), (void **)&alloc0);
+    status = _mm_alloc_pages((15 << PAGE_SHIFT), (void **)&alloc0);
     if (ST_ERROR(status))
     {
-        return;
+        krnl_panic();
     }
+
+    status = _mm_alloc_pages((8 << PAGE_SHIFT), (void **)&alloc1);
+    if (ST_ERROR(status))
+    {
+        krnl_panic();
+    }
+    status = _mm_alloc_pages((1 << PAGE_SHIFT), (void **)&alloc2);
+    if (ST_ERROR(status))
+    {
+        krnl_panic();
+    }
+
+    _mm_free_pages(alloc1);
     _mm_free_pages(alloc0);
 
-    status = _mm_alloc_pages((8 << PAGE_SHIFT), (void **)&alloc0);
+    status = _mm_alloc_pages((39 << PAGE_SHIFT), (void **)&alloc3);
     if (ST_ERROR(status))
     {
-        return;
+        krnl_panic();
     }
-    _mm_free_pages(alloc0);
+    status = _mm_alloc_pages((28 << PAGE_SHIFT), (void **)&alloc4);
+    if (ST_ERROR(status))
+    {
+        krnl_panic();
+    }
+    _mm_free_pages(alloc2);
+    _mm_free_pages(alloc4);
+    _mm_free_pages(alloc3);
 
-    status = _mm_alloc_pages((1 << PAGE_SHIFT), (void **)&alloc0);
-    if (ST_ERROR(status))
-    {
-        return;
-    }
-    _mm_free_pages(alloc0);
-
-    status = _mm_alloc_pages((1 << PAGE_SHIFT), (void **)&alloc0);
-    if (ST_ERROR(status))
-    {
-        return;
-    }
-    _mm_free_pages(alloc0);
 
     // case 1: 
     alloc0 = _mm_kmalloc(sizeof(int64_t) * 8);

@@ -119,6 +119,23 @@ make run
 gdb --command=../conf/gdb_start
 ```
 
+一种比较推荐的做法是在将这些环境变量添加到您的shell的配置文件中，下面是一个示例:
+```bash
+PREFIX="$HOME/opt/cross"
+PATH="$PREFIX/bin:$PATH"
+TARGET=x86_64-elf
+
+# 您应该更改为您的项目的所在路径
+EDK_TOOLS_PATH=$HOME/src/edk2/BaseTools
+EDK2=$HOME/src/edk2
+CCOSKRNL=$HOME/projects/ccoskrnl
+
+# 在命令行输入debugcc，即可启动gdb调试ccoskrnl
+debugcc(){
+    gdb --command=$CCOSKRNL/conf/gdb_start
+}
+```
+
 ### 在物理机上运行
 
 **十分不推荐您在物理机上运行该项目！！！**

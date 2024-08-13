@@ -158,41 +158,41 @@ void print_skadi()
 
 void print_machine_info()
 {
-    while (1)
-    {
-        print_skadi();
-        for (int i = 0; i < 300; i++)
-        {
-            pit_prepare_sleep(10000);
-            pit_perform_sleep();
-        }
-    }
-    
-    
-    // puts("System diagnostic completed. All systems nominal.\n");
-
-    // puts("Processor Name: ");
-    // puts(cpu_brand_string);
-    // putc('\n');
-
-    // puts("TSC invariant: ");
-    // puts(tsc_invariant ? "true\n" : "false\n");
-
-    // putsx("Kernel Space Size: ", _current_machine_info->memory_space_info[0].size);
-    // putc('\n');
-    // putsx("RAM Size: ", _current_machine_info->memory_info.ram_size);
-    // putc('\n');
-    // putsd("Screen Width: ", _current_machine_info->graphics_info.HorizontalResolution);
-    // putc('\n');
-    // putsd("Screen Height: ", _current_machine_info->graphics_info.VerticalResolution);
-    // putc('\n');
-
-    // puts("IA-PC HPET: ");
-    // puts(_current_machine_info->acpi_info.hpet != 0 ? "true\n" : "false\n");
-    // if (_current_machine_info->acpi_info.hpet != 0)
+    // while (1)
     // {
-    //     putsxs("IA-PC HPET Address: ", hpet_table->BaseAddressLower32Bit.Address, "\n");
+    //     print_skadi();
+    //     for (int i = 0; i < 300; i++)
+    //     {
+    //         pit_prepare_sleep(10000);
+    //         pit_perform_sleep();
+    //     }
     // }
+    
+    
+    puts("System diagnostic completed. All systems nominal.\n");
+
+    puts("Processor Name: ");
+    puts(cpu_brand_string);
+    putc('\n');
+
+    puts("TSC invariant: ");
+    puts(tsc_invariant ? "true\n" : "false\n");
+
+    putsx("Kernel Space Size: ", _current_machine_info->memory_space_info[0].size);
+    putc('\n');
+    putsx("RAM Size: ", _current_machine_info->memory_info.ram_size);
+    putc('\n');
+    putsd("Screen Width: ", _current_machine_info->graphics_info.HorizontalResolution);
+    putc('\n');
+    putsd("Screen Height: ", _current_machine_info->graphics_info.VerticalResolution);
+    putc('\n');
+
+    puts("IA-PC HPET: ");
+    puts(_current_machine_info->acpi_info.hpet != 0 ? "true\n" : "false\n");
+    if (_current_machine_info->acpi_info.hpet != 0)
+    {
+        putsxs("IA-PC HPET Address: ", hpet_table->BaseAddressLower32Bit.Address, "\n");
+    }
     
     
 }
