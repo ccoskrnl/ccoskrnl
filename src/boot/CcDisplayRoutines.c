@@ -143,6 +143,12 @@ EFI_STATUS DisplayImage(
 	return Status;
 }
 
+#define LOGO1_WIDTH							256
+#define LOGO1_HEIGHT						256
+
+#define LOGO2_WIDTH							300
+#define LOGO2_HEIGHT						80
+
 VOID DisplayLoadingLogo()
 {
 	EFI_STATUS Status;
@@ -156,8 +162,8 @@ VOID DisplayLoadingLogo()
 
 
 	ReadFileToBuffer(LOGO_ICO_PATH, &FileBuffer, &FileSize);
-	ImageOutput.Width = 300;
-	ImageOutput.Height = 300;
+	ImageOutput.Width = LOGO1_WIDTH;
+	ImageOutput.Height = LOGO1_HEIGHT;
 	ImageOutput.Image.Bitmap = FileBuffer;
 
 	XOfUpperLeftHand = (Horizontal - ImageOutput.Width) >> 1;
@@ -170,8 +176,8 @@ VOID DisplayLoadingLogo()
 	FreePool(FileBuffer);
 
 	ReadFileToBuffer(LOADING_ICO_PATH, &FileBuffer, &FileSize);
-	ImageOutput.Width = 300;
-	ImageOutput.Height = 80;
+	ImageOutput.Width = LOGO2_WIDTH;
+	ImageOutput.Height = LOGO2_HEIGHT;
 	ImageOutput.Image.Bitmap = FileBuffer;
 
 

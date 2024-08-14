@@ -729,7 +729,7 @@ static void pfn_init()
         case EfiBootServicesCode:
         case EfiBootServicesData:
 
-        /*  Continuous free physical pages list */
+        /*  contiguous free physical pages list */
         {
             for (i_pfn_element = phys_page_start;
                  i_pfn_element < (desc->NumberOfPages + phys_page_start);
@@ -766,13 +766,13 @@ static void pfn_init()
         case EfiPersistentMemory:
 
 
-        /*  Continuous free physical page list & Continuous active physical page list */
+        /*  contiguous free physical page list & contiguous active physical page list */
         {
             for (i_pfn_element = phys_page_start;
                  i_pfn_element < (desc->NumberOfPages + phys_page_start);
                  i_pfn_element++)
             {
-                // We allocated a continuous free physical memory space during OS Loader. Here, we need to set
+                // We allocated a contiguous free physical memory space during OS Loader. Here, we need to set
                 // pfn items of the allocated memory space to active state, then fill corresponding attributes
                 if (i_pfn_element >= krnl_space_start_page && i_pfn_element < krnl_space_end_page)
                 {

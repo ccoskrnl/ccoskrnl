@@ -37,7 +37,7 @@ status_t _mm_alloc_pages(uint64_t size, void **addr)
     // NON_PAGED_POOL_LIST_HEADS_MAXIMUM macro. the first item of list array 
     // collected all free pages which their size exceeded the defined maximum limit.
 
-    // check if these has a suitable lists that contained continuous free pages that
+    // check if these has a suitable lists that contained contiguous free pages that
     // the number of the pages equals the requested amount.
     if (number_of_pages < NON_PAGED_POOL_LIST_HEADS_MAXIMUM)
     {
@@ -81,7 +81,7 @@ status_t _mm_alloc_pages(uint64_t size, void **addr)
     }
 
     // in this case, we not found suitable list, hence, we need to
-    // find a continuous series of pages and split it as appropriate.
+    // find a contiguous pages and separate it as appropriate.
     free_list = &_mm_non_paged_pool_free_list_array[0];
     if (free_list->total == 0)
     {
@@ -97,15 +97,15 @@ status_t _mm_alloc_pages(uint64_t size, void **addr)
 
 __construct_pages:
 
-    // inspect if the number of the continuous pages greater than requested amount.
+    // inspect if the number of the contiguous pages greater than requested amount.
     if (rear_page->number_of_pages > number_of_pages)
     {
-        // divide the continuous pages into two continuous pages
+        // divide the contiguous pages into two contiguous pages
         // the front will be added into corresponding list, and the
         // back will be returned to caller. 
         rear_page->number_of_pages -= number_of_pages;
 
-        // start_page records the start of continuous pages which will be returned
+        // start_page records the start of contiguous pages which will be returned
         start_page = (pool_free_page_entry *)(((rear_page->number_of_pages) << PAGE_SHIFT) + (uint64_t)rear_page);
 
         for (size_t i = 0; i < number_of_pages; i++)
@@ -128,7 +128,7 @@ __construct_pages:
         // less than NON_PAGED_POOL_LIST_HEADS_MAXIMUM. 
         if (rear_page->number_of_pages < NON_PAGED_POOL_LIST_HEADS_MAXIMUM)
         {
-            // remove the remained continuous pages from the list that it belonged.
+            // remove the remained contiguous pages from the list that it belonged.
             if (free_list->total == 1)
             {
                 free_list->front = NULL;
@@ -158,7 +158,7 @@ __construct_pages:
         }
     }
 
-    // inspect if the number of the continuous pages equals requested amount.
+    // inspect if the number of the contiguous pages equals requested amount.
     else if (rear_page->number_of_pages == number_of_pages)
     {
         if (free_list->total == 1)
@@ -197,8 +197,8 @@ __construct_pages:
             {
                 prev_page = rear_page->node.blink;
                 
-                // merge the previous continuous pages and this continuous pages into 
-                // single continuous pages. 
+                // merge the previous contiguous pages and this contiguous pages into 
+                // single contiguous pages. 
                 prev_page->number_of_pages += rear_page->number_of_pages;
                 rear_page->node.blink = 0;
                 rear_page->node.flink = 0;
@@ -287,8 +287,8 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index)
     list_node *ret_block;
     pool_header *ret_block_head;
 
-    list_node *split_block;
-    pool_header *split_block_head;
+    list_node *separate_block;
+    pool_header *separate_block_head;
 
     pool_header *next_block_head;
 
@@ -368,7 +368,7 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index)
     // dynamic memory management function to allocate a new free page to 
     // respond the request.
 
-    // The new free page will be split. The front block will be returned
+    // The new free page will be separate. The front block will be returned
     // and the back block will be added to suitable free list.
     if (list_index >= POOL_LIST_HEADS)
     {
@@ -380,33 +380,33 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index)
             return NULL;
         }
 
-        // split the new allocated page.
+        // separate the new allocated page.
         else
         {
-            // split_block points back block here.
-            split_block_head = (pool_header *)(new_page + size + POOL_HEAD_OVERHEAD);
-            split_block = (list_node *)((uint64_t)split_block_head + POOL_HEAD_OVERHEAD);
+            // separate_block points back block here.
+            separate_block_head = (pool_header *)(new_page + size + POOL_HEAD_OVERHEAD);
+            separate_block = (list_node *)((uint64_t)separate_block_head + POOL_HEAD_OVERHEAD);
 
             // it will be added to free list.
-            split_block_head->prev_size = (size) >> POOL_BLOCK_SHIFT;
-            split_block_head->block_size =
+            separate_block_head->prev_size = (size) >> POOL_BLOCK_SHIFT;
+            separate_block_head->block_size =
                 (POOL_PAGE_SIZE - size - (POOL_HEAD_OVERHEAD << 1)) >> POOL_BLOCK_SHIFT;
-            split_block_head->pool_type = POOL_TYPE_FREE;
-            split_block_head->pool_index = pool_index;
-            split_block_head->pool_tag = 0;
+            separate_block_head->pool_type = POOL_TYPE_FREE;
+            separate_block_head->pool_index = pool_index;
+            separate_block_head->pool_tag = 0;
 
             // set the block header of block will be returned.
             ret_block_head = (pool_header *)new_page;
             ret_block = (list_node *)((uint64_t)ret_block_head + POOL_HEAD_OVERHEAD);
             ret_block_head->prev_size = 0;
-            ret_block_head->block_size = split_block_head->prev_size;
+            ret_block_head->block_size = separate_block_head->prev_size;
             ret_block_head->pool_type = POOL_TYPE_ACTIVE;
             ret_block_head->pool_index = pool_index;
             ret_block_head->pool_tag = 0;
 
-            // add the split_block to free list
-            free_list = &pool_desc->list_heads[split_block_head->block_size];
-            _list_push(free_list, split_block);
+            // add the separate_block to free list
+            free_list = &pool_desc->list_heads[separate_block_head->block_size];
+            _list_push(free_list, separate_block);
 
             // return constructed block a moment ago.
             return (void *)ret_block;
@@ -417,26 +417,26 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index)
     suitable_block_size = list_index << POOL_BLOCK_SHIFT;
 
     // Using the last item to construct a block which need to return to caller
-    split_block = free_list->blink;
-    split_block_head = (pool_header *)((uint64_t)split_block - POOL_HEAD_OVERHEAD);
+    separate_block = free_list->blink;
+    separate_block_head = (pool_header *)((uint64_t)separate_block - POOL_HEAD_OVERHEAD);
 
-    // Suppose that the split_block we get just now is not stored at the final position of page
-    // it belonged, meaning we need to update the pool head of block that closely following split_block 
-    if (((uint64_t)split_block + (split_block_head->block_size << POOL_BLOCK_SHIFT)) < page_aligned(split_block))
+    // Suppose that the separate_block we get just now is not stored at the final position of page
+    // it belonged, meaning we need to update the pool head of block that closely following separate_block 
+    if (((uint64_t)separate_block + (separate_block_head->block_size << POOL_BLOCK_SHIFT)) < page_aligned(separate_block))
     {
         does_it_need_to_be_updated = true;
-        next_block_head = (pool_header *)((uint64_t)split_block + (split_block_head->block_size << POOL_BLOCK_SHIFT));
+        next_block_head = (pool_header *)((uint64_t)separate_block + (separate_block_head->block_size << POOL_BLOCK_SHIFT));
     }
 
     // check if the size of remained block after suitable_block_size minus
     // requested size lesses than POOL_FREE_BLOCK_OVERHEAD, then return the
-    // suitable_block and not to split. Otherwise, split it and add remianed
+    // suitable_block and not to separate. Otherwise, separate it and add remianed
     // block to corresponding list.
     if ((suitable_block_size - size) < (POOL_FREE_BLOCK_OVERHEAD))
     {
-        ret_block_head = split_block_head;
+        ret_block_head = separate_block_head;
         ret_block_head->pool_type = POOL_TYPE_ACTIVE;
-        ret_block = split_block;
+        ret_block = separate_block;
 
         // remove the block from original list.
         _list_remove(ret_block);
@@ -444,28 +444,28 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index)
         return (void *)ret_block;
     }
 
-    // Now we already known the suitable_block need to split, but there
+    // Now we already known the suitable_block need to separate, but there
     // has two cases need to consider.
 
     // if previous block is not equal to zero, it means current sutiable_block
     // is not the first block in page which it belonged.
-    if (split_block_head->prev_size)
+    if (separate_block_head->prev_size)
     {
 
-        split_block_head->block_size -= ((size + POOL_HEAD_OVERHEAD) >> POOL_BLOCK_SHIFT);
+        separate_block_head->block_size -= ((size + POOL_HEAD_OVERHEAD) >> POOL_BLOCK_SHIFT);
 
         // remove the block from original list.
-        _list_remove(split_block);
+        _list_remove(separate_block);
 
         // add to new list
-        free_list = &pool_desc->list_heads[split_block_head->block_size];
-        _list_push(free_list, split_block);
+        free_list = &pool_desc->list_heads[separate_block_head->block_size];
+        _list_push(free_list, separate_block);
 
         ret_block_head =
-            (pool_header *)((uint64_t)split_block + (split_block_head->block_size << POOL_BLOCK_SHIFT));
+            (pool_header *)((uint64_t)separate_block + (separate_block_head->block_size << POOL_BLOCK_SHIFT));
         ret_block = (list_node *)((uint64_t)ret_block_head + POOL_HEAD_OVERHEAD);
 
-        ret_block_head->prev_size = split_block_head->block_size;
+        ret_block_head->prev_size = separate_block_head->block_size;
         ret_block_head->block_size = (size >> POOL_BLOCK_SHIFT);
         ret_block_head->pool_type = POOL_TYPE_ACTIVE;
         ret_block_head->pool_tag = 0;
@@ -477,14 +477,14 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index)
         }
     }
 
-    // another case, split_block is stored at the first position of page it belonged
+    // another case, separate_block is stored at the first position of page it belonged
     else
     {
-        ret_block_head = split_block_head;
-        ret_block = split_block;
+        ret_block_head = separate_block_head;
+        ret_block = separate_block;
 
-        split_block_head = (pool_header *)((uint64_t)ret_block + size);
-        split_block = (list_node *)((uint64_t)split_block_head + POOL_HEAD_OVERHEAD);
+        separate_block_head = (pool_header *)((uint64_t)ret_block + size);
+        separate_block = (list_node *)((uint64_t)separate_block_head + POOL_HEAD_OVERHEAD);
 
         // remove from original list
         ret_block_head->block_size = (size >> POOL_BLOCK_SHIFT);
@@ -492,20 +492,20 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index)
         ret_block_head->pool_tag = 0;
         _list_remove(ret_block);
 
-        split_block_head->block_size =
+        separate_block_head->block_size =
             (suitable_block_size - size - (POOL_HEAD_OVERHEAD >> 1)) >> POOL_BLOCK_SHIFT;
-        split_block_head->prev_size = ret_block_head->block_size;
-        split_block_head->pool_index = pool_index;
-        split_block_head->pool_type = POOL_TYPE_FREE;
-        split_block_head->pool_tag = 0;
+        separate_block_head->prev_size = ret_block_head->block_size;
+        separate_block_head->pool_index = pool_index;
+        separate_block_head->pool_type = POOL_TYPE_FREE;
+        separate_block_head->pool_tag = 0;
 
         if (does_it_need_to_be_updated)
         {
-            next_block_head->prev_size = split_block_head->block_size;
+            next_block_head->prev_size = separate_block_head->block_size;
         }
 
-        free_list = &pool_desc->list_heads[split_block_head->block_size];
-        _list_push(free_list, split_block);
+        free_list = &pool_desc->list_heads[separate_block_head->block_size];
+        _list_push(free_list, separate_block);
     }
 
     return (void *)ret_block;
