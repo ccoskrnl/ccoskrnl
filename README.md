@@ -1,4 +1,4 @@
-# Cheng Cheng's Opearting System Kernel
+# Cheng Cheng's Operating System Kernel
 
 ## 概述
 
