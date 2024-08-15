@@ -1,3 +1,4 @@
 build
 conf/cpuid
 src/arch/x86_64/mm/backup.md
+docs/ccoskrnl.wiki

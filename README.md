@@ -1,147 +1,37 @@
-# CCOSKRNL
+# Cheng Cheng's Opearting System Kernel
 
-## 设计思路
+## 概述
 
-[CcLoader](./docs/CcLoader.md)
+ccos 是一个基于x86_64架构开发的64位操作系统，尽可能地提供现代设备的驱动(我不保证能实现出来:)。ccos 项目的创立和开发主要来自我个人对操作系统的兴趣。内核的大部分设计思路都来源于Windows NT内核，感谢[《Windows内核原理与实现》](https://book.douban.com/su)这本书的作者 [潘爱民](https://baike.baidu.com/item/%E6%BD%98%E7%88%B1%E6%B0%91/2161) 老师。在我学习操作系统期间，这本书给予了我很大的帮助，它对Windows操作系统提供了非常全面且深入的探讨。对于那些想要深入研究操作系统的学生和专业人员来说，这本书毫无疑问是一份宝贵的资料。
 
-## 构建测试
+## 目录
 
-在构建该项目之前，请确保您已经安装好了下列软件: 
-```
-gcc
-gdb
-python
-qemu-system-x86
-qemu-system-x86-firmware
-qemu-desktop
-ovmf
-iasl
-nasm
-python-distutils-extra
-```
+- [安装](#安装)
+- [特性](#特性)
+- [贡献](#贡献)
+- [联系](#联系)
 
-### 搭建EDKII开发环境
+## 安装
 
-首先克隆edk2仓库：
-```bash
-git clone https://github.com/tianocore/edk2.git
-```
-接下来需要编译基本工具
-```bash
-cd edk2
-git submodule update --init
-make -C BaseTools
-```
-设置编译需要的环境变量，它会在Conf目录生成一些配置文件。
-```bash
-export EDK_TOOLS_PATH=$HOME/src/edk2/BaseTools
-source edksetup.sh BaseTools
-```
-编辑`Conf/target.txt`文件，修改方式如下：
-```
-ACTIVE_PLATFORM       = MdeModulePkg/MdeModulePkg.dsc
-# 您也可以使用RELEASE
-TARGET                = DEBUG
-# 我们的系统是X64架构，所以这里也要手动修改
-TARGET_ARCH           = X64
-# 使用GCC工具链
-TOOL_CHAIN_TAG        = GCC5
-```
-在完成上面的修改之后，键入下面这条命令进行构建测试，MdeModulePkg的所有模块都会被构建。
-```bash
-build
-```
+安装以及调试运行的教程已在Wiki给出。
 
-### 构建CcLoader
+## 特性
 
-在确保上面所有步骤都正常进行后，接下来就需要使用EDKII来构建我们的加载器了。
+UEFI引导
 
-```bash
-# 进入您自己的edk2项目文件夹，$EDK2是我的edk2项目路径，您需要替换为您自己的路径
-cd $EDK2
-mkdir -pv MdeModulePkg/Application/CcLoader
+APIC支持 (开发中)
 
-# 将`ccoskrnl/src/boot`的所有文件拷贝到CcLoader,$CCOSKRNL变量是我的项目路径
-cp -vrf $CCOSKRNL/src/boot/* ./MdeModulePkg/Application/CcLoader/
-```
+ACPI (ccos暂不支持电源管理)
 
-修改`MdeModulePkg/MdeModulePkg.dsc`文件，在`[Components]`描述中添加我们自己的项目。
-```
-[Components]
-  MdeModulePkg/Application/CcLoader/CcLoader.inf
-```
+x64架构
 
-回到edk2主目录，重新构建，将构建好的固件复制到`$CCOSKRNL/esp/EFI/BOOT/BOOTX64.EFI`
+## 贡献
 
-```bash
-export EDK_TOOLS_PATH=$HOME/src/edk2/BaseTools
-source edksetup.sh BaseTools
-build
-cp -vf $EDK2/Build/MdeModule/DEBUG_GCC5/X64/CcLoader.efi $CCOSKRNL/esp/EFI/BOOT/BOOTX64.EFI
-```
+无其他人。
 
-编译加载器，同样拷贝到`$CCOSKRNL/esp/ccldr`
-```bash
-nasm -f bin -o $CCOSKRNL/esp/ccldr $EDK2/MdeModulePkg/Application/CcLoader/ccldr.asm
-```
+## 联系
 
-在完成上面的工作之后，加载器已经构建完毕，接下来就可以构建内核了！
+如有疑问或反馈，请通过以下方式联系我：
 
-### 构建ccoskrnl
-
-确保您已经构建好了x86_64架构的交叉编译器，并将它们存放在`$HOME/opt/cross/bin/`目录下。
-
-构建交叉编译器请阅读 OSDev-GCC Cross-Compiler - https://wiki.osdev.org/GCC_Cross-Compiler
-
-进入 `$CCOSKRNL/src`
-
-```bash
-cd $CCOSKRNL/src
-# make -j $(nproc) 可以加快编译速度
-make
-# make clean 可以清理构建的文件
-```
-
-### 调试
-
-对于qemu模拟器：
-
-进入 `$CCOSKRNL/src`
-
-```bash
-cd $CCOSKRNL/src
-# make -j $(nproc) 可以加快编译速度
-make run
-```
-
-打开另一个终端，进入`$CCOSKRNL/src`目录，输入下面这条命令启动gdb调试(注意，由于开启了kvm，所以需要使用hbreak)
-```bash
-gdb --command=../conf/gdb_start
-```
-
-一种比较推荐的做法是在将这些环境变量添加到您的shell的配置文件中，下面是一个示例:
-```bash
-PREFIX="$HOME/opt/cross"
-PATH="$PREFIX/bin:$PATH"
-TARGET=x86_64-elf
-
-# 您应该更改为您的项目的所在路径
-EDK_TOOLS_PATH=$HOME/src/edk2/BaseTools
-EDK2=$HOME/src/edk2
-CCOSKRNL=$HOME/projects/ccoskrnl
-
-# 在命令行输入debugcc，即可启动gdb调试ccoskrnl
-debugcc(){
-    gdb --command=$CCOSKRNL/conf/gdb_start
-}
-```
-
-### 在物理机上运行
-
-**十分不推荐您在物理机上运行该项目！！！**
-
-**在物理机上运行具有非常大的风险，由于主办模型是以我的笔记本为基础开发(她比较旧)，我不保证我已经正确处理好所有的其他的主板结构，如果您需要在您的机器上运行，请确保您已经实现了对于的驱动**
-
-
-您需要一个U盘，清空U盘的所有分区(注意备份您的数据)，新建一块EFI分区(该分区应该为您U盘上的第一个分区)，格式化为Fat32。将`$CCOSKRNL/esp/`的所有文件都复制到刚新建好的分区，重启您的电脑，打开BIOS引导界面，此时您应该能在引导菜单中看到您的U盘被标识为了UEFI引导，按下危险的回车键，内核就运行起来了。
-
+- Email: 2010705797@qq.com
+- Github: ccoskrnl
