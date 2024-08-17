@@ -4,7 +4,160 @@
 #include "../../include/hal/op/screen.h"
 #include "../../include/libk/stdlib.h"
 #include "../../include/libk/string.h"
+#include "../../include/libk/math.h"
 
+
+#define __draw_at_point(desc, p, color)    \
+    desc->frame_buf_base[p.y * desc->horizontal + p.x] = color;
+
+
+/**
+ * Clear all framebuffers.
+ * 
+ * @param[in]       _this                       Descriptor instance pointer.
+ * 
+ * @retval          ST_SUCCESS                  The destination framebuffer was updated.
+ * @retval          ST_INVALID_PARAMETER        One of parameters is not valid.
+*/
+static status_t clear_framebuffer(
+    _in_ void                   *this
+)
+{
+    status_t status = ST_SUCCESS;
+    if (this == NULL)
+    {
+        status = ST_INVALID_PARAMETER;
+        return status;
+    }
+    
+    op_screen_desc* desc = (op_screen_desc*)this;
+    for (int i = 0; i < MAX_FRAMEBUFFER; i++) 
+        memzero(desc->frame_bufs[i], desc->frame_buf_size);
+
+    return status;
+}
+
+#define __lerp_point_x_f(p1, p2, t)   \
+    (p1.x * t + p2.x * (1 - t))
+
+#define __lerp_point_y_f(p1, p2, t)   \
+    (p1.y * t + p2.y * (1 - t))
+
+/**
+ * Draw a second order bezier curve.
+ * 
+ * @param[in]       _this                       Descriptor instance pointer.
+ * @param[in]       p0                          (The type of member must be float) The point is on bezier curve. 
+ * @param[in]       p1                          (The type of member must be float) The point is not on bezier curve.
+ * @param[in]       p2                          (The type of member must be float) The point is on bezier curve. 
+ * @param[in]       color                       The color of bezier curve..
+ * 
+ * @retval          ST_SUCCESS                  The destination framebuffer was updated.
+ * @retval          ST_INVALID_PARAMETER        One of parameters is not valid.
+*/
+static status_t draw_second_order_bezier_curve(
+    _in_ void                       *this,
+    _in_ point_f_t                   p0,
+    _in_ point_f_t                   p1,
+    _in_ point_f_t                   p2,
+    _in_ go_blt_pixel_t              color
+)
+{
+
+    const float delta = 0.0005f;
+    op_screen_desc* desc;
+    status_t status = ST_SUCCESS;
+
+    if (this == NULL)
+    {
+        status = ST_INVALID_PARAMETER;
+        return status;        
+    }
+    desc = (op_screen_desc*)this;
+
+    for (float i = 0.0f; i <= 1.0f; i += delta) {
+        point_f_t t1, t2, p;
+        point_i_t p_i;
+        t1.x = __lerp_point_x_f(p0, p1, i);
+        t1.y = __lerp_point_y_f(p0, p1, i);
+        t2.x = __lerp_point_x_f(p1, p2, i);
+        t2.y = __lerp_point_y_f(p1, p2, i);
+        p.x = __lerp_point_x_f(t1, t2, i);
+        p.y = __lerp_point_y_f(t1, t2, i);
+
+        p_i.x = p.x;
+        p_i.y = p.y;
+
+        __draw_at_point(desc, p_i, color)
+        
+    }
+
+    return status;
+}
+
+
+
+/**
+ * Draw a Bresenham's Line.
+ * 
+ * @param[in]       _this                       Descriptor instance pointer.
+ * @param[in]       p0                          (The type of memeber must be int) The start point of Bresenham’s Line. 
+ * @param[in]       p1                          (The type of memeber must be int) The end point of Bresenham’s Line.
+ * @param[in]       color                       The color of the Bresenham's Line.
+ * 
+ * @retval          ST_SUCCESS                  The destination framebuffer was updated.
+ * @retval          ST_INVALID_PARAMETER        One of parameters is not valid.
+*/
+static status_t draw_bresenhams_line(
+    _in_ void                       *this,
+    _in_ point_i_t                   p0,
+    _in_ point_i_t                   p1,
+    _in_ go_blt_pixel_t              color
+)
+{
+    
+    op_screen_desc *desc;
+
+    status_t status = ST_SUCCESS;
+
+    if (this == NULL)
+    {
+        status = ST_INVALID_PARAMETER;
+        return status;        
+    }
+    desc = (op_screen_desc*)this;
+
+    if (p0.x >= desc->horizontal 
+        || p1.x >= desc->horizontal
+        || p0.y >= desc->vertical
+        || p1.y >= desc->vertical) {
+        status = ST_INVALID_PARAMETER;
+        return status;
+    }
+
+    int64_t dx = abs(p1.x - p0.x);
+    int64_t dy = abs(p1.y - p0.y);
+    int sx = (p0.x < p1.x) ? 1 : -1;
+    int sy = (p0.y < p1.y) ? 1 : -1;
+    int err = dx - dy;
+
+    while (1) {
+        __draw_at_point(desc, p0, color);
+
+        if (p0.x == p1.x && p0.y == p1.y) break;
+        int e2 = 2 * err;
+        if (e2 > -dy) {
+            err -= dy;
+            p0.x += sx;
+        }
+        if (e2 < dx) {
+            err += dx;
+            p0.y += sy;
+        }
+    }
+
+    return status;
+}
 
 /**
  * Swap framebuffer.
@@ -17,22 +170,28 @@
  * @retval          ST_INVALID_PARAMETER        One of parameters is not valid.
 */
 static status_t swap_framebuffer(
-    _in_ void                   *_this,
+    _in_ void                   *this,
 	_in_ uint8_t                dest_buf_index,
 	_in_ uint8_t                src_buf_index
 )
 {
+    op_screen_desc* desc;
     status_t status = ST_SUCCESS;
-    if (_this == NULL
+    if (this == NULL
         || !(dest_buf_index < MAX_FRAMEBUFFER)
         || !(src_buf_index < MAX_FRAMEBUFFER))
     {
         status = ST_INVALID_PARAMETER;
         return status;
     }
+    if (this == NULL)
+    {
+        status = ST_INVALID_PARAMETER;
+        return status;        
+    }
+    desc = (op_screen_desc*)this;
     
-    go_screen_desc* desc = (go_screen_desc*)_this;
-    memcpy(desc->frame_buf_base, desc->secondary_buf, desc->frame_buf_size);
+    memcpy(desc->frame_bufs[dest_buf_index], desc->frame_bufs[src_buf_index], desc->frame_buf_size);
 
     return status;
 }
@@ -57,8 +216,8 @@ static status_t swap_framebuffer(
  * @retval          ST_INVALID_PARAMETER        blt_operation is not valid.
 */
 static status_t blt(
-    _in_ void                   *_this,
-    _in_ _out_ go_blt_pixel     *blt_buffer,
+    _in_ void                   *this,
+    _in_ _out_ go_blt_pixel_t     *blt_buffer,
     _in_ GO_BLT_OPERATIONS      blt_operation,
     _in_ uint64_t               src_x,
     _in_ uint64_t               src_y,
@@ -68,10 +227,18 @@ static status_t blt(
     _in_ uint64_t               height,
     _in_ _optional_ int         buffer_index )
 {
-    go_screen_desc* desc = (go_screen_desc*)_this;
-    go_blt_pixel* framebuffer;
+
+    op_screen_desc* desc;
+    go_blt_pixel_t* framebuffer;
     status_t status = ST_SUCCESS;
     uint64_t row, column;
+
+    if (this == NULL)
+    {
+        status = ST_INVALID_PARAMETER;
+        return status;        
+    }
+    desc = (op_screen_desc*)this;
 
     if (buffer_index == BACKBUFFER_INDEX)
     {
@@ -142,20 +309,29 @@ static status_t blt(
  * 
  * @retval      ST_SUCCESS                  The rectangle was drawn.
  * @retval      ST_OUT_OF_RESOURCES         Not engouh resources were available to draw a rectangle.
+ * @retval      ST_INVALID_PARAMETER        One of parameters is not valid.
 */
-status_t _op_draw_hollow_rectangle(
-    _in_ struct _go_screen_desc*        desc,
+static status_t draw_hollow_rectangle(
+    _in_ void*                          this,
     _in_ uint32_t                       x,
     _in_ uint32_t                       y,
     _in_ uint32_t                       width,
     _in_ uint32_t                       height,
     _in_ uint32_t                       stroke_size,
-    _in_ go_blt_pixel                   color
+    _in_ go_blt_pixel_t                   color
 )
 {
     status_t status;
-    go_blt_pixel* bitbuffer;
+    go_blt_pixel_t* bitbuffer;
     uint32_t i;
+    op_screen_desc* desc;
+
+    if (this == NULL) {
+        status = ST_INVALID_PARAMETER;
+        return status;
+    }
+
+    desc = this;
 
 
     // Allocate buffer to blt operation
@@ -190,7 +366,7 @@ status_t _op_draw_hollow_rectangle(
 
     // reallocate buffer for vertical sides
     free(bitbuffer);
-    bitbuffer = malloc(stroke_size * height * sizeof(go_blt_pixel));     
+    bitbuffer = malloc(stroke_size * height * sizeof(go_blt_pixel_t));     
     if (bitbuffer == NULL)
     {
         return ST_OUT_OF_RESOURCES;
@@ -217,11 +393,11 @@ status_t _op_draw_hollow_rectangle(
     }
 
     free(bitbuffer);     
-    return desc->swap_buf(desc, 0, BACKBUFFER_INDEX);
+    return desc->swap_two_buffers(desc, 0, BACKBUFFER_INDEX);
 }
 
-status_t _op_draw_char(
-    _in_ struct _go_screen_desc*                    _this,
+static status_t draw_char(
+    _in_ void*                                      this,
     _in_ struct _ascii_font                         *font,
     _in_ char                                       c
 )
@@ -232,12 +408,20 @@ status_t _op_draw_char(
     uint32_t row, column;
     uint32_t font_buf_width, font_buf_height;
     // uint64_t last_line;
-    go_blt_pixel *pixel;
+    go_blt_pixel_t *pixel;
     struct _char* ch;
-    
+    op_screen_desc* desc;
+
+    if (desc == NULL) {
+        status = ST_INVALID_PARAMETER;
+        return status;
+    }
+
+    desc = this;   
+
     ch = &font->chars[c];
-    x_of_upper_left_hand = _this->cursor.x + ch->xoffset;
-    y_of_upper_left_hand = _this->cursor.y + ch->yoffset;
+    x_of_upper_left_hand = desc->cursor.x + ch->xoffset;
+    y_of_upper_left_hand = desc->cursor.y + ch->yoffset;
 
     font_buf_width = font->blt_buf.width;
     font_buf_height = font->blt_buf.height;
@@ -246,20 +430,20 @@ status_t _op_draw_char(
     switch (c)
     {
     case '\b':
-        _this->cursor.x -= font->common.xadvance;
+        desc->cursor.x -= font->common.xadvance;
         break;
     case '\t':
-        _this->cursor.x += (font->common.xadvance << 2);
+        desc->cursor.x += (font->common.xadvance << 2);
         break;
     case ' ':
-        _this->cursor.x += font->common.xadvance;
+        desc->cursor.x += font->common.xadvance;
         break;
     case '\r':
-        _this->cursor.x = 0;
+        desc->cursor.x = 0;
         break;
     case '\n':
-        _this->cursor.x = 0;
-        _this->cursor.y += font->common.lineHeight;
+        desc->cursor.x = 0;
+        desc->cursor.y += font->common.lineHeight;
         break;
     default:
 
@@ -270,8 +454,8 @@ status_t _op_draw_char(
                 pixel = &font->blt_buf.buf_addr[(ch->y + row) * font_buf_width + ch->x + column];
                 // if (pixel->Reserved != 0)
                 // {
-                    status = _this->blt(
-                        _this,
+                    status = desc->blt(
+                        desc,
                         pixel,
                         GoBltVideoFill,
                         0,
@@ -291,47 +475,58 @@ status_t _op_draw_char(
         for (uint32_t i = 0; i < font->common.lineHeight; i++)
         {
             memcpy(
-                &_this->frame_buf_base[(y_of_upper_left_hand + i) * _this->pixels_per_scanline + _this->cursor.x],
-                &_this->secondary_buf[(y_of_upper_left_hand + i)* _this->pixels_per_scanline + _this->cursor.x],
-                ch->xadvance * sizeof(go_blt_pixel)
+                &desc->frame_buf_base[(y_of_upper_left_hand + i) * desc->pixels_per_scanline + desc->cursor.x],
+                &desc->secondary_buf[(y_of_upper_left_hand + i)* desc->pixels_per_scanline + desc->cursor.x],
+                ch->xadvance * sizeof(go_blt_pixel_t)
             );
         }
-        _this->cursor.x += ch->xadvance;
+        desc->cursor.x += ch->xadvance;
         break;
 
     }
 
-    if (_this->cursor.x < 0)
-        _this->cursor.x = 0;
+    if (desc->cursor.x < 0)
+        desc->cursor.x = 0;
 
-    if (_this->cursor.x >= _this->horizontal)
+    if (desc->cursor.x >= desc->horizontal)
     {
-        _this->cursor.x = 0;
-        _this->cursor.y += font->common.lineHeight;
+        desc->cursor.x = 0;
+        desc->cursor.y += font->common.lineHeight;
     }
 
-    if ((_this->vertical - _this->cursor.y) <= font->common.lineHeight)
+    if ((desc->vertical - desc->cursor.y) <= font->common.lineHeight)
     {
         memcpy(
-            _this->secondary_buf,
-            &_this->frame_buf_base[(font->common.lineHeight * _this->pixels_per_scanline)],
-            _this->pixels_per_scanline * (_this->cursor.y - font->common.lineHeight) * sizeof(go_blt_pixel)
+            desc->secondary_buf,
+            &desc->frame_buf_base[(font->common.lineHeight * desc->pixels_per_scanline)],
+            desc->pixels_per_scanline * (desc->cursor.y - font->common.lineHeight) * sizeof(go_blt_pixel_t)
         );
         memzero(
-            &_this->secondary_buf[_this->pixels_per_scanline * (_this->cursor.y - font->common.lineHeight)],
-            _this->pixels_per_scanline * (_this->vertical - (_this->cursor.y - font->common.lineHeight)) * sizeof(go_blt_pixel)
+            &desc->secondary_buf[desc->pixels_per_scanline * (desc->cursor.y - font->common.lineHeight)],
+            desc->pixels_per_scanline * (desc->vertical - (desc->cursor.y - font->common.lineHeight)) * sizeof(go_blt_pixel_t)
         );
 
-        _this->cursor.x = 0;
-        _this->cursor.y -= font->common.lineHeight;
-        _this->swap_buf(_this, 0, BACKBUFFER_INDEX);
+        desc->cursor.x = 0;
+        desc->cursor.y -= font->common.lineHeight;
+        desc->swap_two_buffers(desc, 0, BACKBUFFER_INDEX);
     }
     
     return status;
 }
 
-void screen_install_funcs(struct _go_screen_desc* screen)
+void _op_install_a_screen(struct _op_screen_desc* screen)
 {
     screen->blt = blt;
-    screen->swap_buf = swap_framebuffer;
+    screen->swap_two_buffers = swap_framebuffer;
+    screen->draw_char = draw_char;
+    screen->draw_hollow_rectangle = draw_hollow_rectangle;
+    screen->draw_second_order_bezier_curve = draw_second_order_bezier_curve;
+    screen->draw_bresenhams_line = draw_bresenhams_line;
+    screen->clear_framebuffer = clear_framebuffer;
+
+    for (int i = 1; i < MAX_FRAMEBUFFER; i++) {
+        screen->frame_bufs[i] = (go_blt_pixel_t*)malloc(screen->frame_buf_size);
+    }
+    screen->frame_bufs[0] = screen->frame_buf_base;
+    screen->secondary_buf = screen->frame_bufs[BACKBUFFER_INDEX];
 }

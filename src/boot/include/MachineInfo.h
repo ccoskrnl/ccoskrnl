@@ -22,9 +22,6 @@
 #define MM16GB                                              0x400000000
 
 
-#define DEFAULT_HORIZONTAL_RESOLUTION                       1280
-#define DEFAULT_VERTICAL_RESOLUTION                         720
-
 typedef struct _LOADER_IMAGE_DESCRIPTOR
 {
     UINT16 Width;

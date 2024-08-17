@@ -42,9 +42,9 @@ run: $(TARGET) $(EFI)
 
 
 clean:
-	for dir in $(SUBDIRS); do \
+	@for dir in $(SUBDIRS); do \
 		$(MAKE) -C $$dir clean; \
 	done
-	rm -vf $(TARGET) $(ESP_DIR)/NvVars $(ESP_DIR)/krnl
+	@rm -vf $(TARGET) $(ESP_DIR)/NvVars $(ESP_DIR)/krnl
 
 .PHONY: clean run all $(SUBDIRS) $(TARGET)

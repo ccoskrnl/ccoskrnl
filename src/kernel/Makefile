@@ -24,6 +24,6 @@ $(BUILD_DIR)/%.o: %.c
 	@$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	rm -vf $(OBJS) $(TARGET)
+	@rm -vf $(OBJS) $(TARGET)
 
 .PHONY: clean all

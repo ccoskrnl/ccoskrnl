@@ -30,7 +30,7 @@ void putc(char c)
         return;
     }
 
-    status = _op_draw_char(_op_def_screen, font, c);
+    status = _op_def_screen->draw_char(_op_def_screen, font, c);
     if (ST_ERROR(status))
     {
         krnl_panic();

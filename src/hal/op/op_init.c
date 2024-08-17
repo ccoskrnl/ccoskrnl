@@ -6,14 +6,19 @@
 #include "../../include/libk/stdlib.h"
 #include "../../include/machine_info.h"
 
-void screen_install_funcs(struct _go_screen_desc* screen);
+void _op_install_a_screen(struct _op_screen_desc* screen);
 
-static go_screen_desc screen0;
+// the first screen detected by ccloader.
+static op_screen_desc screen0;
+
+// wallpaper
 static struct _go_image_output background;
 struct _go_image_output *_op_bg;
 
-struct _installed_screen _op_screen;
-go_screen_desc* _op_def_screen;
+// all screens installed on this machine.
+struct _installed_screens _op_installed_screens;
+// the first screen
+op_screen_desc* _op_def_screen;
 
 // seaborn font family
 static struct _ascii_font secondary_font;
@@ -27,19 +32,25 @@ void op_init()
 
     status_t status;
 
-    screen0.frame_buf_base = (go_blt_pixel*)_current_machine_info->graphics_info.FrameBufferBase;
+    // initialize first screen.
+    screen0.frame_buf_base = (go_blt_pixel_t*)_current_machine_info->graphics_info.FrameBufferBase;
     screen0.frame_buf_size = _current_machine_info->graphics_info.FrameBufferSize;
     screen0.vertical = _current_machine_info->graphics_info.VerticalResolution;
     screen0.horizontal = _current_machine_info->graphics_info.HorizontalResolution;
     screen0.pixels_per_scanline = _current_machine_info->graphics_info.PixelsPerScanLine;
 
-    screen0.secondary_buf = (go_blt_pixel*)malloc(screen0.frame_buf_size);
-    screen_install_funcs(&screen0);
+    _op_install_a_screen(&screen0);
 
-    _op_screen.num++;
-    _op_screen.screen[0] = &screen0;
+    _op_installed_screens.num++;
+    _op_installed_screens.screen[0] = &screen0;
+    _op_def_screen = _op_installed_screens.screen[0];
 
-    background.buf = (go_blt_pixel*)_current_machine_info->bg.addr;
+    // clear screen
+    for (int i = 0; i < MAX_FRAMEBUFFER; i++) {
+        memzero(_op_def_screen->frame_bufs[i], _op_def_screen->frame_buf_size);
+    }
+
+    background.buf = (go_blt_pixel_t*)_current_machine_info->bg.addr;
     background.height = _current_machine_info->bg.height;
     background.width = _current_machine_info->bg.width;
     background.size = _current_machine_info->bg.size;
@@ -71,8 +82,6 @@ void op_init()
     // _op_font.font[1] = &primary_font;
 
 
-    // Kernel only uses one screen to output images or characters.
-    struct _go_screen_desc* desc = _op_screen.screen[0];
 
     // // set wallpaper
     // if (desc->horizontal == background.width && desc->vertical == background.height)
@@ -85,9 +94,5 @@ void op_init()
     //     }
     // }
 
-    memzero(desc->secondary_buf, desc->frame_buf_size);
-    desc->swap_buf(desc, 0, BACKBUFFER_INDEX);
-
-    _op_def_screen = desc;
 
 }

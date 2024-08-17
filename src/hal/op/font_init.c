@@ -1,4 +1,5 @@
 #include "../../include/hal/op/font.h"
+#include "../../include/hal/op/graphics.h"
 #include "../../include/libk/stdlib.h"
 
 static void set(char** str, int* n)
@@ -127,7 +128,7 @@ void _op_ascii_font_init(
     font->chars['\n'].present = 1;
 
     font->common.xadvance = xadvance;
-    font->blt_buf.buf_addr = (go_blt_pixel*)buf_addr;
+    font->blt_buf.buf_addr = (go_blt_pixel_t*)buf_addr;
     font->blt_buf.width = width;
     font->blt_buf.height = height;
 }

@@ -1,5 +1,5 @@
-#ifndef __OP_GOP_H__
-#define __OP_GOP_H__
+#ifndef __GO_GRAPHICS_H__
+#define __GO_GRAPHICS_H__
 
 #include "../../types.h"
 // #include "font.h"
@@ -62,16 +62,47 @@ typedef struct _go_blt_pixel
 	uint8_t Green;
 	uint8_t Red;
 	uint8_t Reserved;
-} go_blt_pixel;
+} go_blt_pixel_t;
+
+
+// typedef struct _coordinates_2d
+// {
+// 	union
+// 	{
+// 		struct 
+// 		{
+// 			int x;
+// 			int y;
+// 		};
+// 		struct
+// 		{
+// 			float x_f;
+// 			float y_f;
+// 		};
+// 	};
+	
+// } point_t;
+typedef struct _coordinates_2d_i
+{
+	int x;
+	int y;
+} point_i_t;
+
+typedef struct _coordinates_2d_f
+{
+	float x;
+	float y;
+} point_f_t;
+
 
 struct _go_image_output
 {
-	go_blt_pixel* buf;
+	go_blt_pixel_t* buf;
 	uint16_t width;
 	uint16_t height;
 	uint32_t size;
 };
 
-extern struct _go_image_output *_op_bg;
+// extern struct _go_image_output *_op_bg;
 
 #endif

@@ -59,6 +59,6 @@ $(BUILD_DIR)/cpu/%.o: cpu/%.asm
 	@nasm -f elf64 -o $@ $<
 
 clean:
-	rm -vf $(OBJS) $(TARGET) $(ASM_OBJS)
+	@rm -vf $(OBJS) $(TARGET) $(ASM_OBJS)
 
 .PHONY: all clean $(TARGET)

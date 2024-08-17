@@ -196,33 +196,41 @@ VOID DisplayLoadingLogo()
 VOID AdjustGraphicsMode(IN LOADER_MACHINE_INFORMATION *MachineInfo)
 {
 
-	EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *GrahpicsOutputModeInformation;
-	UINTN InfoSize = 0;
-	UINT32 i = 0;
 	UINT32 DefaultMode = 0;
 
 	WpLocateProtocol(&gEfiGraphicsOutputProtocolGuid, NULL, (VOID **)&gGraphicsOutput, L"GraphicsOutputProtocol");
 
 	/* ========================= Adjust the Graphics mode ====================== */
 
-	// Max Screen
+	// Configure the maximum resolution of this machine.
 	DefaultMode = gGraphicsOutput->Mode->MaxMode - 1;
 
+// #ifdef _DEBUG
+
+#define DEFAULT_HORIZONTAL_RESOLUTION                       1920
+#define DEFAULT_VERTICAL_RESOLUTION                         1080
+
+	EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *GrahpicsOutputModeInformation;
+	UINTN InfoSize = 0;
+	UINT32 i = 0;
 	/*  List Graphics Modes*/
 	for (i = 0; i < gGraphicsOutput->Mode->MaxMode; i++)
 	{
 		gGraphicsOutput->QueryMode(gGraphicsOutput, i, &InfoSize, &GrahpicsOutputModeInformation);
+
+		if (GrahpicsOutputModeInformation->HorizontalResolution == DEFAULT_HORIZONTAL_RESOLUTION
+			&& GrahpicsOutputModeInformation->VerticalResolution == DEFAULT_VERTICAL_RESOLUTION) {
+			DefaultMode = i;
+		}
+
 #ifdef _DEBUG
 		Print(L"Mode:%02d, Version:%x, Format:%d, Horizontal:%d, Vertical:%d, ScanLine:%d\n", i,
 					GrahpicsOutputModeInformation->Version, GrahpicsOutputModeInformation->PixelFormat,
 					GrahpicsOutputModeInformation->HorizontalResolution, GrahpicsOutputModeInformation->VerticalResolution,
 					GrahpicsOutputModeInformation->PixelsPerScanLine);
 #endif
-		if (GrahpicsOutputModeInformation->HorizontalResolution == DEFAULT_HORIZONTAL_RESOLUTION && GrahpicsOutputModeInformation->VerticalResolution == DEFAULT_VERTICAL_RESOLUTION)
-		{
-			DefaultMode = i;
-		}
 	}
+// #endif
 
 	gGraphicsOutput->SetMode(gGraphicsOutput, DefaultMode);
 	WpLocateProtocol(&gEfiGraphicsOutputProtocolGuid, NULL, (VOID **)&gGraphicsOutput, L"GraphicsOutputProtocol");

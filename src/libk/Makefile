@@ -63,6 +63,6 @@ $(BUILD_DIR)/%.o: ctype/%.c
 	@$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	rm -vf $(OBJS) $(TARGET)
+	@rm -vf $(OBJS) $(TARGET)
 
 .PHONY: clean all

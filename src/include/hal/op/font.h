@@ -113,7 +113,7 @@ struct _ascii_font
 	struct _char chars[CHAR_MAX];
 
 	struct{
-		go_blt_pixel* buf_addr;
+		go_blt_pixel_t* buf_addr;
 		uint16_t width;
 		uint16_t height;
 	} blt_buf;
