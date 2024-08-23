@@ -3,7 +3,7 @@
 #include "../../../include/libk/string.h"
 #include "mm.h"
 
-extern pool *_mm_pools;
+extern pool* _mm_pools[12];
 extern pool_free_list_head _mm_non_paged_pool_free_list_array[NON_PAGED_POOL_LIST_HEADS_MAXIMUM];
 
 status_t _mm_alloc_pages(uint64_t size, void **addr)
@@ -282,7 +282,7 @@ void _mm_free_pages(void *addr)
 
 
 /*  Upper Memory Pool Services  */
-void *_mm_malloc(uint64_t size, uint16_t pool_index)
+void *_mm_malloc(uint64_t size, uint16_t pool_index, uint32_t tag)
 {
     list_node *ret_block;
     pool_header *ret_block_head;
@@ -345,7 +345,7 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index)
     }
 
     // found corresponding pool by pool_index.
-    pool_desc = &_mm_pools[pool_index];
+    pool_desc = _mm_pools[pool_index];
 
     // To find suitable list.
     list_index = size >> POOL_BLOCK_SHIFT;
@@ -375,7 +375,7 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index)
         uint64_t new_page;
 
         // if out of memory resource, request failed. 
-        if (ST_ERROR(_mm_alloc_pages(size, (void **)&new_page)))
+        if (ST_ERROR(_mm_alloc_pages((1 << PAGE_SHIFT), (void **)&new_page)))
         {
             return NULL;
         }
@@ -391,9 +391,13 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index)
             separate_block_head->prev_size = (size) >> POOL_BLOCK_SHIFT;
             separate_block_head->block_size =
                 (POOL_PAGE_SIZE - size - (POOL_HEAD_OVERHEAD << 1)) >> POOL_BLOCK_SHIFT;
+
             separate_block_head->pool_type = POOL_TYPE_FREE;
-            separate_block_head->pool_index = pool_index;
-            separate_block_head->pool_tag = 0;
+            separate_block_head->pool_index = POOL_INDEX_FREE_INDEX;
+
+            // **TAG**
+            separate_block_head->pool_tag = POOL_FREE_TAG;
+
 
             // set the block header of block will be returned.
             ret_block_head = (pool_header *)new_page;
@@ -402,7 +406,11 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index)
             ret_block_head->block_size = separate_block_head->prev_size;
             ret_block_head->pool_type = POOL_TYPE_ACTIVE;
             ret_block_head->pool_index = pool_index;
-            ret_block_head->pool_tag = 0;
+
+            // **TAG**
+            ret_block_head->pool_tag = tag;
+
+
 
             // add the separate_block to free list
             free_list = &pool_desc->list_heads[separate_block_head->block_size];
@@ -436,26 +444,40 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index)
     {
         ret_block_head = separate_block_head;
         ret_block_head->pool_type = POOL_TYPE_ACTIVE;
+        ret_block_head->pool_index = pool_index;
+
+        // **TAG**
+        ret_block_head->pool_tag = tag;
+
+
         ret_block = separate_block;
 
         // remove the block from original list.
-        _list_remove(ret_block);
+        if (ret_block->blink == 0) {
+            krnl_panic();
+        }
+        _list_remove_from_list(free_list, ret_block);
 
         return (void *)ret_block;
     }
+
+
 
     // Now we already known the suitable_block need to separate, but there
     // has two cases need to consider.
 
     // if previous block is not equal to zero, it means current sutiable_block
     // is not the first block in page which it belonged.
-    if (separate_block_head->prev_size)
+    if (separate_block_head->prev_size != 0)
     {
 
-        separate_block_head->block_size -= ((size + POOL_HEAD_OVERHEAD) >> POOL_BLOCK_SHIFT);
-
         // remove the block from original list.
-        _list_remove(separate_block);
+        if (separate_block->blink == 0) {
+            krnl_panic();
+        }
+        _list_remove_from_list(free_list, separate_block);
+
+        separate_block_head->block_size -= ((size + POOL_HEAD_OVERHEAD) >> POOL_BLOCK_SHIFT);
 
         // add to new list
         free_list = &pool_desc->list_heads[separate_block_head->block_size];
@@ -468,7 +490,12 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index)
         ret_block_head->prev_size = separate_block_head->block_size;
         ret_block_head->block_size = (size >> POOL_BLOCK_SHIFT);
         ret_block_head->pool_type = POOL_TYPE_ACTIVE;
-        ret_block_head->pool_tag = 0;
+
+
+        ret_block_head->pool_tag = tag;
+
+
+        ret_block_head->pool_index = pool_index;
 
         if (does_it_need_to_be_updated)
         {
@@ -486,18 +513,26 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index)
         separate_block_head = (pool_header *)((uint64_t)ret_block + size);
         separate_block = (list_node *)((uint64_t)separate_block_head + POOL_HEAD_OVERHEAD);
 
+        separate_block_head->block_size =
+            ret_block_head->block_size - ((size + POOL_HEAD_OVERHEAD) >> POOL_BLOCK_SHIFT);
+
         // remove from original list
         ret_block_head->block_size = (size >> POOL_BLOCK_SHIFT);
         ret_block_head->pool_type = POOL_TYPE_ACTIVE;
-        ret_block_head->pool_tag = 0;
-        _list_remove(ret_block);
+        ret_block_head->pool_tag = tag;
+        ret_block_head->pool_index = pool_index;
 
-        separate_block_head->block_size =
-            (suitable_block_size - size - (POOL_HEAD_OVERHEAD >> 1)) >> POOL_BLOCK_SHIFT;
+        if (ret_block->blink == 0) {
+            krnl_panic();
+        }
+        _list_remove_from_list(free_list, ret_block);
+
+
         separate_block_head->prev_size = ret_block_head->block_size;
-        separate_block_head->pool_index = pool_index;
+
         separate_block_head->pool_type = POOL_TYPE_FREE;
-        separate_block_head->pool_tag = 0;
+        separate_block_head->pool_index = POOL_INDEX_FREE_INDEX;
+        separate_block_head->pool_tag = POOL_FREE_TAG;
 
         if (does_it_need_to_be_updated)
         {
@@ -547,7 +582,7 @@ void _mm_free(void *addr, uint16_t pool_index)
     }
 
     // locate at corresponding pool
-    pool_desc = &_mm_pools[pool_index];
+    pool_desc = _mm_pools[pool_index];
 
     // be released block
     released_block = (list_node *)(addr);
@@ -560,12 +595,12 @@ void _mm_free(void *addr, uint16_t pool_index)
         krnl_panic();
     }
 
-    // "tag mechanism", not implemented.
-    if (released_block_head->pool_tag != 0)
-    {
-        // Buggy
-        krnl_panic();
-    }
+    // // "tag mechanism", not be implemented.
+    // if (released_block_head->pool_tag != P)
+    // {
+    //     // Buggy
+    //     krnl_panic();
+    // }
 
     // record releasalbe size.
     free_size = (released_block_head->block_size << POOL_BLOCK_SHIFT) + POOL_HEAD_OVERHEAD;
@@ -605,7 +640,10 @@ void _mm_free(void *addr, uint16_t pool_index)
         {
             free_size += (next_block_head->block_size << POOL_BLOCK_SHIFT) + POOL_HEAD_OVERHEAD;
             free_list = &pool_desc->list_heads[next_block_head->block_size];
-            _list_remove(next_block);
+            if (next_block->blink == 0) {
+                krnl_panic();
+            }
+            _list_remove_from_list(free_list, next_block);
 
             // check if address of next_block_head is outside the scope of current page.
             if (((uint64_t)next_block + (next_block_head->block_size << POOL_BLOCK_SHIFT)) >= page_aligned(released_block))
@@ -643,9 +681,12 @@ void _mm_free(void *addr, uint16_t pool_index)
                 free_list = &pool_desc->list_heads[prev_block_head->block_size];
 
                 // remove the block from origianl list.
-                _list_remove(prev_block);
+                if (prev_block->blink == 0) {
+                    krnl_panic();
+                }
+                _list_remove_from_list(free_list, prev_block);
 
-                // If the block(prev_block) of current block is the first block in current page.
+                // If the prev_block is the first block in current page.
                 if (prev_block_head->prev_size == 0)
                 {
                     break;
@@ -685,7 +726,13 @@ void _mm_free(void *addr, uint16_t pool_index)
                 free_size -= POOL_HEAD_OVERHEAD;
                 prev_block_head->block_size = free_size >> POOL_BLOCK_SHIFT;
 
-                // add free block to suitable list 
+                // // add free block to suitable list 
+                // if (does_back_block_need_to_update)
+                // {
+                //     next_block_head->prev_size = released_block_head->block_size;
+                // }
+                // // memzero((void *)released_block, free_size);
+                
                 // free_list = &pool_desc->list_heads[(free_size >> POOL_BLOCK_SHIFT)];
                 // _list_push(free_list, prev_block);
             }
@@ -695,7 +742,7 @@ void _mm_free(void *addr, uint16_t pool_index)
             goto __free_released_block;
         }
 
-        memzero((void *)((uint64_t)prev_block), free_size);
+        // memzero((void *)((uint64_t)prev_block), free_size);
 
         if (does_back_block_need_to_update)
         {
@@ -723,15 +770,16 @@ __free_released_block:
             free_size -= POOL_HEAD_OVERHEAD;
 
             released_block_head->block_size = (free_size >> POOL_BLOCK_SHIFT);
-            released_block_head->pool_tag = 0;
+            released_block_head->pool_tag = POOL_FREE_TAG;
             released_block_head->pool_type = POOL_TYPE_FREE;
+            released_block_head->pool_index = POOL_INDEX_FREE_INDEX;
 
             if (does_back_block_need_to_update)
             {
                 next_block_head->prev_size = released_block_head->block_size;
             }
 
-            memzero((void *)released_block, free_size);
+            // memzero((void *)released_block, free_size);
             
             free_list = &pool_desc->list_heads[released_block_head->block_size];
             _list_push(free_list, released_block);
@@ -742,9 +790,13 @@ __free_released_block:
 // default kernel memory pool
 void *_mm_kmalloc(uint64_t size)
 {
-    return _mm_malloc(size, POOL_INDEX_KERNEL_DEFAULT);
+    return _mm_malloc(size, POOL_INDEX_KERNEL_DEFAULT, 1);
 }
 
+void _mm_kfree1(void *addr, int i)
+{
+    _mm_free(addr, POOL_INDEX_KERNEL_DEFAULT);
+}
 void _mm_kfree(void *addr)
 {
     _mm_free(addr, POOL_INDEX_KERNEL_DEFAULT);

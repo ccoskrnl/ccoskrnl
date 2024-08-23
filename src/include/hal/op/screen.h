@@ -3,7 +3,8 @@
 
 #include "../../types.h"
 #include "graphics.h"
-#include "font.h"
+// #include "./font/font_fnt.h"
+#include "./font/font_ttf.h"
 
 #define MAX_INSTALLED_SCREEN								63
 #define BACKBUFFER_INDEX									1
@@ -28,10 +29,17 @@ typedef status_t (*_op_swap_framebuffer)(
 	_in_ uint8_t                src_buf_index
 );
 
-typedef status_t (*_op_draw_char)(
+// typedef status_t (*_op_draw_char)(
+//     _in_ void*                                      _this,
+//     _in_ struct _font_fnt                         *font,
+//     _in_ char                                       c
+// );
+
+typedef status_t (*_op_draw_ch)(
     _in_ void*                                      _this,
-    _in_ struct _ascii_font                         *font,
-    _in_ char                                       c
+    _in_ wch_t                                      wch,
+    _in_ font_ttf_t*                                family,
+    _in_ go_blt_pixel_t                             color
 );
 
 typedef status_t (*_op_draw_hollow_rectangle)(
@@ -41,7 +49,7 @@ typedef status_t (*_op_draw_hollow_rectangle)(
     _in_ uint32_t                       width,
     _in_ uint32_t                       height,
     _in_ uint32_t                       stroke_size,
-    _in_ go_blt_pixel_t                   color
+    _in_ go_blt_pixel_t                 color
 );
 
 
@@ -84,7 +92,8 @@ typedef struct _op_screen_desc
     {
         _op_blt blt;
         _op_swap_framebuffer swap_two_buffers;
-        _op_draw_char draw_char;
+        // _op_draw_char draw_char;
+        _op_draw_ch draw_ch;
         _op_draw_hollow_rectangle draw_hollow_rectangle;
         _op_draw_second_order_bezier_curve draw_second_order_bezier_curve;
         _op_draw_bresenhams_line draw_bresenhams_line;
@@ -97,9 +106,19 @@ struct _installed_screens {
 	struct _op_screen_desc* screen[MAX_INSTALLED_SCREEN];
 };
 
+#define __lerp_point_x_f(p1, p2, t)   \
+    (p1.x * t + p2.x * (1 - t))
+
+#define __lerp_point_y_f(p1, p2, t)   \
+    (p1.y * t + p2.y * (1 - t))
+
+#define __draw_at_point(desc, buf_id, p, color)    \
+    desc->frame_bufs[buf_id][(uint16_t)p.y * desc->horizontal + (uint16_t)p.x] = color
+
+#define TAB_SIZE                    4
 
 extern struct _installed_screens _op_installed_screens;
 extern op_screen_desc* _op_def_screen;
-
+extern boolean _op_has_been_initialize;
 
 #endif

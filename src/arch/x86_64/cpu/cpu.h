@@ -293,4 +293,8 @@ void cpuid(uint32_t leaf, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t 
 
 void cpuid_ex(uint32_t leaf, uint32_t fn, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx);
 
+void _cpu_install_isr(cpu_core_desc_t *cpu, uint8_t vector, void* routine, uint8_t type, uint8_t ist_index);
+
+void* _cpu_get_irs(uint8_t vector);
+
 #endif 

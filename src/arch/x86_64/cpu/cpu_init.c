@@ -1,6 +1,6 @@
 #include "../../../include/types.h"
 #include "../../../include/machine_info.h"
-#include "../../../include/libk/string.h"
+#include "../../../include/libk/stdlib.h"
 #include "../../../include/libk/stdio.h"
 
 #include "cpu.h"
@@ -112,13 +112,18 @@ void preparing_for_bsp(boolean is_first)
         void* ist0;
         _mm_alloc_pages(0x10, &rsp0);
         _mm_alloc_pages(0x10, &ist0);
-        tss0.ist[0] = (uint64_t)ist0;
-        tss0.rsp[0] = (uint64_t)rsp0;
+        tss0.ist[0] = (uint64_t)ist0 + (0x10 << PAGE_SHIFT);
+        tss0.rsp[0] = (uint64_t)rsp0 + (0x10 << PAGE_SHIFT);
         tss0.iomap_base = sizeof(tss_t);
 
 
         // TSS descriptor is at index 3 in the GDT
         __load_tr(3 << 3);
+
+        _cpu_install_isr(&cpu0, 13, _cpu_get_irs(13), IDT_DESC_TYPE_INTERRUPT_GATE, 1);
+        // _cpu_install_isr(&cpu0, 12, _cpu_get_irs(13), IDT_DESC_TYPE_INTERRUPT_GATE, 1);
+        _cpu_install_isr(&cpu0, 14, _cpu_get_irs(13), IDT_DESC_TYPE_INTERRUPT_GATE, 1);
+        _cpu_install_isr(&cpu0, 0x20, _cpu_get_irs(0x20), IDT_DESC_TYPE_INTERRUPT_GATE, 1);
     }
     
 
@@ -195,4 +200,17 @@ void detecting_cpu()
         &eax, &ebx, &ecx, &edx);
     support_avx2 = (boolean)((ebx >> 5) & 1);
 
+}
+
+
+void _cpu_install_isr(cpu_core_desc_t *cpu, uint8_t vector, void* routine, uint8_t type, uint8_t ist_index)
+{
+    cpu->idt[vector].present = 1; 
+    cpu->idt[vector].dpl = 0;
+    cpu->idt[vector].ist = ist_index;
+    cpu->idt[vector].offset0 = ((uint64_t)routine & 0xFFFF);
+    cpu->idt[vector].selector = SEG_SEL_KRNL_CODE;
+    cpu->idt[vector].offset1 = ((uint64_t)routine >> 16) & 0xFFFF;
+    cpu->idt[vector].offset2 = ((uint64_t)routine >> 32) & 0xFFFFFFFF;
+    cpu->idt[vector].type = type;
 }

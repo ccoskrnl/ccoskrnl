@@ -106,11 +106,10 @@ typedef struct _LOADER_IMAGE_DESCRIPTOR
 
 typedef struct _LOADER_FONT_DESCRIPTOR
 {
-    uint64_t fnt_addr;
-    uint64_t fnt_size;
-    LOADER_IMAGE_DESCRIPTOR img;
+    uint64_t ttf_addr;
+    uint64_t ttf_size;
 
-} LOADER_FONT_DESCRIPTOR; // 0x20 bytes
+} LOADER_FONT_DESCRIPTOR; // 0x10 bytes
 
 
 typedef struct _LOADER_GRAPHICS_OUTPUT_INFORMATION
@@ -165,14 +164,12 @@ typedef struct _LOADER_MACHINE_INFORMATION
     // Background Info
     LOADER_IMAGE_DESCRIPTOR bg; 
 
-    // Font[0]: primary font
-    // Font[1]: secondary font
+    // Font[0]: SourceHanSansSCVF
+    // Font[1]: AgeFonts0001
     LOADER_FONT_DESCRIPTOR font[2];
 
     // The sum of size of all files in bytes.
-    uint64_t sum_of_size_of_files_in_bytes;
-
-    uint64_t rand;
+    uint64_t sum_of_size_of_files_in_pages;
 
     LOADER_GRAPHICS_OUTPUT_INFORMATION graphics_info;
     LOADER_ACPI_INFORMATION acpi_info;

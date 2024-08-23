@@ -1,6 +1,7 @@
 #include "../include/types.h"
 #include "../include/machine_info.h"
 #include "../include/hal/op/graphics.h"
+#include "../include/hal/op/screen.h"
 #include "../include/arch/mm.h"
 #include "../include/libk/stdio.h"
 #include "../include/libk/stdlib.h"
@@ -44,7 +45,11 @@ void krnl_start(LOADER_MACHINE_INFORMATION* ptr)
 
     // Set variables about Stack of kernel initialization thread
     _mm_stack_buttom_of_initialization_thread = 
-        (KERNEL_SPACE_BASE_ADDR + _current_machine_info->sum_of_size_of_files_in_bytes);
+        (KERNEL_SPACE_BASE_ADDR + (_current_machine_info->sum_of_size_of_files_in_pages << PAGE_SHIFT));
+
+    // _mm_stack_buttom_of_initialization_thread = (KERNEL_SPACE_BASE_ADDR + 
+    //         (_current_machine_info->bg.addr - _current_machine_info->memory_space_info[0].base_address)
+    //          + page_aligned(_current_machine_info->bg.size));
 
     _mm_size_of_stack_of_initialization_thread_in_bytes = KERNEL_STACK_DEFAULT_SIZE;
 
@@ -89,20 +94,28 @@ Return Value:
 
 void krnl_init()
 {
-    // Output Initialization
-    op_init();
 
     preparing_for_bsp(false);
+
+    // Output Initialization
+    op_init();
 
     // Initialize OSPM
     acpi_init();
 
     // Interrupt module initialization. 
     // when the routines finish, it will set interrupt flag.
-    intr_init();
+    // intr_init();
+
+    // __asm__ ("sti"); 
+    putws(L"\t你好，世界！A \bBC\n");
+    putws(L"Apple\n");
     
-    
-    print_machine_info();
+    // print_machine_info();
+
+    // int* p = NULL;
+    // *p = 5;   
+
     krnl_exit();
     
 }
@@ -167,32 +180,37 @@ void print_machine_info()
     //         pit_perform_sleep();
     //     }
     // }
+
+    // putws(L"你好！");
     
     
-    puts("System diagnostic completed. All systems nominal.\n");
+    // puts("System diagnostic completed. All systems nominal.\n");
 
-    puts("Processor Name: ");
-    puts(cpu_brand_string);
-    putc('\n');
+    // puts("Processor Name: ");
+    // puts(cpu_brand_string);
+    // putc('\n');
 
-    puts("TSC invariant: ");
-    puts(tsc_invariant ? "true\n" : "false\n");
+    // puts("TSC invariant: ");
+    // puts(tsc_invariant ? "true\n" : "false\n");
 
-    putsx("Kernel Space Size: ", _current_machine_info->memory_space_info[0].size);
-    putc('\n');
-    putsx("RAM Size: ", _current_machine_info->memory_info.ram_size);
-    putc('\n');
-    putsd("Screen Width: ", _current_machine_info->graphics_info.HorizontalResolution);
-    putc('\n');
-    putsd("Screen Height: ", _current_machine_info->graphics_info.VerticalResolution);
-    putc('\n');
+    // putsx("Kernel Space Size: ", _current_machine_info->memory_space_info[0].size);
+    // putc('\n');
+    // putsx("RAM Size: ", _current_machine_info->memory_info.ram_size);
+    // putc('\n');
+    // putsd("Screen Width: ", _current_machine_info->graphics_info.HorizontalResolution);
+    // putc('\n');
+    // putsd("Screen Height: ", _current_machine_info->graphics_info.VerticalResolution);
+    // putc('\n');
 
-    puts("IA-PC HPET: ");
-    puts(_current_machine_info->acpi_info.hpet != 0 ? "true\n" : "false\n");
-    if (_current_machine_info->acpi_info.hpet != 0)
-    {
-        putsxs("IA-PC HPET Address: ", hpet_table->BaseAddressLower32Bit.Address, "\n");
-    }
+    // puts("IA-PC HPET: ");
+    // puts(_current_machine_info->acpi_info.hpet != 0 ? "true\n" : "false\n");
+    // if (_current_machine_info->acpi_info.hpet != 0)
+    // {
+    //     putsxs("IA-PC HPET Address: ", hpet_table->BaseAddressLower32Bit.Address, "\n");
+    // }
+    // while (1) {
+    //     ;
+    // }
     
     
 }

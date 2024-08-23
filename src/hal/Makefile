@@ -3,7 +3,7 @@ ARCH!=../../conf/uname.sh
 include ../../conf/target.conf
 
 BUILD_DIR = ../../build/hal
-SRC_DIRS = . op acpi
+SRC_DIRS = . op acpi op/font
 
 # 获取所有的 .c 源文件
 SRCS = $(foreach dir, $(SRC_DIRS), $(wildcard $(dir)/*.c))
@@ -26,6 +26,12 @@ $(BUILD_DIR)/%.o: op/%.c
 	$(shell mkdir -p $(dir $@))
 	@echo "	Compiling $<"
 	@$(CC) $(CFLAGS) -c -o $@ $<
+
+$(BUILD_DIR)/%.o: op/font/%.c
+	$(shell mkdir -p $(dir $@))
+	@echo "	Compiling $<"
+	@$(CC) $(CFLAGS) -c -o $@ $<
+
 	
 $(BUILD_DIR)/%.o: acpi/%.c
 	$(shell mkdir -p $(dir $@))

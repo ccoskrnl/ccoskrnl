@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "miDebuggerServerAddress": "127.0.0.1:8848",
-            "program": "${workspaceFolder}/build/esp/krnl",
+            "program": "${workspaceFolder}/esp/ccoskrnl",
             "args": [],
             "stopAtEntry": true,
             "cwd": "${workspaceFolder}",

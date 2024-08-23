@@ -171,7 +171,10 @@ VOID DisplayLoadingLogo()
 
 	Status = DisplayImage(&ImageOutput, XOfUpperLeftHand, YOfUpperLeftHand);
 	if (EFI_ERROR(Status))
+	{
 		Print(L"Unable to display logo.ico\n");
+		UEFI_PANIC;
+	}
 
 	FreePool(FileBuffer);
 
@@ -186,7 +189,10 @@ VOID DisplayLoadingLogo()
 
 	Status = DisplayImage(&ImageOutput, XOfUpperLeftHand, YOfUpperLeftHand);
 	if (EFI_ERROR(Status))
+	{
 		Print(L"Unable to display loading.ico\n");
+		UEFI_PANIC;
+	}
 
 	FreePool(FileBuffer);
 }

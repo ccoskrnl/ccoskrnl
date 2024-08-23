@@ -1,6 +1,6 @@
 #include "../../include/libk/stdlib.h"
 
-uint32_t swap_endian(uint32_t value) {
+uint32_t swap_endian_32(uint32_t value) {
     return ((value & 0x000000FF) << 24) |
            ((value & 0x0000FF00) << 8) |
            ((value & 0x00FF0000) >> 8) |

@@ -1,12 +1,5 @@
 #include "../../include/libk/list.h"
-#include "../../include/libk/stdlib.h"
 
-/*  
-    @list_buggy.c
-    struct _list_node list;
-    list->flink = list;
-    list->blink = list; 
-*/
 
 inline void _list_init(list_node* list)
 {
@@ -33,110 +26,31 @@ inline void _list_push(list_node* list, list_node* node)
     
 }
 
-inline void _list_pop(list_node* list)
-{
-    list_node* node;
-
-    if (list->blink == NULL)
-    {
-        return;
-    }
-
-    if (list->blink == list || list->flink == list)
-    {
-        return _list_init(list);
-    }
-    
-    // 对应于链表只有一项
-    else if (list->blink == list->flink)
-    {
-        node = list->flink;
-
-        _list_init(node);
-        return _list_init(list);
-        
-    }
-
-    node = list->blink;
-    list->blink = node->blink;
-    list->blink->flink = NULL;
-    _list_init(node);
-    
-}
-
 void _list_remove_from_list(list_node* list, list_node* node)
 {
-    list_node* next;
 
-    next = list->flink;
-
-    if (next == 0)
+    // the node is only one in list
+    if (list->flink == node && list->flink == list->blink && node->flink == NULL) 
     {
-        return;
+        _list_init(list);
     }
-    else if (next == list)
+    // the node is the last item in list
+    else if (list->blink == node && list->flink != list->blink && node->flink == NULL) {
+        node->blink->flink = NULL;
+        list->blink = node->blink;
+    }
+    // the node is the first item in list
+    else if (list->flink == node && node->flink != NULL)
     {
-        return;
+        list->flink = node->flink;
     }
-
-    while (next != node)
+    else 
     {
-        next = next->flink;
-
-        if (next == 0)
-        {
-            return;
-        }
-
-        // 对应于链表环的情况
-        else if (next == list)
-        {
-            return;
-        }
-        
+        node->flink->blink = node->blink;
+        node->blink->flink = node->flink;
     }
-
-    // 如果找到对应节点，就移除
-    next->flink = node->flink;
-
-    _list_init(node);
-}
-
-inline void _list_remove(list_node* node)
-{
-    list_node* prev;
-    list_node* next;
-
-    prev = node->blink;
-    next = node->flink;
-
-    assert((prev != 0));
-
-    // 对应于将要被移除的节点为该链表中唯一的节点
-    if (prev->flink == prev->blink)
-    {
-        _list_init(prev);
-    }
-    // 自旋链表
-    else if (prev == next)
-    {
-        prev->flink = NULL;
-        prev->blink = NULL;
-    }
-    // 该节点为链表的最后一项
-    else if (next == 0)
-    {
-        prev->flink = 0;
-    }
-    else
-    {
-        prev->flink = next;
-        next->blink = prev;
-    }
-
-    // 清空
-    _list_init(node);
-
-    return ;
     
+
+
+    _list_init(node);
 }

@@ -9,18 +9,13 @@
 #include "include/ReadFile.h"
 
 #define PAGE_ALIGNED(x)               (((UINTN)x + (EFI_PAGE_SIZE - 1)) & ~(EFI_PAGE_SIZE - 1))
-#define KRNL_PATH                     L"krnl"
+#define KRNL_PATH                     L"ccoskrnl"
 #define CCLDR_PATH                    L"ccldr"
-#define BG_PATH                       L"bg\\background"
-#define BG_PNG_PATH                   L"bg\\background.png"
+#define BG_PATH                       L"rec\\bg\\background"
+#define BG_PNG_PATH                   L"rec\\bg\\background.png"
 
-#define PRIMARY_FONT_PATH             L"font\\Caerulaarbor\\Caerulaarbor.fnt"
-#define PRIMARY_FONT_IMG_PATH         L"font\\Caerulaarbor\\Caerulaarbor_0.bgra"
-#define PRIMARY_FONT_PNG_PATH         L"font\\Caerulaarbor\\Caerulaarbor_0.png"
-
-#define SECONDARY_FONT_PATH           L"font\\CascadiaCode\\CascadiaCode.fnt"
-#define SECONDARY_FONT_IMG_PATH       L"font\\CascadiaCode\\CascadiaCode_0.bgra"
-#define SECONDARY_FONT_PNG_PATH       L"font\\CascadiaCode\\CascadiaCode_0.png"
+#define AgeFonts001_TTF_PATH          L"rec\\AgeFonts001.ttf"
+#define SourceHanSansSCVF_TTF_PATH    L"rec\\SourceHanSansSCVF.ttf"
 
 
 // Protocols
@@ -219,12 +214,6 @@ UefiMain(
   UINT32 PNGWidth;
   UINT32 PNGHeight;
 
-  // default random number equals to skadi(73 6B 61 64 69)
-  UINTN RandomNumber = 0x6964616B73;
-  EFI_RNG_PROTOCOL *gRngProtocol;
-  UINTN SizeOfRandomNumber = sizeof(UINTN);
-
-
   // Current Machine Information
   EFI_PHYSICAL_ADDRESS InfoAddress;
   LOADER_MACHINE_INFORMATION *MachineInfo;
@@ -263,15 +252,6 @@ UefiMain(
   MachineInfo = (LOADER_MACHINE_INFORMATION *)(InfoAddress);
   gBS->SetMem((VOID*)MachineInfo, MACHINE_INFO_STRUCT_SIZE, 0);
 
-  // Get Randomized Number
-  Status = gBS->LocateProtocol(&gEfiRngProtocolGuid, NULL, (VOID**)&gRngProtocol);
-  if (!EFI_ERROR(Status))
-  {
-    gRngProtocol->GetRNG(gRngProtocol, NULL, SizeOfRandomNumber, (UINT8 *)RandomNumber);
-    MachineInfo->RandomNumber = RandomNumber;
-  }
-  else
-    MachineInfo->RandomNumber = RandomNumber;
 
   ReadFileInit();
 
@@ -322,6 +302,9 @@ UefiMain(
     // Kernel use 2GB at most.
     KernelSpaceSize = MM2GB;
 
+  // test
+  KernelSpaceSize = MM512MB;
+
   Status = gBS->AllocatePages(AllocateAnyPages, EfiLoaderData, (KernelSpaceSize >> EFI_PAGE_SHIFT), &KrnlImageBase);
   if (EFI_ERROR(Status))
   {
@@ -364,48 +347,32 @@ UefiMain(
   MachineInfo->MemorySpaceInformation[2].BaseAddress = KrnlImageBase;
   MachineInfo->MemorySpaceInformation[2].Size = KernelBufferSize;
 
+  MachineInfo->SumOfSizeOfFilesInPages = (PAGE_ALIGNED(KernelBufferSize) >> EFI_PAGE_SHIFT);
+
   // Read Font info
-  MachineInfo->SumOfSizeOfFilesInBytes += PAGE_ALIGNED(KernelBufferSize);
-  FileBuffer = KrnlImageBase + MachineInfo->SumOfSizeOfFilesInBytes;
-  ReadFileToBufferAt(PRIMARY_FONT_PATH, FileBuffer, &FileSize);
-  MachineInfo->Font[0].FntAddr = FileBuffer;
-  MachineInfo->Font[0].FntSize = FileSize;
 
-  MachineInfo->SumOfSizeOfFilesInBytes += PAGE_ALIGNED(FileSize);
-  FileBuffer = KrnlImageBase + MachineInfo->SumOfSizeOfFilesInBytes;
-  ReadFileToBufferAt(PRIMARY_FONT_IMG_PATH, FileBuffer, &FileSize);
-  GetPNGSize(PRIMARY_FONT_PNG_PATH, &PNGWidth, &PNGHeight);
-  MachineInfo->Font[0].Img.Addr = (UINTN)FileBuffer;
-  MachineInfo->Font[0].Img.Width = (UINT16)PNGWidth;
-  MachineInfo->Font[0].Img.Height = (UINT16)PNGHeight;
-  MachineInfo->Font[0].Img.Size = (UINT32)FileSize;
+  FileBuffer = KrnlImageBase + (MachineInfo->SumOfSizeOfFilesInPages << EFI_PAGE_SHIFT);
+  ReadFileToBufferAt(AgeFonts001_TTF_PATH, FileBuffer, &FileSize);
+  MachineInfo->Font[1].TTF_Addr = FileBuffer;
+  MachineInfo->Font[1].TTF_Size = FileSize;
 
-  MachineInfo->SumOfSizeOfFilesInBytes += PAGE_ALIGNED(FileSize);
-  FileBuffer = KrnlImageBase + MachineInfo->SumOfSizeOfFilesInBytes;
-  ReadFileToBufferAt(SECONDARY_FONT_PATH, FileBuffer, &FileSize);
-  MachineInfo->Font[1].FntAddr = FileBuffer;
-  MachineInfo->Font[1].FntSize = FileSize;
+  MachineInfo->SumOfSizeOfFilesInPages += (PAGE_ALIGNED(FileSize) >> EFI_PAGE_SHIFT);
+  FileBuffer = KrnlImageBase + (MachineInfo->SumOfSizeOfFilesInPages << EFI_PAGE_SHIFT);
+  ReadFileToBufferAt(SourceHanSansSCVF_TTF_PATH, FileBuffer, &FileSize);
+  MachineInfo->Font[0].TTF_Addr = FileBuffer;
+  MachineInfo->Font[0].TTF_Size = FileSize;
 
-  MachineInfo->SumOfSizeOfFilesInBytes += PAGE_ALIGNED(FileSize);
-  FileBuffer = KrnlImageBase + MachineInfo->SumOfSizeOfFilesInBytes;
-  ReadFileToBufferAt(SECONDARY_FONT_IMG_PATH, FileBuffer, &FileSize);
-  GetPNGSize(SECONDARY_FONT_PNG_PATH, &PNGWidth, &PNGHeight);
-  MachineInfo->Font[1].Img.Addr = (UINTN)FileBuffer;
-  MachineInfo->Font[1].Img.Width = (UINT16)PNGWidth;
-  MachineInfo->Font[1].Img.Height = (UINT16)PNGHeight;
-  MachineInfo->Font[1].Img.Size = (UINT32)FileSize;
+  // Read Background
+  MachineInfo->SumOfSizeOfFilesInPages += (PAGE_ALIGNED(FileSize) >> EFI_PAGE_SHIFT);
+  FileBuffer = KrnlImageBase + (MachineInfo->SumOfSizeOfFilesInPages << EFI_PAGE_SHIFT);
+  ReadFileToBufferAt(BG_PATH, FileBuffer, &FileSize);
+  GetPNGSize(BG_PNG_PATH, &PNGWidth, &PNGHeight);
+  MachineInfo->Background.Width = (UINT16)PNGWidth;
+  MachineInfo->Background.Height = (UINT16)PNGHeight;
+  MachineInfo->Background.Addr = (UINTN)FileBuffer;
+  MachineInfo->Background.Size = (UINT32)FileSize;
 
-  // // Read Background
-  // MachineInfo->SumOfSizeOfFilesInBytes = PAGE_ALIGNED(FileSize);
-  // FileBuffer = KrnlImageBase + MachineInfo->SumOfSizeOfFilesInBytes;
-
-  // ReadFileToBufferAt(BG_PATH, FileBuffer, &FileSize);
-  // GetPNGSize(BG_PNG_PATH, &PNGWidth, &PNGHeight);
-  // MachineInfo->Background.Width = (UINT16)PNGWidth;
-  // MachineInfo->Background.Height = (UINT16)PNGHeight;
-  // MachineInfo->Background.Addr = (UINTN)FileBuffer;
-  // MachineInfo->Background.Size = (UINT32)FileSize;
-
+  MachineInfo->SumOfSizeOfFilesInPages += (PAGE_ALIGNED(FileSize) >> EFI_PAGE_SHIFT);
 
   ReadFileFnit();
 

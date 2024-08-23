@@ -11,7 +11,7 @@ typedef struct _hpet_addr_struct{
     uint8_t RegisterBitOffset;   // Bit offset within the registers
     uint8_t Reserved;            // Reserved, must be zero
     uint64_t Address;            // Base address of the HPET registers
-} hpet_addr_struct_t;
+} __attribute__((packed)) hpet_addr_struct_t;
 
 
 // HPET Table

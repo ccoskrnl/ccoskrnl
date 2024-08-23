@@ -304,12 +304,14 @@ typedef struct _pool_header {
 // the overhead of free block 
 #define POOL_FREE_BLOCK_OVERHEAD                (POOL_HEAD_OVERHEAD + (uint64_t)sizeof(list_node))
 
+// define a free block tag
+#define POOL_FREE_TAG                           0
 
 // The maximum block upper memory pool manager once can allocate
 // if the POOL_PAGE_SIZE is 4096, BUDDY_MAX is equal to (4096 - 
-// 8 - 16 = 4072 )
+// 8 - 8 - 16 = 4064 )
 #define POOL_BUDDY_MAX  \
-    (POOL_PAGE_SIZE - (POOL_HEAD_OVERHEAD) - POOL_SMALLEST_BLOCK)
+    (POOL_PAGE_SIZE - (POOL_HEAD_OVERHEAD << 1) - POOL_SMALLEST_BLOCK)
 
 // The number of lists. the first two items not be used by default.
 #define POOL_LIST_HEADS \
@@ -331,10 +333,13 @@ typedef struct _pool {
 
 } pool;
 
-#define POOL_INDEX_KERNEL_DEFAULT               0
+#define POOL_INDEX_FREE_INDEX                   0
+
+#define POOL_INDEX_KERNEL_DEFAULT               1
 
 // Dynamically memory-management functions.
 void* _mm_kmalloc(uint64_t size);
+void _mm_kfree1(void *addr, int i);
 void _mm_kfree(void* addr);
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */

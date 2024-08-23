@@ -5,6 +5,8 @@
 #include "stdarg.h"
 
 
+void putwc(wch_t wch);
+void putws(const wch_t *ws);
 void putc(char c);
 void puts(const char *s);
 

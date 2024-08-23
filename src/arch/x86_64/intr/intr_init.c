@@ -99,28 +99,6 @@ uint32_t read_apic_register(uint32_t reg)
 }
 
 
-void timer_intr()
-{
-    // Handle the timer interrupt
-    puts("Timer Interrupt.\n");
-
-    // Send EOI to Local APIC
-    write_apic_register(LOCAL_APIC_EOI_REG, 0);
-    return;
-}
-
-void _cpu_install_isr(cpu_core_desc_t *cpu, uint8_t vector, void* routine, uint8_t type, uint8_t ist_index)
-{
-    cpu->idt[vector].present = 1; 
-    cpu->idt[vector].dpl = 0;
-    cpu->idt[vector].ist = ist_index;
-    cpu->idt[vector].offset0 = ((uint64_t)routine & 0xFFFF);
-    cpu->idt[vector].selector = SEG_SEL_KRNL_CODE;
-    cpu->idt[vector].offset1 = ((uint64_t)routine >> 16) & 0xFFFF;
-    cpu->idt[vector].offset2 = ((uint64_t)routine >> 32) & 0xFFFFFFFF;
-    cpu->idt[vector].type = type;
-}
-
 
 static void parse_madt()
 {

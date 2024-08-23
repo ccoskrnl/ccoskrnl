@@ -41,8 +41,8 @@
 static char putbuf[MAXPUTBUF];
 
 static int calculate_bits_for_decimal_digit(int d) {
-    double power_of_ten = powdu(10, d - 1);
-    double log_base_2 = log2_int(power_of_ten);
+    double power_of_ten = pow(10, d - 1);
+    double log_base_2 = log2(power_of_ten);
     int bits_required = (int)(log_base_2) + 1;
     return bits_required;
 }
@@ -124,6 +124,15 @@ void puts(const char *s)
     }
 }
 
+void putws(const wch_t *ws)
+{
+    int len = wstrlen(ws);
+    for (int i = 0; i < len; i++)
+    {
+        putwc(ws[i]);
+    }
+}
+
 void putss(const char *s1, const char *s2)
 {
     if (s1 != NULL)
@@ -182,13 +191,23 @@ void putsf(const char *s, double f)
     uf.f = f;
     str = putbuf;
 
+    exp = (uf.d & 0x7FF0000000000000) >> 52;
+
+    if (exp == 0x7ff && (uf.d & 0xfffffffffffff) != 0) 
+    {
+        str[0] = 'n';
+        str[1] = 'a';
+        str[2] = 'n';
+        str[3] = '\0';
+        goto __put_str;
+    }
+
     if (uf.d & 0x8000000000000000)
     {
         str[0] = '-';     
         str++;
     }
 
-    exp = (uf.d & 0x7FF0000000000000) >> 52;
      
     if (exp == 0x0)
     {
@@ -219,6 +238,8 @@ void putsf(const char *s, double f)
         str++;
         long2str(m, str, 0, 10);
     }
+
+__put_str:
 
     puts(putbuf);
 

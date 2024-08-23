@@ -1,7 +1,8 @@
 #include "../../include/types.h"
+// #include "../../include/hal/op/font/font_fnt.h"
 #include "../../include/hal/op/graphics.h"
 #include "../../include/hal/op/screen.h"
-#include "../../include/hal/op/font.h"
+#include "../../include/hal/op/font/font_ttf.h"
 #include "../../include/libk/string.h"
 #include "../../include/libk/stdlib.h"
 #include "../../include/machine_info.h"
@@ -20,12 +21,14 @@ struct _installed_screens _op_installed_screens;
 // the first screen
 op_screen_desc* _op_def_screen;
 
-// seaborn font family
-static struct _ascii_font secondary_font;
-// default font family
-static struct _ascii_font primary_font;
+struct _font_ttf* _font_family_agefonts001;
+
+struct _font_ttf* _font_family_SourceHanSansSCVF;
+
 // all installed font family
-struct _installed_fonts _op_font;
+struct _installed_font_ttfs _op_font_ttfs;
+
+boolean _op_has_been_initialize;
 
 void op_init()
 {
@@ -46,41 +49,36 @@ void op_init()
     _op_def_screen = _op_installed_screens.screen[0];
 
     // clear screen
-    for (int i = 0; i < MAX_FRAMEBUFFER; i++) {
-        memzero(_op_def_screen->frame_bufs[i], _op_def_screen->frame_buf_size);
-    }
+    _op_def_screen->clear_framebuffer(_op_def_screen);
 
     background.buf = (go_blt_pixel_t*)_current_machine_info->bg.addr;
     background.height = _current_machine_info->bg.height;
     background.width = _current_machine_info->bg.width;
     background.size = _current_machine_info->bg.size;
     _op_bg = &background;
+  
 
-    _op_ascii_font_init(
-        (char*)_current_machine_info->font[0].fnt_addr,
-        (char*)_current_machine_info->font[0].img.addr,
-        (uint16_t)_current_machine_info->font[0].img.width,
-        (uint16_t)_current_machine_info->font[0].img.height,
-        &secondary_font
-    );
-    _op_font.num++;
-    _op_font.font[1] = &secondary_font;
+    status = new_a_font(&_font_family_SourceHanSansSCVF);
+    if (ST_ERROR(status)) {
+        krnl_panic();
+    }
+    _font_family_SourceHanSansSCVF->init(_font_family_SourceHanSansSCVF, (uint8_t*)_current_machine_info->font[0].ttf_addr);
 
-    _op_ascii_font_init(
-        (char*)_current_machine_info->font[1].fnt_addr,
-        (char*)_current_machine_info->font[1].img.addr,
-        (uint16_t)_current_machine_info->font[1].img.width,
-        (uint16_t)_current_machine_info->font[1].img.height,
-        &primary_font
-    );
+    status = new_a_font(&_font_family_agefonts001);
+    if (ST_ERROR(status)) {
+        krnl_panic();
+    }
+    _font_family_SourceHanSansSCVF->init(_font_family_agefonts001, (uint8_t*)_current_machine_info->font[1].ttf_addr);
 
-    _op_font.num++;
-    _op_font.font[0] = &primary_font;
+    _op_font_ttfs.fonts[0] = _font_family_SourceHanSansSCVF;
+    _op_font_ttfs.fonts[1] = _font_family_agefonts001;
+    _op_font_ttfs.num = 2;
 
-    // uncomment the following two lines to set seaborn language as default font
-    // _op_font.font[0] = &secondary_font;
-    // _op_font.font[1] = &primary_font;
 
+
+    // uncomment the following two lines to set age language as default font
+    // _op_font_ttfs.fonts[0] = _font_family_agefonts001;
+    // _op_font_ttfs.fonts[1] = _font_family_SourceHanSansSCVF;
 
 
     // // set wallpaper
@@ -94,5 +92,5 @@ void op_init()
     //     }
     // }
 
-
+    _op_has_been_initialize = true;
 }

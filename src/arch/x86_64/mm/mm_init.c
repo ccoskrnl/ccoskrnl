@@ -169,8 +169,8 @@ uint16_t _mm_number_of_pool;
 // The default memory pool for kernel
 pool _mm_krnl_pool;
 
-// The pointer that points to array of all memory pools.
-pool *_mm_pools = &_mm_krnl_pool;
+// The pointer that points to all memory pools.
+pool* _mm_pools[12];
 
 
 
@@ -502,9 +502,13 @@ static void mem_map_init()
     uint64_t num_of_ptes;
 
     mmpte_hardware_t *pml4t, *pdpt;
+    uint64_t random_num;
 
     // cr3_t register
     uint64_t cr3;
+
+    // get a random number
+    random_num = rdtsc();
 
     // Initilize local variables.
     sys_pte_pool_phys_addr = _mm_sys_pte_pool_phys_start;
@@ -519,9 +523,10 @@ static void mem_map_init()
     pdpt_phys_addr = sys_pte_pool_phys_addr + offset_of_sys_pte_next_page;
     pdpt_virt_addr = sys_pte_pool_virt_addr + offset_of_sys_pte_next_page;
 
-    offset_of_pml4e = (_current_machine_info->rand
+    // the numerical range of offset_of_pml4e is 0x100 - PML4E_OFFSET_OF_KRNL_SPACE
+    offset_of_pml4e = ((random_num
         + _current_machine_info->memory_space_info[0].base_address
-        + _current_machine_info->memory_space_info[1].base_address) & 0x1E0;
+        + _current_machine_info->memory_space_info[1].base_address) % (PML4E_OFFSET_OF_KRNL_SPACE - 0x100) + 0x100);
 
     
 
@@ -876,6 +881,8 @@ static void memory_pool_init()
     // default kernel memory pool
     pool *pool;
 
+    _mm_pools[POOL_INDEX_KERNEL_DEFAULT] = &_mm_krnl_pool;
+
     non_paged_pool = _mm_non_paged_pool_start + 0x10000;
     free_root_entry = (pool_free_page_entry *)(non_paged_pool);
     free_root_entry->number_of_pages = (_mm_non_paged_pool_size - 0x10000) >> PAGE_SHIFT;
@@ -890,7 +897,7 @@ static void memory_pool_init()
     _mm_non_paged_pool_free_list_array[0].rear = free_root_entry;
 
     // initialize the default kernel memory pool
-    pool = &_mm_pools[POOL_INDEX_KERNEL_DEFAULT];
+    pool = _mm_pools[POOL_INDEX_KERNEL_DEFAULT];
     pool->pool_index = POOL_INDEX_KERNEL_DEFAULT;
     pool->pool_type = 0;
     memzero(&pool->list_heads, sizeof(list_node) * POOL_LIST_HEADS);
@@ -1084,6 +1091,35 @@ static void dynamic_memory_management_test()
     _mm_free_pages(alloc3);
 
 
+    for (int i = 0; i < 1000; i++) {
+    
+
+    alloc0 = _mm_kmalloc(16);
+    alloc1 = _mm_kmalloc(16);
+    alloc1[0] = 0x123456789abcdef0;
+    alloc1[1] = 0x123456789abcdef0;
+    _mm_kfree(alloc1);
+    alloc2 = _mm_kmalloc(16);
+    alloc2[1] = 0x123456789abcdef0;
+    alloc2[0] = 0x123456789abcdef0;
+    _mm_kfree(alloc0);
+    _mm_kfree(alloc2);
+
+    status = _mm_alloc_pages(1 << PAGE_SHIFT, (void**)&alloc0);
+    if (ST_ERROR(status)) {
+        krnl_panic();
+    }
+    status = _mm_alloc_pages(1 << PAGE_SHIFT, (void**)&alloc1);
+    if (ST_ERROR(status)) {
+        krnl_panic();
+    }
+    status = _mm_alloc_pages(1 << PAGE_SHIFT, (void**)&alloc2);
+    if (ST_ERROR(status)) {
+        krnl_panic();
+    }
+
+
+
     // case 1: 
     alloc0 = _mm_kmalloc(sizeof(int64_t) * 8);
     alloc1 = _mm_kmalloc(sizeof(int64_t) * 8);
@@ -1123,6 +1159,28 @@ static void dynamic_memory_management_test()
     _mm_kfree(alloc7);
     _mm_kfree(alloc8);
     _mm_kfree(alloc9);
+
+    }
+    alloc0 = _mm_kmalloc(POOL_BUDDY_MAX);
+    _mm_kfree(alloc0);
+
+    void* alloc[POOL_BUDDY_MAX];
+    for (int i = 0; i < 1000; i++) {
+        alloc[i] = malloc(i);
+    }
+    for (int i = 0; i < 1000; i++) {
+        _mm_kfree(alloc[i]);
+    }
+
+    // void* alloc[1000];
+    // for (int i = 0; i < 1000; i++) {
+    //     alloc[i] = _mm_kmalloc(13);
+    // }
+    // for (int i = 0; i < 1000; i++) {
+    //     _mm_kfree(alloc[i]);
+    // }
+    
+
 }
 
 
@@ -1146,10 +1204,15 @@ Returned Value:
 static inline void fixup_machine_info()
 {
     uint64_t fixup = KERNEL_SPACE_BASE_ADDR - _mm_krnl_space_physical_base_addr;
-    _current_machine_info->font[0].fnt_addr += fixup;
-    _current_machine_info->font[0].img.addr += fixup;
-    _current_machine_info->font[1].fnt_addr += fixup;
-    _current_machine_info->font[1].img.addr += fixup;
+    
+    _current_machine_info->font[0].ttf_addr += fixup;
+    // _current_machine_info->font[0].fnt_addr += fixup;
+    // _current_machine_info->font[0].img.addr += fixup;
+    _current_machine_info->font[1].ttf_addr += fixup;
+    // _current_machine_info->font[1].fnt_addr += fixup;
+    // _current_machine_info->font[1].img.addr += fixup;
+
+    _current_machine_info->bg.addr += fixup;
 
 }
 
@@ -1264,7 +1327,7 @@ void mm_init()
     // Memory Pool initialization
     memory_pool_init();
     // Dynamic Memory Management Functions test
-    dynamic_memory_management_test();
+    // dynamic_memory_management_test();
 
     // System page table initialization 
     sys_pte_pool_init();

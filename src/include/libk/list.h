@@ -32,8 +32,6 @@ typedef struct _list_node {
 
 void _list_init(list_node* list);
 void _list_push(list_node* list, list_node* node);
-void _list_pop(list_node* list);
 void _list_remove_from_list(list_node* list, list_node* node);
-void _list_remove(list_node* node);
 
 #endif

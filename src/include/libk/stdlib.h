@@ -13,8 +13,14 @@ void krnl_panic();
 void* malloc(size_t size);
 void free(void* addr);
 
-uint32_t swap_endian(uint32_t value);
+uint32_t swap_endian_32(uint32_t value);
 uint16_t swap_endian_16(uint16_t value);
 uint64_t swap_endian_64(uint64_t value);
+
+void* memset(void* bufptr, int value, size_t size);
+void* memcpy(void* dstptr, const void* srcptr, size_t size);
+void memzero(void* dst, uint64_t size);
+int memcmp(const void* aptr, const void* bptr, size_t size);
+void* memmove(void* dstptr, const void* srcptr, size_t size);
 
 #endif
