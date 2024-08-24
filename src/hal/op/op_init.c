@@ -7,7 +7,6 @@
 #include "../../include/libk/stdlib.h"
 #include "../../include/machine_info.h"
 
-void _op_install_a_screen(struct _op_screen_desc* screen);
 
 // the first screen detected by ccloader.
 static op_screen_desc screen0;
@@ -36,13 +35,13 @@ void op_init()
     status_t status;
 
     // initialize first screen.
-    screen0.frame_buf_base = (go_blt_pixel_t*)_current_machine_info->graphics_info.FrameBufferBase;
-    screen0.frame_buf_size = _current_machine_info->graphics_info.FrameBufferSize;
-    screen0.vertical = _current_machine_info->graphics_info.VerticalResolution;
-    screen0.horizontal = _current_machine_info->graphics_info.HorizontalResolution;
-    screen0.pixels_per_scanline = _current_machine_info->graphics_info.PixelsPerScanLine;
-
-    _op_install_a_screen(&screen0);
+    _op_install_a_screen(
+            &screen0,
+            (go_blt_pixel_t*)_current_machine_info->graphics_info.FrameBufferBase,
+            _current_machine_info->graphics_info.FrameBufferSize,
+            _current_machine_info->graphics_info.HorizontalResolution,
+            _current_machine_info->graphics_info.VerticalResolution,
+            _current_machine_info->graphics_info.PixelsPerScanLine);
 
     _op_installed_screens.num++;
     _op_installed_screens.screen[0] = &screen0;
@@ -81,16 +80,9 @@ void op_init()
     // _op_font_ttfs.fonts[1] = _font_family_SourceHanSansSCVF;
 
 
-    // // set wallpaper
-    // if (desc->horizontal == background.width && desc->vertical == background.height)
-    // {
-    //     desc->blt(desc, background.buf, GoBltBufferToVideo, 0, 0, 0, 0, background.width, background.height, BACKBUFFER_INDEX);
-    //     status = desc->swap_buf(desc, 0, BACKBUFFER_INDEX);
-    //     if(ST_ERROR(status))
-    //     {
-    //         krnl_panic();
-    //     }
-    // }
+    // set wallpaper
+    if (_op_def_screen->horizontal == background.width && _op_def_screen->vertical == background.height)
+        memcpy(_op_def_screen->frame_buf_base, _op_bg->buf, _op_bg->size);
 
     _op_has_been_initialize = true;
 }

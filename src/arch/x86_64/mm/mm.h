@@ -339,7 +339,6 @@ typedef struct _pool {
 
 // Dynamically memory-management functions.
 void* _mm_kmalloc(uint64_t size);
-void _mm_kfree1(void *addr, int i);
 void _mm_kfree(void* addr);
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */

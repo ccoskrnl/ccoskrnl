@@ -793,10 +793,7 @@ void *_mm_kmalloc(uint64_t size)
     return _mm_malloc(size, POOL_INDEX_KERNEL_DEFAULT, 1);
 }
 
-void _mm_kfree1(void *addr, int i)
-{
-    _mm_free(addr, POOL_INDEX_KERNEL_DEFAULT);
-}
+
 void _mm_kfree(void *addr)
 {
     _mm_free(addr, POOL_INDEX_KERNEL_DEFAULT);

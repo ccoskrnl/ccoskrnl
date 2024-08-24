@@ -48,10 +48,11 @@ void preparing_for_bsp(boolean is_first)
         // initialize CPU0's GDT
         // Because of we already defined GDT during OS loading, so we just need to copy defined gdt
         // into new gdt space.
-        memcpy(
+        memcpyb(
             gdt, 
             (void*)(_current_machine_info->memory_space_info[1].base_address + MACHINE_INFO_SIZE + 0x1000), 
             sizeof(seg_desc_t) * 3);
+
         cpu0.gdt = gdt;
         cpu0.gdtr.limit = (sizeof(seg_desc_t) * SEG_DESC_MAXIMUM) - 1;
         cpu0.gdtr.base = (uint64_t)(cpu0.gdt);

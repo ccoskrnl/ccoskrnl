@@ -32,6 +32,11 @@ void krnl_init();
 void print_machine_info();
 void krnl_exit();
 
+
+extern wch_t* tengwangge;
+extern wch_t* chushibiao;
+
+
 /**
  * Preparing base kernel code execution environment for continuing to initialize.
  * 
@@ -108,8 +113,8 @@ void krnl_init()
     // intr_init();
 
     // __asm__ ("sti"); 
-    putws(L"\t你好，世界！A \bBC\n");
-    putws(L"Apple\n");
+    putws(chushibiao);
+    putws(tengwangge);
     
     // print_machine_info();
 

@@ -104,10 +104,12 @@ struct _go_image_output
 };
 
 
+
 #define POINT_SIZE  						16.0f
+#define LSB_SIZE  							8.0f
 #define LINE_SPACE							3.0f
 #define DPI  								96.0f
 
-// extern struct _go_image_output *_op_bg;
+extern struct _go_image_output *_op_bg;
 
 #endif

@@ -362,6 +362,8 @@ static status_t glyph_init(void *this, wch_t wch_code, font_ttf_t *family) {
 
     glyph_id = family->get_glyph_id(family, wch_code);
 
+__glyph_init:
+
     if (family->head.table.indexToLocFormat) {
         glyf_offset = swap_endian_32(family->loca.table.l_offsets[glyph_id]);
     } else {
@@ -706,8 +708,11 @@ __inspect_end:
                 glyph->numberOfTriangles++;
             }
         }
-    } else {
-        krnl_panic();
+    } 
+    else 
+    {
+        glyph_id = 0;
+        goto __glyph_init;
     }
 
     return status;

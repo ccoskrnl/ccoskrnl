@@ -11,50 +11,74 @@ void memzero(void* dst, uint64_t size)
     uint64_t csize;
     unsigned char* rest;
 
-	if (support_avx || support_avx2)
+    if (size > (32 * 8))
     {
-        remainder = size & 0x1F;
-        csize = size & 0xFFFFFFFFFFFFFFE0;
-        if (csize)
+        if (((uint64_t)dst & 0x1F) == 0) 
         {
-            memzero_avx(dst, csize);
-        }
-        if (remainder)
-        {
-            goto zero_rest_of_size;
+            if (support_avx || support_avx2)
+                goto __256bits;
+            else
+                goto __64bits;
         }
 
-        return;
-    } else if (support_sse3 || support_sse41 || support_sse42 || support_ssse3) {
-        remainder = size & 0xF;
-        csize = size & 0xFFFFFFFFFFFFFFF0;
-        if (csize)
+
+        if (((uint64_t)dst & 0xF) == 0) 
         {
-            memzero_sse2(dst, csize);
-        }
-        if (remainder)
-        {
-            goto zero_rest_of_size;
+            if (support_sse3 || support_sse41 || support_sse42 || support_ssse3)
+                goto __128bits; 
+            else
+                goto __64bits;
         }
 
-        return;
-    } else {
-        remainder = size & 0x8;
-        csize = size & 0xFFFFFFFFFFFFFFF8;
-        uint64_t* dest = dst;
-        for (uint64_t i = 0; i < csize; i++)
-            dest[i] = 0;
-        
-        if (remainder)
-        {
-            goto zero_rest_of_size;
-        }
-
-        return;
+        if (((uint64_t)dst & 0x7) == 0) 
+            goto __64bits; 
+        else
+            memset(dst, 0, size);
+    }
+    else {
+        goto __64bits;
     }
 
-zero_rest_of_size:
-    rest = (unsigned char*)(dst + csize);
-    for (uint64_t i = 0; i < remainder; i++)
-        rest[i] = 0;
+__256bits:
+    remainder = size & 0x1F;
+    csize = size & 0xFFFFFFFFFFFFFFE0;
+    if (csize)
+    {
+        memzero_avx(dst, csize);
+    }
+    if (remainder)
+    {
+        memset(((uint8_t*)dst + 32 * csize), 0, remainder);
+    }
+
+    return;
+
+__128bits:
+    remainder = size & 0xF;
+    csize = size & 0xFFFFFFFFFFFFFFF0;
+    if (csize)
+    {
+        memzero_sse2(dst, csize);
+    }
+    if (remainder)
+    {
+        memset(((uint8_t*)dst + 16 * csize), 0, remainder);
+    }
+
+    return;
+
+__64bits:
+    remainder = size & 0x7;
+    csize = size  >> 3;
+    uint64_t* dest = dst;
+    for (uint64_t i = 0; i < csize; i++)
+        dest[i] = 0;
+
+    if (remainder)
+    {
+        memset(((uint8_t*)dst + 8 * csize), 0, remainder);
+    }
+
+    return;
+
 }
