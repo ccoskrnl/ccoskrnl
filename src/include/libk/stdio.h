@@ -24,21 +24,54 @@
 // Main macro to call the appropriate function
 #define _put(...) FOL(__VA_ARGS__)
 
+typedef enum _PREDEFINED_COLOR
+{
+    RED = 0,
+    GREEN = 1,
+    BLUE = 2,
+    CYAN3,
+    FIRE_BRICK2,
+    SPRINT_GREEN2
 
+} PREDEFINED_COLOR;
+
+
+/*  Put a wide character with specific color and font family */
 void putwccf(wch_t wch, go_blt_pixel_t color, font_ttf_t* family);
+/*  Put a wide character with specific color */
 void putwcc(wch_t wch, go_blt_pixel_t color);
+/*  Put a wide character */
 void putwc(wch_t wch);
-void putws(const wch_t *ws);
+/*  Put a character */
 void putc(char c);
+
+/*  Debug Print */
+void put_check(boolean cond, const wch_t *ws);
+/*  Put a wstring with specific predefined color */
+void putwsc(const wch_t *ws, PREDEFINED_COLOR color);
+/*  Put a wstring */
+void putws(const wch_t *ws);
+/*  Put a string */
 void puts(const char *s);
 
+
+
+/*  Put double string */
 void putss(const char *s1, const char *s2);
+/*  Put string and digit */
 void putsd(const char *s, int64_t d);
+/*  Put string and hex */
 void putsx(const char *s, uint64_t x);
+/*  Put string and float */
 void putsf(const char *s, double f);
 
+
+
+/*  Put string, digit and string. */
 void putsds(const char *s, int64_t d, const char *s1);
+/*  Put string, hex and string. */
 void putsxs(const char *s, uint64_t x, const char *s1);
+/*  Put string, float and string. */
 void putsfs(const char *s, double f, const char *s1);
 
 #ifdef _X86

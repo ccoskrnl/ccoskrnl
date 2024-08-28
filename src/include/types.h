@@ -3,7 +3,6 @@
 
 #define NULL                        (void*)0
 
-typedef unsigned long long int      uint128_t;
 typedef unsigned long int           uint64_t;
 typedef unsigned int                uint32_t;
 typedef unsigned short              uint16_t;
@@ -19,6 +18,36 @@ typedef uint8_t                     byte;
 typedef uint16_t                    word;
 typedef uint32_t                    dword;
 typedef uint64_t                    qword;
+
+typedef struct _uint128
+{
+    uint64_t u0;
+    uint64_t u1;
+
+} uint128_t, oword;
+
+typedef struct _uint256
+{
+    uint64_t u0;
+    uint64_t u1;
+    uint64_t u2;
+    uint64_t u3;
+
+} uint256_t, yword;
+
+typedef struct _uint512
+{
+    uint64_t u0;
+    uint64_t u1;
+    uint64_t u2;
+    uint64_t u3;
+    uint64_t u4;
+    uint64_t u5;
+    uint64_t u6;
+    uint64_t u7;
+
+} uint512_t, zword;
+
 
 typedef uint8_t                     boolean;
 #define false                       ((boolean)(0 == 1))

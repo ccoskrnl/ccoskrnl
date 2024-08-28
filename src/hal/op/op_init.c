@@ -1,6 +1,6 @@
 #include "../../include/types.h"
-// #include "../../include/hal/op/font/font_fnt.h"
 #include "../../include/hal/op/graphics.h"
+#include "../../include/hal/op/window.h"
 #include "../../include/hal/op/screen.h"
 #include "../../include/hal/op/font/font_ttf.h"
 #include "../../include/libk/string.h"
@@ -8,25 +8,44 @@
 #include "../../include/machine_info.h"
 
 
-// the first screen detected by ccloader.
-static op_screen_desc screen0;
-
-// wallpaper
+/* Default Wallpaper */
 static struct _go_image_output background;
 struct _go_image_output *_op_bg;
 
+
+/**
+ * Screen
+*/
+// the first screen detected by ccloader.
+static op_screen_desc screen0;
 // all screens installed on this machine.
 struct _installed_screens _op_installed_screens;
 // the first screen
 op_screen_desc* _op_def_screen;
 
-struct _font_ttf* _font_family_agefonts001;
 
+/**
+ * Font.
+ */
+struct _font_ttf* _font_family_agefonts001;
 struct _font_ttf* _font_family_SourceHanSansSCVF;
 
 // all installed font family
 struct _installed_font_ttfs _op_font_ttfs;
 
+
+/**
+ * Windows
+ */
+
+window_t* default_window;
+
+/**
+ * A boolean type to indicate whether output module has
+ * been initialized or not. Other modules should check
+ * the value, if it's true. This means output module can
+ * already be used.
+ */
 boolean _op_has_been_initialize;
 
 void op_init()
@@ -48,7 +67,7 @@ void op_init()
     _op_def_screen = _op_installed_screens.screen[0];
 
     // clear screen
-    _op_def_screen->clear_framebuffer(_op_def_screen);
+    _op_def_screen->ClearFrameBuffers(_op_def_screen);
 
     background.buf = (go_blt_pixel_t*)_current_machine_info->bg.addr;
     background.height = _current_machine_info->bg.height;
@@ -74,10 +93,30 @@ void op_init()
     _op_font_ttfs.num = 2;
 
 
-
     // uncomment the following two lines to set age language as default font
     // _op_font_ttfs.fonts[0] = _font_family_agefonts001;
     // _op_font_ttfs.fonts[1] = _font_family_SourceHanSansSCVF;
+
+    status = new_a_window(&default_window);
+    if (ST_ERROR(status)) {
+        krnl_panic();
+    }
+    status = default_window->Register(
+        default_window,
+        NULL,
+        _op_def_screen,
+        OUTPUT_AREA_TLC_X,
+        OUTPUT_AREA_TLC_Y,
+        OUTPUT_AREA_BRC_X,
+        OUTPUT_AREA_BRC_Y,
+        _op_font_ttfs.fonts[0],
+        POINT_SIZE,
+        3
+    );
+    if (ST_ERROR(status)) {
+        krnl_panic();
+    }
+
 
 
     // set wallpaper

@@ -2,8 +2,8 @@
 #define __OP_SCREEN_H__
 
 #include "../../types.h"
+#include "../../libk/rbtree.h"
 #include "graphics.h"
-// #include "./font/font_fnt.h"
 #include "./font/font_ttf.h"
 
 #define MAX_INSTALLED_SCREEN								        63
@@ -11,8 +11,7 @@
 #define MAX_FRAMEBUFFER										2
 #define OUTPUT_BUF_SIZE                                                                         2048                                                                    
 
-
-typedef status_t (*_op_blt)(
+typedef status_t (*_op_blt_t)(
         _in_ void                   *_this,
         _in_ _out_ go_blt_pixel_t     *blt_buffer,
         _in_ GO_BLT_OPERATIONS      blt_operation,
@@ -24,19 +23,13 @@ typedef status_t (*_op_blt)(
         _in_ uint64_t               height,
         _in_ _optional_ int         buffer_index );
 
-typedef status_t (*_op_swap_framebuffer)(
+typedef status_t (*_op_swap_framebuffer_t)(
         _in_ void                   *_this,
         _in_ uint8_t                dest_buf_index,
         _in_ uint8_t                src_buf_index
         );
 
-// typedef status_t (*_op_draw_char)(
-//     _in_ void*                                      _this,
-//     _in_ struct _font_fnt                         *font,
-//     _in_ char                                       c
-// );
-
-typedef status_t (*_op_draw_ch)(
+typedef status_t (*_op_draw_ch_t)(
         _in_ void*                                      _this,
         _in_ int                                        buf_id,
         _in_ wch_t                                      wch,
@@ -44,7 +37,7 @@ typedef status_t (*_op_draw_ch)(
         _in_ go_blt_pixel_t                             color
         );
 
-typedef status_t (*_op_draw_hollow_rectangle)(
+typedef status_t (*_op_draw_hollow_rectangle_t)(
         _in_ void*                          _this,
         _in_ uint32_t                       x,
         _in_ uint32_t                       y,
@@ -55,7 +48,7 @@ typedef status_t (*_op_draw_hollow_rectangle)(
         );
 
 
-typedef status_t (*_op_draw_second_order_bezier_curve)(
+typedef status_t (*_op_draw_second_order_bezier_curve_t)(
         _in_ void                       *_this,
         _in_ point_f_t                   p0,
         _in_ point_f_t                   p1,
@@ -63,14 +56,18 @@ typedef status_t (*_op_draw_second_order_bezier_curve)(
         _in_ go_blt_pixel_t              color
         );
 
-typedef status_t (*_op_draw_bresenhams_line)(
+typedef status_t (*_op_draw_bresenhams_line_t)(
         _in_ void                       *_this,
         _in_ point_i_t                   p0,
         _in_ point_i_t                   p1,
         _in_ go_blt_pixel_t              color
         );
 
-typedef status_t (*_op_clear_framebuffer)(
+typedef status_t (*_op_clear_screen_t)(
+        _in_ void *_this
+        );
+
+typedef status_t (*_op_clear_framebuffers_t)(
         _in_ void                   *_this
         );
 
@@ -85,13 +82,16 @@ typedef struct _op_screen_desc
     int64_t horizontal;
     int64_t pixels_per_scanline;
 
-    _op_blt blt;
-    _op_swap_framebuffer swap_two_buffers;
-    _op_draw_ch draw_ch;
-    _op_draw_hollow_rectangle draw_hollow_rectangle;
-    _op_draw_second_order_bezier_curve draw_second_order_bezier_curve;
-    _op_draw_bresenhams_line draw_bresenhams_line;
-    _op_clear_framebuffer clear_framebuffer;
+    rbtree_t *windows;
+
+    _op_blt_t Blt;
+    _op_swap_framebuffer_t SwapTwoBuffers;
+    _op_draw_ch_t DrawChar;
+    _op_draw_hollow_rectangle_t DrawHollowRectangle;
+    _op_draw_second_order_bezier_curve_t DrawSecondOrderBezierCurve;
+    _op_draw_bresenhams_line_t DrawBresenhamsLine;
+    _op_clear_framebuffers_t ClearFrameBuffers;
+    _op_clear_screen_t clear_screen;
 
     struct _coordinates_2d_i cursor;
 
@@ -116,19 +116,32 @@ struct _installed_screens {
 #define __draw_at_point(desc, buf_id, p, color)    \
     desc->frame_bufs[buf_id][(uint16_t)p.y * desc->horizontal + (uint16_t)p.x] = color
 
-#define TAB_SIZE                    4
+
+#define TAB_SIZE                                        4
+
+
+
+/* Define output area in screen */
+// output area top left-hand corner 
+#define OUTPUT_AREA_TLC_X                               40
+#define OUTPUT_AREA_TLC_Y                               24
+
+// output area bottom right-hand corner
+#define OUTPUT_AREA_BRC_X                               1210
+#define OUTPUT_AREA_BRC_Y                               1050
 
 
 void _op_install_a_screen(
-        struct _op_screen_desc* screen,
-        go_blt_pixel_t* frame_buf_base,
-        size_t frame_buf_size,
-        int horizontal_resolution,
-        int vertical_resolution,
-        int pixels_per_scan_line
+    struct _op_screen_desc* screen,
+    go_blt_pixel_t* frame_buf_base,
+    size_t frame_buf_size,
+    int horizontal_resolution,
+    int vertical_resolution,
+    int pixels_per_scan_line
 );
 
 
+extern struct _go_image_output *_op_bg;
 extern struct _installed_screens _op_installed_screens;
 extern op_screen_desc* _op_def_screen;
 extern boolean _op_has_been_initialize;

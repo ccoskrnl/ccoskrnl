@@ -1,22 +1,55 @@
-#include "../../include/hal/op/graphics.h"
-#include "../../include/types.h"
-// #include "../../include/hal/op/font/font_fnt.h"
 #include "../../include/hal/op/font/font_ttf.h"
+#include "../../include/hal/op/graphics.h"
 #include "../../include/hal/op/screen.h"
 #include "../../include/libk/math.h"
 #include "../../include/libk/stdlib.h"
 #include "../../include/libk/string.h"
+#include "../../include/libk/rbtree.h"
+#include "../../include/types.h"
 
 /**
- * Clear all framebuffers.
+ * @brief Clear all framebuffers.
  *
  * @param[in]       _this                       Descriptor instance pointer.
  *
- * @retval          ST_SUCCESS                  The destination framebuffer was
- * updated.
+ * @retval          ST_SUCCESS                  The destination framebuffer was updated.
  * @retval          ST_INVALID_PARAMETER        One of parameters is not valid.
  */
-static status_t clear_framebuffer(_in_ void *this) {
+static status_t clear_screen(
+        _in_ void                               *this
+        ) 
+{
+    status_t status = ST_SUCCESS;
+    if (this == NULL) {
+        status = ST_INVALID_PARAMETER;
+        return status;
+    }
+
+    op_screen_desc *desc = (op_screen_desc *)this;
+
+    for (int i = 1; i < MAX_FRAMEBUFFER; i++)
+        memzero(desc->frame_bufs[i], desc->frame_buf_size);
+
+    memcpy(desc->frame_buf_base, _op_bg->buf, _op_bg->size);
+
+    desc->cursor.x = (int)LSB_SIZE + OUTPUT_AREA_TLC_X;
+    desc->cursor.y = OUTPUT_AREA_TLC_Y;
+
+    return status;
+}
+
+/**
+ * @brief Clear all framebuffers.
+ *
+ * @param[in]       _this                       Descriptor instance pointer.
+ *
+ * @retval          ST_SUCCESS                  The destination framebuffer was updated.
+ * @retval          ST_INVALID_PARAMETER        One of parameters is not valid.
+ */
+static status_t clear_framebuffer(
+        _in_ void                           *this
+        ) 
+{
     status_t status = ST_SUCCESS;
     if (this == NULL) {
         status = ST_INVALID_PARAMETER;
@@ -31,26 +64,25 @@ static status_t clear_framebuffer(_in_ void *this) {
 }
 
 /**
- * Draw a second order bezier curve.
+ * @brief Draw a second order bezier curve.
  *
  * @param[in]       _this                       Descriptor instance pointer.
- * @param[in]       p0                          (The type of member must be
- * float) The point is on bezier curve.
- * @param[in]       p1                          (The type of member must be
- * float) The point is not on bezier curve.
- * @param[in]       p2                          (The type of member must be
- * float) The point is on bezier curve.
+ * @param[in]       p0                          (The type of member must be float) The point is on bezier curve.
+ * @param[in]       p1                          (The type of member must be float) The point is not on bezier curve.
+ * @param[in]       p2                          (The type of member must be float) The point is on bezier curve.
  * @param[in]       color                       The color of bezier curve..
  *
- * @retval          ST_SUCCESS                  The destination framebuffer was
- * updated.
+ * @retval          ST_SUCCESS                  The destination framebuffer was updated.
  * @retval          ST_INVALID_PARAMETER        One of parameters is not valid.
  */
-static status_t draw_second_order_bezier_curve(_in_ void *this,
-        _in_ point_f_t p0,
-        _in_ point_f_t p1,
-        _in_ point_f_t p2,
-        _in_ go_blt_pixel_t color) {
+static status_t draw_second_order_bezier_curve(
+        _in_ void                               *this,
+        _in_ point_f_t                          p0,
+        _in_ point_f_t                          p1,
+        _in_ point_f_t                          p2,
+        _in_ go_blt_pixel_t                     color
+        ) 
+{
 
     const float delta = 0.0005f;
     op_screen_desc *desc;
@@ -82,23 +114,23 @@ static status_t draw_second_order_bezier_curve(_in_ void *this,
 }
 
 /**
- * Draw a Bresenham's Line.
+ * @brief Draw a Bresenham's Line.
  *
  * @param[in]       _this                       Descriptor instance pointer.
- * @param[in]       p0                          (The type of memeber must be
- * int) The start point of Bresenham’s Line.
- * @param[in]       p1                          (The type of memeber must be
- * int) The end point of Bresenham’s Line.
- * @param[in]       color                       The color of the Bresenham's
- * Line.
- *
- * @retval          ST_SUCCESS                  The destination framebuffer was
- * updated.
+ * @param[in]       p0                          (The type of memeber must be int) The start point of Bresenham’s Line.
+ * @param[in]       p1                          (The type of memeber must be int) The end point of Bresenham’s Line.
+ * @param[in]       color                       The color of the Bresenham's Line.
+
+ * @retval          ST_SUCCESS                  The destination framebuffer was updated.
  * @retval          ST_INVALID_PARAMETER        One of parameters is not valid.
  */
-static status_t draw_bresenhams_line(_in_ void *this, _in_ point_i_t p0,
-        _in_ point_i_t p1,
-        _in_ go_blt_pixel_t color) {
+static status_t draw_bresenhams_line(
+        _in_ void                     *this, 
+        _in_ point_i_t                p0,
+        _in_ point_i_t                p1,
+        _in_ go_blt_pixel_t           color
+        ) 
+{
 
     op_screen_desc *desc;
 
@@ -141,21 +173,24 @@ static status_t draw_bresenhams_line(_in_ void *this, _in_ point_i_t p0,
     return status;
 }
 
+
+
 /**
- * Swap framebuffer.
+ * @brief Swap framebuffer.
  *
  * @param[in]       _this                       Descriptor instance pointer.
- * @param[in]       dest_buf_index              The index of buffer will be
- * updated in screen descriptor.
- * @param[in]       src_buf_index               The index of source buffer in
- * screen descriptor.
+ * @param[in]       dest_buf_index              The index of buffer to indicate which buffer will be updated in screen descriptor.
+ * @param[in]       src_buf_index               The index of source buffer in screen descriptor.
  *
- * @retval          ST_SUCCESS                  The destination framebuffer was
- * updated.
+ * @retval          ST_SUCCESS                  The destination framebuffer was updated.
  * @retval          ST_INVALID_PARAMETER        One of parameters is not valid.
  */
-static status_t swap_framebuffer(_in_ void *this, _in_ uint8_t dest_buf_index,
-        _in_ uint8_t src_buf_index) {
+static status_t swap_framebuffer(
+        _in_ void                   *this, 
+        _in_ uint8_t                dest_buf_index,
+        _in_ uint8_t                src_buf_index
+        )
+{
     op_screen_desc *desc;
     status_t status = ST_SUCCESS;
     if (this == NULL || !(dest_buf_index < MAX_FRAMEBUFFER) ||
@@ -180,34 +215,32 @@ static status_t swap_framebuffer(_in_ void *this, _in_ uint8_t dest_buf_index,
  * Transfer.
  *
  * @param[in]       _this                       Descriptor instance pointer.
- * @param[in out]   blt_buffer                  The data to transfer to the
- * graphics screen. Size is at least width * height * sizeof(go_blt_pixel).
- * @param[in]       blt_operation               The operation to perfrom when
- * copying blt_buffer on to the graphics screen.
- * @param[in]       src_x                       The x coordinate of source for
- * the blt_operation.
- * @param[in]       src_y                       The y coordinate of source for
- * the blt_operation.
- * @param[in]       dest_x                      The x coordinate of destination
- * for the blt_operation.
- * @param[in]       dest_y                      The y coordinate of destination
- * for the blt_operation.
- * @param[in]       width                       The width of a rectangle in the
- * blt rectangle in pixels.
- * @param[in]       height                      The height of a rectangle in the
- * blt rectangle in pixels.
+ * @param[in out]   blt_buffer                  The data to transfer to the graphics screen. Size is at least width * height * sizeof(go_blt_pixel).
+ * @param[in]       blt_operation               The operation to perfrom when copying blt_buffer on to the graphics screen.
+ * @param[in]       src_x                       The x coordinate of source for the blt_operation.
+ * @param[in]       src_y                       The y coordinate of source for the blt_operation.
+ * @param[in]       dest_x                      The x coordinate of destination for the blt_operation.
+ * @param[in]       dest_y                      The y coordinate of destination for the blt_operation.
+ * @param[in]       width                       The width of a rectangle in the blt rectangle in pixels.
+ * @param[in]       height                      The height of a rectangle in the blt rectangle in pixels.
  * @param[in]       buffer_index                Which buffer will be drawn.
  *
- *
- * @retval          ST_SUCCESS                  blt_buffer was drawn to the
- * graphics screen.
+ * @retval          ST_SUCCESS                  blt_buffer was drawn to the graphics screen.
  * @retval          ST_INVALID_PARAMETER        blt_operation is not valid.
  */
-static status_t blt(_in_ void *this, _in_ _out_ go_blt_pixel_t *blt_buffer,
-        _in_ GO_BLT_OPERATIONS blt_operation, _in_ uint64_t src_x,
-        _in_ uint64_t src_y, _in_ uint64_t dest_x,
-        _in_ uint64_t dest_y, _in_ uint64_t width,
-        _in_ uint64_t height, _in_ _optional_ int buffer_index) {
+static status_t blt(
+        _in_ void                               *this, 
+        _in_ _out_ go_blt_pixel_t               *blt_buffer,
+        _in_ GO_BLT_OPERATIONS                  blt_operation, 
+        _in_ uint64_t                           src_x,
+        _in_ uint64_t                           src_y, 
+        _in_ uint64_t                           dest_x,
+        _in_ uint64_t                           dest_y, 
+        _in_ uint64_t                           width,
+        _in_ uint64_t                           height, 
+        _in_ _optional_ int                     buffer_index
+        ) 
+{
 
     op_screen_desc *desc;
     go_blt_pixel_t *framebuffer;
@@ -265,29 +298,30 @@ static status_t blt(_in_ void *this, _in_ _out_ go_blt_pixel_t *blt_buffer,
 }
 
 /**
- * Draw a hollow rectangle on specified screen.
+ * @brief Draw a hollow rectangle on specified screen.
  *
- * @param[in]   _this               A pointer to the go_screen_desc instance
- * that is the screen descriptor to the graphics screen.
- * @param[in]   x                   The x position of the upper left hand of a
- * rectangle on specified graphics screen.
- * @param[in]   y                   The y position of the upper left hand of a
- * rectangle on specified graphics screen.
+ * @param[in]   _this               A pointer to the go_screen_desc instance that is the screen descriptor to the graphics screen.
+ * @param[in]   x                   The x position of the upper left hand of a rectangle on specified graphics screen.
+ * @param[in]   y                   The y position of the upper left hand of a rectangle on specified graphics screen.
  * @param[in]   width               The width of the rectangle.
  * @param[in]   height              The height of the rectangle.
  * @param[in]   stroke_size         The pixel number of stroke of the rectangle.
  * @param[in]   color               The hollow rectangle color.
  *
  * @retval      ST_SUCCESS                  The rectangle was drawn.
- * @retval      ST_OUT_OF_RESOURCES         Not engouh resources were available
- * to draw a rectangle.
+ * @retval      ST_OUT_OF_RESOURCES         Not engouh resources were available to draw a rectangle.
  * @retval      ST_INVALID_PARAMETER        One of parameters is not valid.
  */
-static status_t draw_hollow_rectangle(_in_ void *this, _in_ uint32_t x,
-        _in_ uint32_t y, _in_ uint32_t width,
-        _in_ uint32_t height,
-        _in_ uint32_t stroke_size,
-        _in_ go_blt_pixel_t color) {
+static status_t draw_hollow_rectangle(
+        _in_ void                               *this, 
+        _in_ uint32_t                           x,
+        _in_ uint32_t                           y, 
+        _in_ uint32_t                           width,
+        _in_ uint32_t                           height,
+        _in_ uint32_t                           stroke_size,
+        _in_ go_blt_pixel_t                     color
+        ) 
+{
     status_t status;
     go_blt_pixel_t *bitbuffer;
     uint32_t i;
@@ -313,7 +347,7 @@ static status_t draw_hollow_rectangle(_in_ void *this, _in_ uint32_t x,
     }
 
     // draw top side
-    status = desc->blt(desc, bitbuffer, GoBltBufferToVideo, 0, 0, x, y, width,
+    status = desc->Blt(desc, bitbuffer, GoBltBufferToVideo, 0, 0, x, y, width,
             stroke_size, 1);
     if (ST_ERROR(status)) {
         free(bitbuffer);
@@ -321,7 +355,7 @@ static status_t draw_hollow_rectangle(_in_ void *this, _in_ uint32_t x,
     }
 
     // draw bottom side
-    status = desc->blt(desc, bitbuffer, GoBltBufferToVideo, 0, 0, x,
+    status = desc->Blt(desc, bitbuffer, GoBltBufferToVideo, 0, 0, x,
             y + height - stroke_size, width, stroke_size, 1);
     if (ST_ERROR(status)) {
         free(bitbuffer);
@@ -340,14 +374,14 @@ static status_t draw_hollow_rectangle(_in_ void *this, _in_ uint32_t x,
         bitbuffer[i] = color;
     }
 
-    status = desc->blt(desc, bitbuffer, GoBltBufferToVideo, 0, 0, x, y,
+    status = desc->Blt(desc, bitbuffer, GoBltBufferToVideo, 0, 0, x, y,
             stroke_size, height, 1);
     if (ST_ERROR(status)) {
         free(bitbuffer);
         return status;
     }
 
-    status = desc->blt(desc, bitbuffer, GoBltBufferToVideo, 0, 0,
+    status = desc->Blt(desc, bitbuffer, GoBltBufferToVideo, 0, 0,
             x + width - stroke_size, y, stroke_size, height, 1);
     if (ST_ERROR(status)) {
         free(bitbuffer);
@@ -355,139 +389,17 @@ static status_t draw_hollow_rectangle(_in_ void *this, _in_ uint32_t x,
     }
 
     free(bitbuffer);
-    return desc->swap_two_buffers(desc, 0, BACKBUFFER_INDEX);
+    return desc->SwapTwoBuffers(desc, 0, BACKBUFFER_INDEX);
 }
 
-// static status_t draw_char(
-//     _in_ void*                                      this,
-//     _in_ struct _font_fnt                           *font,
-//     _in_ char                                       c
-// )
-// {
-//     status_t status = ST_SUCCESS;
-//     uint32_t x_of_upper_left_hand;
-//     uint32_t y_of_upper_left_hand;
-//     uint32_t row, column;
-//     uint32_t font_buf_width, font_buf_height;
-//     // uint64_t last_line;
-//     go_blt_pixel_t *pixel;
-//     struct _font_fnt_char* ch;
-//     op_screen_desc* desc;
-
-//     if (this == NULL) {
-//         status = ST_INVALID_PARAMETER;
-//         return status;
-//     }
-
-//     desc = this;
-
-//     ch = &font->chars[c];
-//     x_of_upper_left_hand = desc->cursor.x + ch->xoffset;
-//     y_of_upper_left_hand = desc->cursor.y + ch->yoffset;
-
-//     font_buf_width = font->blt_buf.width;
-//     font_buf_height = font->blt_buf.height;
-//     // last_line = (_this->vertical - font->common.lineHeight) *
-//     _this->pixels_per_scanline;
-
-//     switch (c)
-//     {
-//     case '\b':
-//         desc->cursor.x -= font->common.xadvance;
-//         break;
-//     case '\t':
-//         desc->cursor.x += (font->common.xadvance << 2);
-//         break;
-//     case ' ':
-//         desc->cursor.x += font->common.xadvance;
-//         break;
-//     case '\r':
-//         desc->cursor.x = 0;
-//         break;
-//     case '\n':
-//         desc->cursor.x = 0;
-//         desc->cursor.y += font->common.lineHeight;
-//         break;
-//     default:
-
-//         for (row = 0; row < ch->height; row++)
-//         {
-//             for (column = 0; column < ch->width; column++)
-//             {
-//                 pixel = &font->blt_buf.buf_addr[(ch->y + row) *
-//                 font_buf_width + ch->x + column];
-//                 // if (pixel->Reserved != 0)
-//                 // {
-//                     status = desc->blt(
-//                         desc,
-//                         pixel,
-//                         GoBltVideoFill,
-//                         0,
-//                         0,
-//                         column + x_of_upper_left_hand,
-//                         row + y_of_upper_left_hand,
-//                         1,
-//                         1,
-//                         BACKBUFFER_INDEX
-//                     );
-//                 // }
-
-//             }
-
-//         }
-
-//         for (uint32_t i = 0; i < font->common.lineHeight; i++)
-//         {
-//             memcpy(
-//                 &desc->frame_buf_base[(y_of_upper_left_hand + i) *
-//                 desc->pixels_per_scanline + desc->cursor.x],
-//                 &desc->secondary_buf[(y_of_upper_left_hand + i)*
-//                 desc->pixels_per_scanline + desc->cursor.x], ch->xadvance *
-//                 sizeof(go_blt_pixel_t)
-//             );
-//         }
-//         desc->cursor.x += ch->xadvance;
-//         break;
-
-//     }
-
-//     if (desc->cursor.x < 0)
-//         desc->cursor.x = 0;
-
-//     if (desc->cursor.x >= desc->horizontal)
-//     {
-//         desc->cursor.x = 0;
-//         desc->cursor.y += font->common.lineHeight;
-//     }
-
-//     if ((desc->vertical - desc->cursor.y) <= font->common.lineHeight)
-//     {
-//         memcpy(
-//             desc->secondary_buf,
-//             &desc->frame_buf_base[(font->common.lineHeight *
-//             desc->pixels_per_scanline)], desc->pixels_per_scanline *
-//             (desc->cursor.y - font->common.lineHeight) *
-//             sizeof(go_blt_pixel_t)
-//         );
-//         memzero(
-//             &desc->secondary_buf[desc->pixels_per_scanline * (desc->cursor.y
-//             - font->common.lineHeight)], desc->pixels_per_scanline *
-//             (desc->vertical - (desc->cursor.y - font->common.lineHeight)) *
-//             sizeof(go_blt_pixel_t)
-//         );
-
-//         desc->cursor.x = 0;
-//         desc->cursor.y -= font->common.lineHeight;
-//         desc->swap_two_buffers(desc, 0, BACKBUFFER_INDEX);
-//     }
-
-//     return status;
-// }
-
-static status_t scroll_screen(_in_ void* this, _in_ font_ttf_t* family)
+static status_t scroll_screen(
+        _in_ void                               *this, 
+        _in_ font_ttf_t                         *family
+        ) 
 {
     status_t status = ST_SUCCESS;
     op_screen_desc *desc;
+    // int old_buffer_index;
 
     if (this == NULL) {
         status = ST_INVALID_PARAMETER;
@@ -504,42 +416,39 @@ static status_t scroll_screen(_in_ void* this, _in_ font_ttf_t* family)
         }
     }
 
-
-    size_t old_buf_size = 0;
-    while (*(wch_t *)(desc->output_buf[desc->which_output_buf] + old_buf_size) != 0)
-        old_buf_size++;
-
-
-    size_t buf_size = old_buf_size - (lf - desc->output_buf[desc->which_output_buf]);
-
-    desc->which_output_buf = desc->which_output_buf ? 0 : 1;
-    memcpy(desc->output_buf[desc->which_output_buf], lf, sizeof(uint64_t) * buf_size);
-    desc->output_buf[desc->which_output_buf][buf_size] = 0;
-
-    memcpy(desc->secondary_buf, _op_bg->buf, _op_bg->size);
-    desc->cursor.x = LSB_SIZE;
-    desc->cursor.y = 0;
+    desc->which_output_buf ^= 1;
+    desc->cursor.x = LSB_SIZE + OUTPUT_AREA_TLC_X;
+    desc->cursor.y = OUTPUT_AREA_TLC_Y;
     desc->output_buf_index = 0;
 
-    for (size_t i = 0; desc->output_buf[desc->which_output_buf][i] != 0; i++) {
+    memzero(desc->output_buf[desc->which_output_buf], OUTPUT_BUF_SIZE);
+    memcpy(desc->frame_bufs[BACKBUFFER_INDEX], _op_bg->buf, _op_bg->size);
 
-        go_blt_pixel_t *color =
-            (go_blt_pixel_t *)((uint64_t)(desc->output_buf[desc->which_output_buf] + i) + sizeof(wch_t));
-        wch_t wc = *(wch_t *)(desc->output_buf[desc->which_output_buf] + i);
+    while (*lf != 0) {
+        go_blt_pixel_t *color = (go_blt_pixel_t *)((uint64_t)(lf) + sizeof(wch_t));
+        wch_t wc = *lf & 0xffffffff;
 
-        status = desc->draw_ch(desc, 1, wc, family, *color);
+        status = desc->DrawChar(desc, BACKBUFFER_INDEX, wc, family, *color);
         if (ST_ERROR(status)) {
             krnl_panic();
         }
-    }
-    desc->swap_two_buffers(desc, 0, 1);
 
+        lf++;
+    }
+
+    desc->SwapTwoBuffers(desc, 0, BACKBUFFER_INDEX);
 
     return status;
 }
 
-static status_t draw_ch(_in_ void *this, _in_ int buf_id, _in_ wch_t wch,
-        _in_ font_ttf_t *family, _in_ go_blt_pixel_t color) {
+static status_t draw_ch(
+        _in_ void                               *this, 
+        _in_ int                                buf_id, 
+        _in_ wch_t                              wch,
+        _in_ font_ttf_t                         *family, 
+        _in_ go_blt_pixel_t                     color
+        ) 
+{
 
     status_t status = ST_SUCCESS;
     op_screen_desc *desc;
@@ -565,23 +474,23 @@ __inspect_begin:
 
     // Situation 0:
     // Current row can't put any characters, so we need to wrap.
-    if (desc->cursor.x + family->default_advance_width >= desc->horizontal) {
+    if (desc->cursor.x + family->space_advance_width >= OUTPUT_AREA_BRC_X) {
         desc->cursor.y += family->line_height;
-        desc->cursor.x = (int)LSB_SIZE;
+        desc->cursor.x = (int)LSB_SIZE + OUTPUT_AREA_TLC_X;
     }
     // Situation 1:
     // scroll screen
-    if ((desc->cursor.y + family->line_height) >= desc->vertical) 
+    if ((desc->cursor.y + family->line_height) >= OUTPUT_AREA_BRC_Y)
         scroll_screen(desc, family);
 
     switch (wch) {
         case ' ':
-            desc->cursor.x += family->default_advance_width;
+            desc->cursor.x += family->space_advance_width;
             goto __draw_ch_exit;
             break;
 
         case '\t':
-            desc->cursor.x += family->default_advance_width;
+            desc->cursor.x += family->space_advance_width;
             while (TAB < TAB_SIZE) {
                 TAB++;
                 goto __inspect_begin;
@@ -593,15 +502,15 @@ __inspect_begin:
             if (desc->cursor.x == (int)LSB_SIZE) {
                 goto __draw_ch_exit;
             }
-            desc->cursor.x -= family->default_advance_width;
+            desc->cursor.x -= family->space_advance_width;
             goto __draw_ch_exit;
             break;
 
         case '\n':
 
             desc->cursor.y += family->line_height;
-            desc->cursor.x = (int)LSB_SIZE;
-            if ((desc->cursor.y + family->line_height) >= desc->vertical) 
+            desc->cursor.x = (int)LSB_SIZE + OUTPUT_AREA_TLC_X;
+            if ((desc->cursor.y + family->line_height) >= OUTPUT_AREA_BRC_Y)
                 scroll_screen(desc, family);
             goto __draw_ch_exit;
             break;
@@ -626,15 +535,18 @@ __inspect_begin:
 
 __draw_ch_exit:
 
-
-
     return status;
 }
 
-void _op_install_a_screen(struct _op_screen_desc *screen,
-        go_blt_pixel_t *frame_buf_base, size_t frame_buf_size,
-        int horizontal_resolution, int vertical_resolution,
-        int pixels_per_scan_line) {
+void _op_install_a_screen(
+        _in_ _out_ struct _op_screen_desc       *screen,
+        _in_ go_blt_pixel_t                     *frame_buf_base, 
+        _in_ size_t                             frame_buf_size,
+        _in_ int                                horizontal_resolution, 
+        _in_ int                                vertical_resolution,
+        _in_ int                                pixels_per_scan_line
+        ) 
+{
 
     memzero(screen, sizeof(*screen));
 
@@ -650,13 +562,20 @@ void _op_install_a_screen(struct _op_screen_desc *screen,
     screen->frame_bufs[0] = screen->frame_buf_base;
     screen->secondary_buf = screen->frame_bufs[BACKBUFFER_INDEX];
 
-    screen->cursor.x = (int)LSB_SIZE;
+    screen->cursor.x = (int)LSB_SIZE + OUTPUT_AREA_TLC_X;
+    screen->cursor.y = OUTPUT_AREA_TLC_Y;
 
-    screen->blt = blt;
-    screen->swap_two_buffers = swap_framebuffer; // screen->draw_char = draw_char;
-    screen->draw_ch = draw_ch;
-    screen->draw_hollow_rectangle = draw_hollow_rectangle;
-    screen->draw_second_order_bezier_curve = draw_second_order_bezier_curve;
-    screen->draw_bresenhams_line = draw_bresenhams_line;
-    screen->clear_framebuffer = clear_framebuffer;
+    status_t status = new_a_rbtree(&screen->windows);
+    if (ST_ERROR(status)) {
+        krnl_panic();
+    }
+
+    screen->Blt = blt;
+    screen->SwapTwoBuffers = swap_framebuffer;
+    screen->DrawChar = draw_ch;
+    screen->DrawHollowRectangle = draw_hollow_rectangle;
+    screen->DrawSecondOrderBezierCurve = draw_second_order_bezier_curve;
+    screen->DrawBresenhamsLine = draw_bresenhams_line;
+    screen->ClearFrameBuffers = clear_framebuffer;
+    screen->clear_screen = clear_screen;
 }

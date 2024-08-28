@@ -36,6 +36,7 @@ void krnl_exit();
 extern wch_t* tengwangge;
 extern wch_t* chushibiao;
 
+extern void _intr_intr_handler_test();
 
 /**
  * Preparing base kernel code execution environment for continuing to initialize.
@@ -104,6 +105,11 @@ void krnl_init()
 
     // Output Initialization
     op_init();
+    put_check(true, L"Ccoskrnl loaded.\n");
+    put_check(true, L"Bootstrap Processor initializated.\n");
+    put_check(true, L"Kernel memory layout divided.\n");
+    put_check(true, L"Dynamic memory alloctor is ready to be used.\n");
+    put_check(true, L"Default font family has been parsed completely.\n");
 
     // Initialize OSPM
     acpi_init();
@@ -111,82 +117,30 @@ void krnl_init()
     // Interrupt module initialization. 
     // when the routines finish, it will set interrupt flag.
     // intr_init();
+    
+    put_check(true, L"System diagnostic completed. All systems nominal.\n");
+    put_check(false, L"ACPI initialized.\n");
+    put_check(false, L"Power Off.\n");
 
-    // __asm__ ("sti"); 
+    __asm__ ("sti"); 
+
+
+    // _intr_intr_handler_test();
+    while (1) {
+        puts("y\n");
+    }
     putws(chushibiao);
     putws(tengwangge);
     
     // print_machine_info();
 
-    // int* p = NULL;
-    // *p = 5;   
-
     krnl_exit();
     
 }
 
-void print_skadi()
-{
-
-    putss("\n"," $$$$$$\\        $$\\                                   $$\\       $$\\       $$\\ \n");
-    puts("$$  __$$\\       $$ |                                  $$ |      \\__|      $$ |\n");
-    puts("$$ /  \\__|      $$ |  $$\\        $$$$$$\\         $$$$$$$ |      $$\\       $$ |\n");
-    puts("\\$$$$$$\\        $$ | $$  |       \\____$$\\       $$  __$$ |      $$ |      $$ |\n");
-    puts(" \\____$$\\       $$$$$$  /        $$$$$$$ |      $$ /  $$ |      $$ |      \\__|\n");
-    puts("$$\\   $$ |      $$  _$$<        $$  __$$ |      $$ |  $$ |      $$ |          \n");
-    puts("\\$$$$$$  |      $$ | \\$$\\       \\$$$$$$$ |      \\$$$$$$$ |      $$ |      $$\\ \n");
-    putss(" \\______/       \\__|  \\__|       \\_______|       \\_______|      \\__|      \\__|\n", "\n\n");
-                                                                              
-                                                                              
-                                                                              
-
-    putss("\n","                                     ';>[|1:                                    \n");
-    puts("                                  '>|z0Zwpd(                                    \n");
-    puts("                                ,[zOmOOmqppr                  .'^,:l>++i`       \n");
-    puts("                             .:1JmZOOOmmwqqY>^           ^l-1tuXJQ0mqpbX:       \n");
-    puts("      ....                 ^]vLZZZZZmmmmmmmmmZQYn1>^^l}fuJ0mmwmmmmmmpO|\"        \n");
-    puts("       .'!-i:`           '_YwZOO0YUmqwmmmqwmwqqqppmCJOwmmmmmmwwmmmwpC<          \n");
-    puts("         `}uXXu\\-;'     ;nmmZQYr1?uqwwwqOXcmwmmmmmZwqmZOZmmmmmmmmmqc,           \n");
-    puts("          `[nrv0QCzr(]?}Xm00Ov]-+|Zppq0n{+vwmmmwmOZmmmmmmmmmmmmwwqU+~]{1(\\||/); \n");
-    puts("           .~r\\}|uLwpwmmZO00Or_)n0wqmj}++}OqqqQc|}XqwmmmmmmmwpqO00xtt\\|)11{}{z> \n");
-    puts("             :)j\\}]|uJQZZZOZmLXZpwmqX__[(Xqwqv[+<_UpwmmmmwqwQzt{[|?????]|]\?\?(v\" \n");
-    puts("               :{xt{--1nXCZwmmmZZmmwUfc0wqwwO{+?{cmqwmmmwZUUj]????|]|]???|?{v_  \n");
-    puts("                 ^~(tt\\[+_[|uLQ0OZmZZmwwmmmwmcuLmwwwwZZQn}<_nz{?]|]|]?????{v}.  \n");
-    puts("                   ._{~<+~~>})f}1Skadi6ttjxuczUzCOCQ0000Yr|-<<~<+fc}]}?]????    \n");
-    puts("                  ^?_ll!!!i[(:}]~+~~>i!<~+\\Ilc/-?][}_~<<~~++~~\\X(??]??[|\\}\"     \n");
-    puts("    ^-:        ..i{<IIIlI~(t+i<t+!i>!!l<_]v?~}Xn?~~>+~ii><~<>i!/z[]{\\xj?\"       \n");
-    puts("   \"njf>.      .>|i>lIl!-(..______Illll]{______.&t);l!!!!iii!l:^zu\\([i`         \n");
-    puts("  ,ftl~n}\"     ;\\>_1ll+\\<  1(){    <lli}  vt/|}  Cr;lll!~!!i!!; |u'             \n");
-    puts(" !v(,;:I{]^    -];(}I!ir}  ZCJY<   +-~>[  JYJJ?  ;(lIIll)_!!llI.]z`             \n");
-    puts(" `]r<;;~)]\"    _!`f_ll;{L  ZXU0<    `;I;  CzYZ1  `t>l!ll1\\l!lll'_t'             \n");
-    puts("  .1v>)ti'      '^j>Il;)0   ncf            XY2   :n>lllI]c><ill\";['             \n");
-    puts("   ,vv(^         ^f>I!_v?                        _x!lllI?Y++>ll,!)              \n");
-    puts("   .;<'          `t-;!n{                        'j{Illl;}Y~~!l!:}+              \n");
-    puts("                  {tII~|}!           \\_/        <uiIIIIlux+<i!Iit\"              \n");
-    puts("                  ,f+I;l+]_                    <n?;lII;)X?_+>!I<)               \n");
-    puts("                   \"+!I>>;~j[[1\\jvJQLCJJt!;I!}nv]!llI;1z]~__il;[]               \n");
-    puts("                    <<Ii_l]j]?~]cmwqpppddmZmqqt!Il!li|u]<+++!lI/!               \n");
-    puts("                    >{Il><_v]{{?/0mmmmmmmwwqO(;::;Ii})+++++~lI,tl               \n");
-    puts("                    ']1!I>]uf+{JmwwmmmmwqwqQ[:;+)jcQU1<~+++<l:'/~               \n");
-    puts("                     ._)]<-[)<zppmmmmmwqqqp|,+cmpdpqpwj+~~+>;\".+/'              \n");
-    puts("                       `;;l_tXqmmmmmmmmwwqq+-0qmmmmmmwqu+~+>!I``f<              \n");
-    puts("                       \"<|YmqwmmmmmmZZmmmwqnCwmmmmmmmmwwn__<il\" [f'             \n");
-    putss("                    .I)cvwqwmmmmZZmZZZZwmmZwmmmmmmmmmmmwwt+~il:.,n<             \n", "\n");
-}
 
 void print_machine_info()
 {
-    // while (1)
-    // {
-    //     print_skadi();
-    //     for (int i = 0; i < 300; i++)
-    //     {
-    //         pit_prepare_sleep(10000);
-    //         pit_perform_sleep();
-    //     }
-    // }
-
-    // putws(L"你好！");
     
     
     // puts("System diagnostic completed. All systems nominal.\n");

@@ -14,6 +14,8 @@
 #include "hpet.h"
 #include "pit.h"
 
+void _intr_gpf_handler_entry();
+
 extern uint64_t fixup_acpi_table_addr(uint64_t phys_addr);
 
 extern cpu_core_desc_t cpu0;
@@ -100,19 +102,19 @@ uint32_t read_apic_register(uint32_t reg)
 
 
 
-static void parse_madt()
+static void parse_madt(_in_ struct _MADT *madt_ptr, _in_ _out_ intr_ctr_struct_head_t* intr_ctr_structs)
 {
     uint8_t *madt_end = (uint8_t *)madt_ptr + madt_ptr->h.Length;
-    uint8_t *madt_structures = (uint8_t *)madt_ptr + 44;
+    uint8_t *madt_structures = (uint8_t *)madt_ptr + sizeof(*madt_ptr);
 
-    uint8_t type;
+    InterruptControllerStructureType type;
     uint8_t size;
 
     // initialize all list heads
     for (uint8_t i = 0; i < MAX_MADT_INTURRUPT_CONTROLLER_STRUCTURE_TYPES; i++)
     {
-        list_node *head = &intr_ctr_structs[i].head;
-        intr_ctr_structs->total = 0;
+        list_node *head = &(intr_ctr_structs + i)->head;
+        (intr_ctr_structs + i)->total = 0;
         _list_init(head);
     }
 
@@ -121,70 +123,77 @@ static void parse_madt()
     {
         type = *madt_structures;
         size = *(madt_structures + 1);
+
         switch (type)
         {
-        case 0:
+
+        case ProcessorLocalAPIC:
         {
             processor_local_apic_t *lapic =
                 (processor_local_apic_t *)_mm_kmalloc(sizeof(processor_local_apic_t));
             memcpy(lapic, madt_structures, sizeof(processor_local_apic_t) - sizeof(list_node));
 
-            intr_ctr_structs[type].total++;
+            (intr_ctr_structs + type)->total++;
             _list_push(
-                &intr_ctr_structs[type].head,
+                &(intr_ctr_structs + type)->head,
                 (list_node *)((uint8_t *)lapic + sizeof(processor_local_apic_t) - sizeof(list_node)));
         }
         break;
-        case 1:
+
+        case IOAPIC:
         {
             io_apic_t *ioapic =
                 (io_apic_t *)_mm_kmalloc(sizeof(io_apic_t));
-            memcpy(ioapic, madt_structures, sizeof(io_apic_t) - sizeof(list_node));
+            memcpyb(ioapic, madt_structures, sizeof(io_apic_t) - sizeof(list_node));
 
-            intr_ctr_structs[type].total++;
+            (intr_ctr_structs + type)->total++;
             _list_push(
-                &intr_ctr_structs[type].head,
+                &(intr_ctr_structs + type)->head,
                 (list_node *)((uint8_t *)ioapic + sizeof(io_apic_t) - sizeof(list_node)));
         }
         break;
-        case 2:
+
+        case InterruptSourceOverride:
         {
             iso_t *iso =
                 (iso_t *)_mm_kmalloc(sizeof(iso_t));
-            memcpy(iso, madt_structures, sizeof(iso_t) - sizeof(list_node));
+            memcpyb(iso, madt_structures, sizeof(iso_t) - sizeof(list_node));
 
-            intr_ctr_structs[type].total++;
+            (intr_ctr_structs + type)->total++;
             _list_push(
-                &intr_ctr_structs[type].head,
+                &(intr_ctr_structs + type)->head,
                 (list_node *)((uint8_t *)iso + sizeof(iso_t) - sizeof(list_node)));
         }
         break;
-        case 4:
+
+        case NonMaskableInterruptSource:
         {
             nmi_t *nmi =
                 (nmi_t *)_mm_kmalloc(sizeof(nmi_t));
-            memcpy(nmi, madt_structures, sizeof(nmi_t) - sizeof(list_node));
+            memcpyb(nmi, madt_structures, sizeof(nmi_t) - sizeof(list_node));
 
-            intr_ctr_structs[type].total++;
+            (intr_ctr_structs + type)->total++;
             _list_push(
-                &intr_ctr_structs[type].head,
+                &(intr_ctr_structs + type)->head,
                 (list_node *)((uint8_t *)nmi + sizeof(nmi_t) - sizeof(list_node)));
         }
         break;
-        case 5:
+
+        case LocalAPICNMI:
         {
             local_apic_addr_override_t *lapic_addr_or =
                 (local_apic_addr_override_t *)_mm_kmalloc(sizeof(local_apic_addr_override_t));
-            memcpy(lapic_addr_or, madt_structures,
+            memcpyb(lapic_addr_or, madt_structures,
                    sizeof(local_apic_addr_override_t) - sizeof(list_node));
 
-            intr_ctr_structs[type].total++;
+            (intr_ctr_structs + type)->total++;
             _list_push(
-                &intr_ctr_structs[type].head,
+                &(intr_ctr_structs + type)->head,
                 (list_node *)((uint8_t *)lapic_addr_or +
                               sizeof(local_apic_addr_override_t) - sizeof(list_node)));
         }
         break;
+
         default:
             break;
         }
@@ -192,8 +201,10 @@ static void parse_madt()
         madt_structures += size;
     }
 
+
     // walk through list
-    list_node *head = &intr_ctr_structs[0].head;
+    puts("Processor Local APIC: \n");
+    list_node *head = &(intr_ctr_structs + ProcessorLocalAPIC)->head;
     processor_local_apic_t *lapic = struct_base(processor_local_apic_t, node, head->flink);
     list_node *node = head->flink;
 
@@ -203,25 +214,52 @@ static void parse_madt()
         lapic = struct_base(processor_local_apic_t, node, lapic->node.flink);
     }
 
-    head = &intr_ctr_structs[1].head;
+
+    puts("I/O APIC: \n");
+    head = &(intr_ctr_structs+IOAPIC)->head;
     node = head->flink;
-    for (size_t i = 0; i < intr_ctr_structs[1].total; i++)
+    for (size_t i = 0; i < (intr_ctr_structs+IOAPIC)->total; i++, node = node->flink)
     {
         io_apic_t *ioapic = struct_base(io_apic_t, node, node);
         putsds("IO APIC ID: ", ioapic->io_apic_id, "\n");
         putsxs("IO APIC Address: ", ioapic->io_apic_addr, "\n");
         putsxs("Global System Interrupt Base: ", ioapic->global_sys_interrupt_base, "\n");
-        node = node->flink;
     }
 
-    head = &intr_ctr_structs[5].head;
+
+    puts("Interrupt Source Override: \n");
+    head = &(intr_ctr_structs+InterruptSourceOverride)->head;
     node = head->flink;
-    for (size_t i = 0; i < intr_ctr_structs[5].total; i++)
+    for (size_t i = 0; i < (intr_ctr_structs+InterruptSourceOverride)->total; i++, node = node->flink)
+    {
+        iso_t *iso = struct_base(iso_t, node, node);
+        putsds("Bus: ", iso->bus, "\n");
+        putsds("Bus-relative interrupt source(IRQ): ", iso->source, "\n");
+        putsds("Global System Interrupt: ", iso->global_sys_interrupt, "\n");
+        putsxs("Flags: ", iso->flags, "\n");
+    }
+
+    puts("Non-maskable Interrupt Source: \n");
+    head = &(intr_ctr_structs+NonMaskableInterruptSource)->head;
+    node = head->flink;
+    for (size_t i = 0; i < (intr_ctr_structs+NonMaskableInterruptSource)->total; i++, node = node->flink)
+    {
+        nmi_t *nmi = struct_base(nmi_t, node, node);
+        putsds("Processor ID: ", nmi->acpi_processor_id, "\n");
+        putsxs("Flags: ", nmi->flags, "\n");
+        putsds("Local LINTn pin number: ", nmi->lint, "\n");
+    }
+
+    puts("Local APIC Address Override: \n");
+    head = &(intr_ctr_structs+LocalAPICAddressOverride)->head;
+    node = head->flink;
+    for (size_t i = 0; i < (intr_ctr_structs+LocalAPICAddressOverride)->total; i++, node = node->flink)
     {
         local_apic_addr_override_t *local_apic_addr_override = struct_base(local_apic_addr_override_t, node, node);
         putsxs("Local APIC Address: ", local_apic_addr_override->local_apic_addr, "\n");
-        node = node->flink;
     }
+
+
 }
 
 static void map_local_apic_addr()
@@ -269,7 +307,7 @@ void intr_init()
         (uint64_t)_current_machine_info->acpi_info.madt);
 
     // Parse madt and push structures to corresponding lists based on theirs type.
-    parse_madt();
+    parse_madt(madt_ptr, intr_ctr_structs);
 
     // Prepare the PIT to sleep for 10ms (10000µs)
 
@@ -284,6 +322,11 @@ void intr_init()
                       (PML4E_OFFSET_OF_HARDWARE << 39) |
                       (0x1FFUL << 30) |
                       (0x1FFUL << 21);
+
+
+    outb(0x21, 0xFF); // Mask all interrupts on PIC1
+    outb(0xA1, 0xFF); // Mask all interrupts on PIC2
+
 
     // Now, we can operate APIC registers.
     // First things first, we need to enable local apic.
@@ -459,7 +502,7 @@ _manually_calculate_initial_count:
         krnl_panic();
     }
 
-    // _cpu_install_isr(&cpu0, 0x20, timer_intr, IDT_DESC_TYPE_INTERRUPT_GATE, 0);
+    _cpu_install_isr(&cpu0, 0xD, _intr_gpf_handler_entry, IDT_DESC_TYPE_INTERRUPT_GATE, 0);
     // asm ("sti\n");
 
     /**

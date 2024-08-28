@@ -233,14 +233,14 @@ static status_t font_tty_init(void *this, uint8_t *font_bin_data) {
         (font->point_size * font->dpi) / (72 * font->head.table.unitsPerEm);
     double em = font->head.table.unitsPerEm * font->scaling_factor;
 
-    font->default_advance_width = ceil(font->head.table.unitsPerEm * font->scaling_factor);
+    font->space_advance_width = ceil((font->head.table.unitsPerEm / 2.0f) * font->scaling_factor);
 
     font->line_space = (int16_t)(ceil(font->hhea.table.lineGap * font->scaling_factor));
     font->descender = (int16_t)(ceil(font->hhea.table.descender * font->scaling_factor));
     font->ascender = (int16_t)(ceil(font->hhea.table.ascender * font->scaling_factor));
 
     font->line_height = (int16_t)(ceil(
-        (font->hhea.table.ascender - font->hhea.table.descender + font->hhea.table.lineGap) * font->scaling_factor));
+        (font->hhea.table.ascender - font->hhea.table.descender + font->hhea.table.lineGap) * font->scaling_factor) + LINE_SPACE);
 
     font->desired_em = ceil(em) + 3;   // extend its size
 

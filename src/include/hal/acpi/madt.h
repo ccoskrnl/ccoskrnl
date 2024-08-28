@@ -6,6 +6,29 @@
 
 #define MAX_MADT_INTURRUPT_CONTROLLER_STRUCTURE_TYPES                   0x18
 
+typedef enum
+{
+    ProcessorLocalAPIC = 0,
+    IOAPIC,
+    InterruptSourceOverride,
+    NonMaskableInterruptSource,
+    LocalAPICNMI,
+    LocalAPICAddressOverride,
+    IOSAPIC,
+    LocalSAPIC,
+    PlatformInterruptSources,
+    ProcessorLocalx2APIC,
+    Localx2APICNMI,
+    GICCPUInterface,
+    GICDistributor,
+    GICMSIFrame,
+    GICRedistributor,
+    GICInterruptTranslationService,
+    MultiprocessorWakeup
+
+} InterruptControllerStructureType;
+
+
 // APIC structure header
 typedef struct _apic_header
 {

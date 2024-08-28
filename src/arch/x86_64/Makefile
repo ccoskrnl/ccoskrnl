@@ -13,6 +13,7 @@ OBJS = $(patsubst %.c,$(BUILD_DIR)/%.o,$(SRCS))
 ASM_OBJS = $(BUILD_DIR)/io/io.o
 ASM_OBJS += $(BUILD_DIR)/intr/pit.o
 ASM_OBJS += $(BUILD_DIR)/cpu/cpu_flush.o
+ASM_OBJS += $(BUILD_DIR)/intr/intr_handlers_entry.o
 
 TARGET = $(BUILD_DIR)/arch.o
 

@@ -8,7 +8,7 @@
 
 static go_blt_pixel_t default_color = {255, 255, 255, 0};
 
-
+/*  Put a wide character with specific color and font family */
 void putwccf(wch_t wch, go_blt_pixel_t color, font_ttf_t* family)
 {
     status_t status = ST_SUCCESS;
@@ -16,31 +16,21 @@ void putwccf(wch_t wch, go_blt_pixel_t color, font_ttf_t* family)
     if (ST_ERROR(status)) {
         krnl_panic();
     }
-    // if (buffer_idx >= OUTPUT_BUFFER_MAX)
-    // {
-    //     buffer_idx = 0;
-    //     stdio_out_buf_start = 0;
-    // }
-    // output_buffer[buffer_idx++] = wch;
-    // if () {
-    
-    // }
-
 }
 
+/*  Put a wide character with specific color */
 void putwcc(wch_t wch, go_blt_pixel_t color)
 {
-    font_ttf_t* family = _op_font_ttfs.fonts[0];
-    putwccf(wch, color, family);
+    putwccf(wch, color, _op_font_ttfs.fonts[0]);
 }
 
-
+/*  Put a wide character */
 void putwc(wch_t wch)
 {
     putwcc(wch, default_color);
 }
 
-
+/*  Put a character */
 void putc(char c)
 {
     putwc(c);

@@ -121,10 +121,6 @@ void preparing_for_bsp(boolean is_first)
         // TSS descriptor is at index 3 in the GDT
         __load_tr(3 << 3);
 
-        _cpu_install_isr(&cpu0, 13, _cpu_get_irs(13), IDT_DESC_TYPE_INTERRUPT_GATE, 1);
-        // _cpu_install_isr(&cpu0, 12, _cpu_get_irs(13), IDT_DESC_TYPE_INTERRUPT_GATE, 1);
-        _cpu_install_isr(&cpu0, 14, _cpu_get_irs(13), IDT_DESC_TYPE_INTERRUPT_GATE, 1);
-        _cpu_install_isr(&cpu0, 0x20, _cpu_get_irs(0x20), IDT_DESC_TYPE_INTERRUPT_GATE, 1);
     }
     
 

@@ -65,23 +65,6 @@ typedef struct _go_blt_pixel
 } go_blt_pixel_t;
 
 
-// typedef struct _coordinates_2d
-// {
-// 	union
-// 	{
-// 		struct 
-// 		{
-// 			int x;
-// 			int y;
-// 		};
-// 		struct
-// 		{
-// 			float x_f;
-// 			float y_f;
-// 		};
-// 	};
-	
-// } point_t;
 typedef struct _coordinates_2d_i
 {
 	int x;
@@ -105,11 +88,10 @@ struct _go_image_output
 
 
 
-#define POINT_SIZE  						16.0f
-#define LSB_SIZE  							8.0f
-#define LINE_SPACE							3.0f
+#define POINT_SIZE  						        18.0f
+#define LSB_SIZE  							5.0f
+#define LINE_SPACE							2.0f
 #define DPI  								96.0f
 
-extern struct _go_image_output *_op_bg;
 
 #endif

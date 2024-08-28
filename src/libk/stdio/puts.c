@@ -40,6 +40,36 @@
 
 static char putbuf[MAXPUTBUF];
 
+
+static go_blt_pixel_t get_color(_in_ PREDEFINED_COLOR color_val)
+{
+    go_blt_pixel_t color;
+    switch (color_val) {
+        case CYAN3:
+            color.Red = 0;
+            color.Blue = 205;
+            color.Green = 205;
+            break;
+        case FIRE_BRICK2:
+            color.Red = 238;
+            color.Green = 44;
+            color.Blue = 44;
+            break;
+        case SPRINT_GREEN2:
+            color.Red = 0;
+            color.Green = 238;
+            color.Blue = 118;
+            break;
+        default:
+            color.Blue = 255;
+            color.Green = 255;
+            color.Red = 255;
+            break;
+
+    }
+    return color;
+}
+
 static int calculate_bits_for_decimal_digit(int d) {
     double power_of_ten = pow(10, d - 1);
     double log_base_2 = log2(power_of_ten);
@@ -115,15 +145,30 @@ void uint64_to_hexstr(uint64_t value, char* buffer) {
     buffer[16] = '\0'; // Null-terminate the string
 }
 
-void puts(const char *s)
+
+/*  Debug Print */
+void put_check(boolean cond, const wch_t *ws)
 {
-    int len = strlen(s);
-    for (int i = 0; i < len; i++)
-    {
-        putc(s[i]);
+    putwc('[');
+    if (cond) 
+        putwsc(L" Successful ", SPRINT_GREEN2);
+    else
+        putwsc(L" Failed ", FIRE_BRICK2);
+    putws(L"]  ");
+    putws(ws);
+}
+
+/*  Put a wstring with specific predefined color */
+void putwsc(const wch_t *ws, PREDEFINED_COLOR color_val)
+{
+    go_blt_pixel_t color = get_color(color_val);
+    int len = wstrlen(ws);
+    for (int i = 0; i < len; i++) {
+        putwcc(ws[i], color);
     }
 }
 
+/*  Put a wstring */
 void putws(const wch_t *ws)
 {
     int len = wstrlen(ws);
@@ -133,6 +178,22 @@ void putws(const wch_t *ws)
     }
 }
 
+/*  Put a string */
+void puts(const char *s)
+{
+    int len = strlen(s);
+    for (int i = 0; i < len; i++)
+    {
+        putc(s[i]);
+    }
+}
+
+
+
+
+
+
+/*  Put double string */
 void putss(const char *s1, const char *s2)
 {
     if (s1 != NULL)
@@ -146,6 +207,7 @@ void putss(const char *s1, const char *s2)
     
 }
 
+/*  Put string and digit */
 void putsd(const char *s, int64_t d)
 {
     if (s != NULL)
@@ -157,6 +219,8 @@ void putsd(const char *s, int64_t d)
     
 }
 
+
+/*  Put string and hex */
 void putsx(const char *s, uint64_t x)
 {
     if (s != NULL)
@@ -169,6 +233,8 @@ void putsx(const char *s, uint64_t x)
     puts(putbuf);
 }
 
+
+/*  Put string and float */
 void putsf(const char *s, double f)
 {
     char* str;
@@ -245,6 +311,11 @@ __put_str:
 
 }
 
+
+
+
+
+/* Put string, digit and string. */
 void putsds(const char *s, int64_t d, const char *s1)
 {
     putsd(s, d);
@@ -254,6 +325,8 @@ void putsds(const char *s, int64_t d, const char *s1)
     }
     
 }
+
+/* Put string, hex and string. */
 void putsxs(const char *s, uint64_t x, const char *s1)
 {
     putsx(s, x);
@@ -264,6 +337,7 @@ void putsxs(const char *s, uint64_t x, const char *s1)
 
 }
 
+/* Put string, float and string. */
 void putsfs(const char *s, double f, const char *s1)
 {
     putsf(s, f);

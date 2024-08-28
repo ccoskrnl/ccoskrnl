@@ -133,7 +133,8 @@ typedef struct _font_ttf {
     int16_t descender;
 
     double dpi;
-    int default_advance_width;
+    
+    int space_advance_width;
 
     _font_ttf_init init;
     _font_ttf_get_glyph_id get_glyph_id;
