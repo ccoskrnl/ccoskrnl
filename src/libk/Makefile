@@ -3,7 +3,7 @@ ARCH!=../../conf/uname.sh
 include ../../conf/target.conf
 
 BUILD_DIR = ../../build/libk
-SRC_DIRS = . stdio stdlib string bitmap list ctype
+SRC_DIRS = . stdio stdlib string bitmap list ctype rbtree
 
 # 获取所有的 .c 源文件
 SRCS = $(foreach dir, $(SRC_DIRS), $(wildcard $(dir)/*.c))
@@ -42,6 +42,11 @@ $(BUILD_DIR)/%.o: string/%.c
 	@$(CC) $(CFLAGS) -c -o $@ $<
 
 $(BUILD_DIR)/%.o: list/%.c
+	$(shell mkdir -p $(dir $@))
+	@echo "	Compiling $<"
+	@$(CC) $(CFLAGS) -c -o $@ $<
+
+$(BUILD_DIR)/%.o: rbtree/%.c
 	$(shell mkdir -p $(dir $@))
 	@echo "	Compiling $<"
 	@$(CC) $(CFLAGS) -c -o $@ $<

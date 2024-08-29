@@ -4,6 +4,10 @@
 
 ccos 是一个基于x86_64架构开发的64位操作系统，尽可能地提供现代设备的驱动(我不保证能实现出来:)。ccos 项目的创立和开发主要来自我个人对操作系统的兴趣。内核的大部分设计思路都来源于Windows NT内核。
 
+***
+![Sample](./conf/firstwindow.png)
+***
+
 ## 目录
 
 - [Cheng Cheng's Operating System Kernel](#cheng-chengs-operating-system-kernel)
@@ -38,12 +42,6 @@ Intel 公司开发的高级可编程中断控制器(APIC)提供了以下功能�
 
 TrueType是由美国苹果公司和微软公司共同开发的一种电脑轮廓字体（曲线描边字）类型标准。操作系统使用思源黑体(Adobe Source Han Sans SC VF)，作为默认字体。操作系统解析TTF，并直接在屏幕上绘制出字形的轮廓(没有实现填充算法，小字号字体显示时空隙相对不明显，并不影响字体的辨识，故暂时并没有实现)。
 
-***
-**TrueType字体渲染效果（文本内容来自《出师表》和《腾王阁序》）**
-
-![Sample.png](./conf/sample.png)
-
-***
 
 **Windows NT内存管理器**
 

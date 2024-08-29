@@ -42,8 +42,8 @@ Black-Depth:
 
 typedef enum
 {
-    RED = 0,
-    BLACK = 1
+    RBTreeNodeRed = 0,
+    RBTreeNodeBlack = 1
 } RBTreeNodeColor;
 
 typedef struct _rbtree_node

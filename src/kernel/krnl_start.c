@@ -105,32 +105,32 @@ void krnl_init()
 
     // Output Initialization
     op_init();
-    put_check(true, L"Ccoskrnl loaded.\n");
-    put_check(true, L"Bootstrap Processor initializated.\n");
-    put_check(true, L"Kernel memory layout divided.\n");
-    put_check(true, L"Dynamic memory alloctor is ready to be used.\n");
-    put_check(true, L"Default font family has been parsed completely.\n");
+    // put_check(true, L"Ccoskrnl loaded.\n");
+    // put_check(true, L"Bootstrap Processor initializated.\n");
+    // put_check(true, L"Kernel memory layout divided.\n");
+    // put_check(true, L"Dynamic memory alloctor is ready to be used.\n");
+    // put_check(true, L"Default font family has been parsed completely.\n");
 
-    // Initialize OSPM
-    acpi_init();
+    // // Initialize OSPM
+    // acpi_init();
 
-    // Interrupt module initialization. 
-    // when the routines finish, it will set interrupt flag.
-    // intr_init();
+    // // Interrupt module initialization. 
+    // // when the routines finish, it will set interrupt flag.
+    // // intr_init();
     
-    put_check(true, L"System diagnostic completed. All systems nominal.\n");
-    put_check(false, L"ACPI initialized.\n");
-    put_check(false, L"Power Off.\n");
+    // put_check(true, L"System diagnostic completed. All systems nominal.\n");
+    // put_check(false, L"ACPI initialized.\n");
+    // put_check(false, L"Power Off.\n");
 
-    __asm__ ("sti"); 
+    // __asm__ ("sti"); 
 
 
-    // _intr_intr_handler_test();
-    while (1) {
-        puts("y\n");
-    }
-    putws(chushibiao);
-    putws(tengwangge);
+    // // _intr_intr_handler_test();
+    // while (1) {
+    //     puts("y\n");
+    // }
+    // putws(chushibiao);
+    // putws(tengwangge);
     
     // print_machine_info();
 

@@ -928,7 +928,6 @@ status_t glyph_rasterize(void *this, void* screen_desc, uint8_t buf_id, point_i_
     free(flags);
 
 #endif
-    screen->cursor.x = ceil(glyph->advance_width * glyph->font_family->scaling_factor) + origin.x;
     return status;
 }
 

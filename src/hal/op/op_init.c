@@ -38,7 +38,7 @@ struct _installed_font_ttfs _op_font_ttfs;
  * Windows
  */
 
-window_t* default_window;
+window_text_t* default_window;
 
 /**
  * A boolean type to indicate whether output module has
@@ -97,31 +97,52 @@ void op_init()
     // _op_font_ttfs.fonts[0] = _font_family_agefonts001;
     // _op_font_ttfs.fonts[1] = _font_family_SourceHanSansSCVF;
 
-    status = new_a_window(&default_window);
-    if (ST_ERROR(status)) {
-        krnl_panic();
-    }
-    status = default_window->Register(
-        default_window,
-        NULL,
-        _op_def_screen,
-        OUTPUT_AREA_TLC_X,
-        OUTPUT_AREA_TLC_Y,
-        OUTPUT_AREA_BRC_X,
-        OUTPUT_AREA_BRC_Y,
-        _op_font_ttfs.fonts[0],
-        POINT_SIZE,
-        3
-    );
-    if (ST_ERROR(status)) {
-        krnl_panic();
-    }
+    // point_i_t base = { 5, 0};
+    // go_blt_pixel_t col = {143,188,143};
 
+    // screen0.DrawString(&screen0, L"Hello, World", base,_font_family_SourceHanSansSCVF, 18, col, 0);
 
 
     // set wallpaper
     if (_op_def_screen->horizontal == background.width && _op_def_screen->vertical == background.height)
         memcpy(_op_def_screen->frame_buf_base, _op_bg->buf, _op_bg->size);
+
+    window_style_t def_wnd = { 
+        WINDOW_STYLE_COLOR, 
+        // {143,188,143}, 
+        {0xc0,0xc0,0xc0}, 
+        { 0 }
+    };
+    
+    status = new_a_window(
+        0x646566,
+        WindowText,
+        NULL,
+        _op_def_screen,
+        L"默认窗口",
+        def_wnd,
+        200,
+        100,
+        800,
+        600,
+        (void**)&default_window
+    );
+
+    if (ST_ERROR(status)) {
+        krnl_panic();
+    }
+
+    default_window->Register(
+        default_window,
+        _font_family_agefonts001,
+        POINT_SIZE,
+        3
+    );
+
+    default_window->ShowWindow(default_window);
+
+
+
 
     _op_has_been_initialize = true;
 }

@@ -7,69 +7,86 @@
 #include "./font/font_ttf.h"
 
 #define MAX_INSTALLED_SCREEN								        63
-#define BACKBUFFER_INDEX									1
-#define MAX_FRAMEBUFFER										2
-#define OUTPUT_BUF_SIZE                                                                         2048                                                                    
+#define FRAMEBUFFER_INDEX                                           0
+#define BACKBUFFER_INDEX									        1
+#define MAX_FRAMEBUFFER										        2
+#define OUTPUT_BUF_SIZE                                             2048
 
 typedef status_t (*_op_blt_t)(
-        _in_ void                   *_this,
-        _in_ _out_ go_blt_pixel_t     *blt_buffer,
-        _in_ GO_BLT_OPERATIONS      blt_operation,
-        _in_ uint64_t               src_x,
-        _in_ uint64_t               src_y,
-        _in_ uint64_t               dest_x,
-        _in_ uint64_t               dest_y,
-        _in_ uint64_t               width,
-        _in_ uint64_t               height,
-        _in_ _optional_ int         buffer_index );
+	_in_ void                   *_this,
+	_in_ _out_ go_blt_pixel_t     *blt_buffer,
+	_in_ GO_BLT_OPERATIONS      blt_operation,
+	_in_ uint64_t               src_x,
+	_in_ uint64_t               src_y,
+	_in_ uint64_t               dest_x,
+	_in_ uint64_t               dest_y,
+	_in_ uint64_t               width,
+	_in_ uint64_t               height,
+	_in_ _optional_ int         buffer_index 
+);
 
 typedef status_t (*_op_swap_framebuffer_t)(
-        _in_ void                   *_this,
-        _in_ uint8_t                dest_buf_index,
-        _in_ uint8_t                src_buf_index
-        );
+	_in_ void                   *_this,
+	_in_ uint8_t                dest_buf_index,
+	_in_ uint8_t                src_buf_index
+);
 
-typedef status_t (*_op_draw_ch_t)(
-        _in_ void*                                      _this,
-        _in_ int                                        buf_id,
-        _in_ wch_t                                      wch,
-        _in_ font_ttf_t*                                family,
-        _in_ go_blt_pixel_t                             color
-        );
+
+typedef status_t (*_op_draw_rectangle_t)(
+    _in_ void                                   *_this,
+    _in_ int                                    x,
+    _in_ int                                    y,
+    _in_ int                                    width,
+    _in_ int                                    height,
+    _in_ go_blt_pixel_t                         color,
+	_in_ int                            		buf_index
+);
 
 typedef status_t (*_op_draw_hollow_rectangle_t)(
-        _in_ void*                          _this,
-        _in_ uint32_t                       x,
-        _in_ uint32_t                       y,
-        _in_ uint32_t                       width,
-        _in_ uint32_t                       height,
-        _in_ uint32_t                       stroke_size,
-        _in_ go_blt_pixel_t                 color
-        );
+	_in_ void                           	*_this,
+	_in_ uint32_t                       	x,
+	_in_ uint32_t                       	y,
+	_in_ uint32_t                       	width,
+	_in_ uint32_t                       	height,
+	_in_ uint32_t                       	stroke_size,
+	_in_ go_blt_pixel_t                 	color,
+	_in_ int                            	buf_index
+);
 
 
 typedef status_t (*_op_draw_second_order_bezier_curve_t)(
-        _in_ void                       *_this,
-        _in_ point_f_t                   p0,
-        _in_ point_f_t                   p1,
-        _in_ point_f_t                   p2,
-        _in_ go_blt_pixel_t              color
-        );
+	_in_ void                       			*_this,
+	_in_ point_f_t                   			p0,
+	_in_ point_f_t                   			p1,
+	_in_ point_f_t                   			p2,
+	_in_ go_blt_pixel_t              			color
+);
 
 typedef status_t (*_op_draw_bresenhams_line_t)(
-        _in_ void                       *_this,
-        _in_ point_i_t                   p0,
-        _in_ point_i_t                   p1,
-        _in_ go_blt_pixel_t              color
-        );
+	_in_ void                       			*_this,
+	_in_ point_i_t                   			p0,
+	_in_ point_i_t                   			p1,
+	_in_ go_blt_pixel_t              			color
+);
 
 typedef status_t (*_op_clear_screen_t)(
-        _in_ void *_this
-        );
+	_in_ void 									*_this
+);
 
 typedef status_t (*_op_clear_framebuffers_t)(
-        _in_ void                   *_this
-        );
+	_in_ void                   				*_this
+);
+
+typedef status_t (*_op_draw_string_t)(
+    _in_ void                                   *_this,
+    _in_ wch_t                                  *string,
+    _in_ point_i_t                              origin,
+    _in_ font_ttf_t                             *font_family,
+    _in_ double                                 point_size,
+    _in_ go_blt_pixel_t                         color,
+	_in_ int                            		buf_index
+);
+
 
 typedef struct _op_screen_desc
 {
@@ -86,14 +103,13 @@ typedef struct _op_screen_desc
 
     _op_blt_t Blt;
     _op_swap_framebuffer_t SwapTwoBuffers;
-    _op_draw_ch_t DrawChar;
+    _op_draw_string_t DrawString;
+    _op_draw_rectangle_t DrawRectangle;
     _op_draw_hollow_rectangle_t DrawHollowRectangle;
     _op_draw_second_order_bezier_curve_t DrawSecondOrderBezierCurve;
     _op_draw_bresenhams_line_t DrawBresenhamsLine;
     _op_clear_framebuffers_t ClearFrameBuffers;
     _op_clear_screen_t clear_screen;
-
-    struct _coordinates_2d_i cursor;
 
     size_t output_buf_index;
     size_t which_output_buf;

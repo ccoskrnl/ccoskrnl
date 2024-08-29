@@ -118,7 +118,7 @@ static void insert_fixup(void* _this, rbtree_node_t* z)
     *  this time.
     * */
 
-    while ( z->parent->color == RED) 
+    while ( z->parent->color == RBTreeNodeRed) 
     {
         /*  Check if z's parent is a left child. */
         if (z->parent == z->parent->parent->left)
@@ -137,13 +137,13 @@ static void insert_fixup(void* _this, rbtree_node_t* z)
              * */ 
             
             // property 4 is violated only between z and z->parent.
-            if (y->color == RED) 
+            if (y->color == RBTreeNodeRed) 
             {
                 /* Case 1 */
-                z->parent->color = BLACK;
+                z->parent->color = RBTreeNodeBlack;
 
-                y->color = BLACK;
-                z->parent->parent->color = RED;
+                y->color = RBTreeNodeBlack;
+                z->parent->parent->color = RBTreeNodeRed;
 
                 /* The will loop continues with node z's 
                    grandparent z->parent->parent as the new z. */
@@ -165,9 +165,9 @@ static void insert_fixup(void* _this, rbtree_node_t* z)
                 }
 
                 /* Case 3 */
-                z->parent->color = BLACK;
+                z->parent->color = RBTreeNodeBlack;
 
-                z->parent->parent->color = RED;
+                z->parent->parent->color = RBTreeNodeRed;
                 right_rotate(this, z->parent->parent);
             }
 
@@ -176,12 +176,12 @@ static void insert_fixup(void* _this, rbtree_node_t* z)
         else 
         {
             rbtree_node_t *y = z->parent->parent->left;
-            if (y->color == RED) 
+            if (y->color == RBTreeNodeRed) 
             {
-                z->parent->color = BLACK;
-                y->color = BLACK;
+                z->parent->color = RBTreeNodeBlack;
+                y->color = RBTreeNodeBlack;
 
-                z->parent->parent->color = RED;
+                z->parent->parent->color = RBTreeNodeRed;
                 z = z->parent->parent;
             }
             else
@@ -192,15 +192,15 @@ static void insert_fixup(void* _this, rbtree_node_t* z)
                     right_rotate(this, z);
                 }
 
-                z->parent->color = BLACK;
-                z->parent->parent->color = RED;
+                z->parent->color = RBTreeNodeBlack;
+                z->parent->parent->color = RBTreeNodeRed;
                 left_rotate(this, z->parent->parent);
             }
         }
     }
 
     // We ensure that the property 1 not be violated.
-    this->root->color = BLACK;
+    this->root->color = RBTreeNodeBlack;
 }
 
 
@@ -240,7 +240,7 @@ static void insert(void* _this, rbtree_node_t* z)
     z->right = this->nil;
 
     // The new node starts out red.
-    z->color = RED;
+    z->color = RBTreeNodeRed;
 
     /**
      * Because coloring z red may cause a violation of one
@@ -261,7 +261,7 @@ static void delete_fixup(void* _this, rbtree_node_t* x)
     // w is x's sibling node.
     rbtree_node_t *w;
 
-    while ( x != this->root && x->color == BLACK )
+    while ( x != this->root && x->color == RBTreeNodeBlack )
     {
         // Within the while loop, x always points to a nonroot
         // double black node.
@@ -275,10 +275,10 @@ static void delete_fixup(void* _this, rbtree_node_t* x)
              * Case 1, x's sibling w is red. 
              * Thus, case 1 convert2 into one cases 2, 3 or 4.
              **/
-            if (w->color == RED)
+            if (w->color == RBTreeNodeRed)
             {
-                w->color = BLACK;
-                x->parent->color = RED;
+                w->color = RBTreeNodeBlack;
+                x->parent->color = RBTreeNodeRed;
                 left_rotate(this, x->parent);
                 w = x->parent->right;
             }
@@ -292,9 +292,9 @@ static void delete_fixup(void* _this, rbtree_node_t* x)
              * new node x is red-and-black(original x's parent
              * x->parent took on an extra black.), since the
              * original x->parent was red.*/
-            if (w->left->color == BLACK && w->right->color == BLACK)
+            if (w->left->color == RBTreeNodeBlack && w->right->color == RBTreeNodeBlack)
             {
-                w->color = RED;
+                w->color = RBTreeNodeRed;
 
                 /**
                  * To compensate for x and w each losing one
@@ -313,11 +313,11 @@ static void delete_fixup(void* _this, rbtree_node_t* x)
                  * Case 3. x's sibing w is black, w's left child is
                  * red, and w's right child is black.
                  **/
-                if (w->right->color == BLACK)
+                if (w->right->color == RBTreeNodeBlack)
                 {
                     // Switch the colors of w and its left child w->left
-                    w->left->color = BLACK;
-                    w->color = RED;
+                    w->left->color = RBTreeNodeBlack;
+                    w->color = RBTreeNodeRed;
 
                     // Perform a right rotation on w without violating
                     // any of the red-black properties.
@@ -335,8 +335,8 @@ static void delete_fixup(void* _this, rbtree_node_t* x)
                  * and then the loop terminates in this case.
                  **/
                 x->color = x->parent->color;
-                x->parent->color = BLACK;
-                x->right->color = BLACK;
+                x->parent->color = RBTreeNodeBlack;
+                x->right->color = RBTreeNodeBlack;
                 left_rotate(this, x->parent);
                 x = this->root;
             }
@@ -347,31 +347,31 @@ static void delete_fixup(void* _this, rbtree_node_t* x)
         {
             w = x->parent->left;
 
-            if (w->color == RED)
+            if (w->color == RBTreeNodeRed)
             {
-                w->color = BLACK;
-                x->parent->color = RED;
+                w->color = RBTreeNodeBlack;
+                x->parent->color = RBTreeNodeRed;
                 right_rotate(this, x->parent);
                 w = x->parent->left;
             }
-            if (w->right->color == BLACK && w->left->color == BLACK)
+            if (w->right->color == RBTreeNodeBlack && w->left->color == RBTreeNodeBlack)
             {
-                w->color = RED;
+                w->color = RBTreeNodeRed;
                 x = x->parent;
             }
             else
             {
-				if (w->left->color == BLACK)
+				if (w->left->color == RBTreeNodeBlack)
 				{
-					w->right->color = BLACK;
-					w->color = RED;
+					w->right->color = RBTreeNodeBlack;
+					w->color = RBTreeNodeRed;
 					left_rotate(this, w);
 					w = x->parent->left;
 				}
 
 				w->color = x->parent->color;
-				x->parent->color = BLACK;
-				w->left->color = BLACK;
+				x->parent->color = RBTreeNodeBlack;
+				w->left->color = RBTreeNodeBlack;
 				right_rotate(this, x->parent);
 				x = this->root;	
             }
@@ -381,7 +381,7 @@ static void delete_fixup(void* _this, rbtree_node_t* x)
     }
 
     // Color the new node x (singly) black.
-    x->color = BLACK;
+    x->color = RBTreeNodeBlack;
 
 }
 
@@ -471,7 +471,7 @@ static void delete(void* _this, rbtree_node_t* z)
      * need to recolor x's sibling or one of its children.
      **/
 
-    if (y_original_color == BLACK)
+    if (y_original_color == RBTreeNodeBlack)
         delete_fixup(this, x);
     
 }
@@ -566,7 +566,7 @@ status_t new_a_rbtree(rbtree_t **rbtree)
         status = ST_FAILED;
         return status;
     }
-    (*rbtree)->node_nil.color = BLACK;
+    (*rbtree)->node_nil.color = RBTreeNodeBlack;
     (*rbtree)->nil = &(*rbtree)->node_nil;
     (*rbtree)->root = (*rbtree)->nil;
 

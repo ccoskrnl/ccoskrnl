@@ -9,6 +9,14 @@
 #define OUTPUT_BUF_SIZE                                         2048
 #define MAX_OUTPUT_BUFS                                         2
 
+
+typedef enum
+{
+    WindowNone = 0,
+    WindowText = 1
+
+} WindowType;
+
 /**
  * @brief Window Style Flags
  */
@@ -35,17 +43,8 @@ typedef struct _window_style
 
 } window_style_t;
 
-typedef status_t (*_window_register_t)(
-    _in_ void                   *_this,
-    _in_ wch_t                  *window_title,
-    _in_ window_style_t         style,
-    _in_ int                    x_of_upper_left_hand,
-    _in_ int                    y_of_upper_left_hand,
-    _in_ int                    x_of_buttom_right_hand,
-    _in_ int                    y_of_buttom_right_hand,
-    _in_ font_ttf_t             *font_family,
-    _in_ double                 point_size,
-    _in_ int                    fix_line_gap
+typedef status_t (*_window_show_window_t)(
+        _in_ void                               *_this
 );
 
 typedef struct _window
@@ -53,7 +52,12 @@ typedef struct _window
     /**
      * @brief tag to mark this window instance.
      */
-    rbtree_node_t               rbnode;
+    rbtree_node_t               node;
+
+    /**
+     * @brief Mark the window type.
+     */
+    WindowType                  type;
 
     /**
      * @brief Pointer that points default screen.
@@ -81,9 +85,37 @@ typedef struct _window
     point_i_t                   upper_left_hand;
 
     /**
-     * The buttom right-hand corner in screen it belonged..
+     * The window's widht and height.
      */
-    point_i_t                   buttom_right_hand;
+    int                         width;
+    int                         height;
+
+    /**
+     * The window's framebuffer. 
+     * */
+    go_blt_pixel_t              *framebuffer;
+
+} __attribute__((packed)) window_t;
+
+
+
+typedef status_t (*_window_text_register_t)(
+    _in_ void                   *_this,
+    _in_ font_ttf_t             *font_family,
+    _in_ double                 point_size,
+    _in_ int                    fix_line_gap
+);
+
+typedef struct _window_text
+{
+
+    /**
+     * Window
+     **/
+    window_t                    window;
+
+    _window_text_register_t     Register;
+    _window_show_window_t       ShowWindow;
 
     /**
      * Window use this member to tell screen which Font family
@@ -111,6 +143,11 @@ typedef struct _window
      * descired_em = unitsPerEm * scaling_factor
      */
     int16_t                     desired_em;
+
+    /**
+     * @brief Space advance width.
+     */
+    int16_t                     advance_width;
 
     /**
      * @brief The member to adjust gap between rows.
@@ -158,17 +195,28 @@ typedef struct _window
      */
     uint64_t                    output_bufs[MAX_OUTPUT_BUFS][OUTPUT_BUF_SIZE];
 
-    _window_register_t          Register;
-
-} window_t;
-
+} window_text_t;
 
 status_t new_a_window(
     _in_ uint64_t                           tag,
+    _in_ WindowType                         type,
     _in_ window_t                           *parent_window,
     _in_ void                               *screen,
-    _in_ _out_ window_t                     **window
+    _in_ wch_t                              *window_title,
+    _in_ window_style_t                     style,
+    _in_ int                                x_of_upper_left_hand,
+    _in_ int                                y_of_upper_left_hand,
+    _in_ int                                width,
+    _in_ int                                height,
+    _in_ _out_ void                         **window
 );
+
+
+#define WINDOW_TITLE_DECORATION_SIZE                25
+#define WINDOW_BORDER_STROKE_SIZE                   5
+#define WINDOW_BORDER_COLOR                         { 0x20, 0x20, 0x20, 0 }
+#define WINDOW_TITLE_COLOR                          { 0xff, 0xff, 0xff, 0 }
+#define WINDOW_BG_COLOR                             { 0xc0, 0xc0, 0xc0, 0 }
 
 
 #endif

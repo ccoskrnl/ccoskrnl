@@ -32,9 +32,6 @@ static status_t clear_screen(
 
     memcpy(desc->frame_buf_base, _op_bg->buf, _op_bg->size);
 
-    desc->cursor.x = (int)LSB_SIZE + OUTPUT_AREA_TLC_X;
-    desc->cursor.y = OUTPUT_AREA_TLC_Y;
-
     return status;
 }
 
@@ -319,7 +316,8 @@ static status_t draw_hollow_rectangle(
         _in_ uint32_t                           width,
         _in_ uint32_t                           height,
         _in_ uint32_t                           stroke_size,
-        _in_ go_blt_pixel_t                     color
+        _in_ go_blt_pixel_t                     color,
+        _in_ int                                buf_index
         ) 
 {
     status_t status;
@@ -348,7 +346,7 @@ static status_t draw_hollow_rectangle(
 
     // draw top side
     status = desc->Blt(desc, bitbuffer, GoBltBufferToVideo, 0, 0, x, y, width,
-            stroke_size, 1);
+            stroke_size, buf_index);
     if (ST_ERROR(status)) {
         free(bitbuffer);
         return status;
@@ -356,7 +354,7 @@ static status_t draw_hollow_rectangle(
 
     // draw bottom side
     status = desc->Blt(desc, bitbuffer, GoBltBufferToVideo, 0, 0, x,
-            y + height - stroke_size, width, stroke_size, 1);
+            y + height - stroke_size, width, stroke_size, buf_index);
     if (ST_ERROR(status)) {
         free(bitbuffer);
         return status;
@@ -375,177 +373,266 @@ static status_t draw_hollow_rectangle(
     }
 
     status = desc->Blt(desc, bitbuffer, GoBltBufferToVideo, 0, 0, x, y,
-            stroke_size, height, 1);
+            stroke_size, height, buf_index);
     if (ST_ERROR(status)) {
         free(bitbuffer);
         return status;
     }
 
     status = desc->Blt(desc, bitbuffer, GoBltBufferToVideo, 0, 0,
-            x + width - stroke_size, y, stroke_size, height, 1);
+            x + width - stroke_size, y, stroke_size, height, buf_index);
     if (ST_ERROR(status)) {
         free(bitbuffer);
         return status;
     }
 
     free(bitbuffer);
-    return desc->SwapTwoBuffers(desc, 0, BACKBUFFER_INDEX);
-}
-
-static status_t scroll_screen(
-        _in_ void                               *this, 
-        _in_ font_ttf_t                         *family
-        ) 
-{
-    status_t status = ST_SUCCESS;
-    op_screen_desc *desc;
-    // int old_buffer_index;
-
-    if (this == NULL) {
-        status = ST_INVALID_PARAMETER;
-        return status;
-    }
-    desc = this;
-
-    uint64_t *lf = desc->output_buf[desc->which_output_buf];
-
-    for (; *(wch_t *)lf != 0; ++lf) {
-        if (*(wch_t *)lf == '\n') {
-            lf++;
-            break;
-        }
-    }
-
-    desc->which_output_buf ^= 1;
-    desc->cursor.x = LSB_SIZE + OUTPUT_AREA_TLC_X;
-    desc->cursor.y = OUTPUT_AREA_TLC_Y;
-    desc->output_buf_index = 0;
-
-    memzero(desc->output_buf[desc->which_output_buf], OUTPUT_BUF_SIZE);
-    memcpy(desc->frame_bufs[BACKBUFFER_INDEX], _op_bg->buf, _op_bg->size);
-
-    while (*lf != 0) {
-        go_blt_pixel_t *color = (go_blt_pixel_t *)((uint64_t)(lf) + sizeof(wch_t));
-        wch_t wc = *lf & 0xffffffff;
-
-        status = desc->DrawChar(desc, BACKBUFFER_INDEX, wc, family, *color);
-        if (ST_ERROR(status)) {
-            krnl_panic();
-        }
-
-        lf++;
-    }
-
-    desc->SwapTwoBuffers(desc, 0, BACKBUFFER_INDEX);
-
     return status;
 }
 
-static status_t draw_ch(
-        _in_ void                               *this, 
-        _in_ int                                buf_id, 
-        _in_ wch_t                              wch,
-        _in_ font_ttf_t                         *family, 
-        _in_ go_blt_pixel_t                     color
-        ) 
+// static status_t scroll_screen(
+//         _in_ void                               *this, 
+//         _in_ font_ttf_t                         *family
+//         ) 
+// {
+//     status_t status = ST_SUCCESS;
+//     op_screen_desc *desc;
+//     // int old_buffer_index;
+
+//     if (this == NULL) {
+//         status = ST_INVALID_PARAMETER;
+//         return status;
+//     }
+//     desc = this;
+
+//     uint64_t *lf = desc->output_buf[desc->which_output_buf];
+
+//     for (; *(wch_t *)lf != 0; ++lf) {
+//         if (*(wch_t *)lf == '\n') {
+//             lf++;
+//             break;
+//         }
+//     }
+
+//     desc->which_output_buf ^= 1;
+//     desc->cursor.x = LSB_SIZE + OUTPUT_AREA_TLC_X;
+//     desc->cursor.y = OUTPUT_AREA_TLC_Y;
+//     desc->output_buf_index = 0;
+
+//     memzero(desc->output_buf[desc->which_output_buf], OUTPUT_BUF_SIZE);
+//     memcpy(desc->frame_bufs[BACKBUFFER_INDEX], _op_bg->buf, _op_bg->size);
+
+//     while (*lf != 0) {
+//         go_blt_pixel_t *color = (go_blt_pixel_t *)((uint64_t)(lf) + sizeof(wch_t));
+//         wch_t wc = *lf & 0xffffffff;
+
+//         // status = desc->DrawChar(desc, BACKBUFFER_INDEX, wc, family, *color);
+//         if (ST_ERROR(status)) {
+//             krnl_panic();
+//         }
+
+//         lf++;
+//     }
+
+//     desc->SwapTwoBuffers(desc, 0, BACKBUFFER_INDEX);
+
+//     return status;
+// }
+
+// static status_t draw_ch(
+//     _in_ void                               *this, 
+//     _in_ int                                buf_id, 
+//     _in_ wch_t                              wch,
+//     _in_ font_ttf_t                         *family, 
+//     _in_ go_blt_pixel_t                     color
+//     ) 
+// {
+
+//     status_t status = ST_SUCCESS;
+//     op_screen_desc *desc;
+//     font_ttf_glyph_t *glyph;
+//     point_i_t origin;
+//     int TAB = 0;
+//     int LF = 0;
+//     uint64_t cwch;
+
+//     if (this == NULL) {
+//         status = ST_INVALID_PARAMETER;
+//         return status;
+//     }
+//     desc = this;
+
+//     cwch = *(uint32_t *)&color;
+//     cwch <<= 32;
+//     cwch |= wch;
+
+//     desc->output_buf[desc->which_output_buf][desc->output_buf_index++] = cwch;
+
+// __inspect_begin:
+
+//     // Situation 0:
+//     // Current row can't put any characters, so we need to wrap.
+//     if (desc->cursor.x + family->space_advance_width >= OUTPUT_AREA_BRC_X) {
+//         desc->cursor.y += family->line_height;
+//         desc->cursor.x = (int)LSB_SIZE + OUTPUT_AREA_TLC_X;
+//     }
+//     // Situation 1:
+//     // scroll screen
+//     if ((desc->cursor.y + family->line_height) >= OUTPUT_AREA_BRC_Y)
+//         scroll_screen(desc, family);
+
+//     switch (wch) {
+//         case ' ':
+//             desc->cursor.x += family->space_advance_width;
+//             goto __draw_ch_exit;
+//             break;
+
+//         case '\t':
+//             desc->cursor.x += family->space_advance_width;
+//             while (TAB < TAB_SIZE) {
+//                 TAB++;
+//                 goto __inspect_begin;
+//             }
+//             goto __draw_ch_exit;
+//             break;
+
+//         case '\b':
+//             if (desc->cursor.x == (int)LSB_SIZE) {
+//                 goto __draw_ch_exit;
+//             }
+//             desc->cursor.x -= family->space_advance_width;
+//             goto __draw_ch_exit;
+//             break;
+
+//         case '\n':
+
+//             desc->cursor.y += family->line_height;
+//             desc->cursor.x = (int)LSB_SIZE + OUTPUT_AREA_TLC_X;
+//             if ((desc->cursor.y + family->line_height) >= OUTPUT_AREA_BRC_Y)
+//                 scroll_screen(desc, family);
+//             goto __draw_ch_exit;
+//             break;
+
+//         default:
+//             break;
+//     }
+
+//     // Situation 2:
+//     // Current row can still continue to put characters more than one.
+//     origin.x = desc->cursor.x;
+//     origin.y = desc->cursor.y;
+
+//     status = new_a_glyph(&glyph);
+//     if (ST_ERROR(status)) {
+//         return status;
+//     }
+//     glyph->init(glyph, wch, family);
+//     glyph->rasterize(glyph, desc, buf_id, origin, color);
+
+//     del_a_glyph(glyph);
+
+// __draw_ch_exit:
+
+//     return status;
+// }
+
+
+static status_t draw_string(
+    _in_ void                                   *_this,
+    _in_ wch_t                                  *string,
+    _in_ point_i_t                              origin,
+    _in_ font_ttf_t                             *font_family,
+    _in_ double                                 point_size,
+    _in_ go_blt_pixel_t                         color,
+	_in_ int                            		buf_index
+)
 {
-
     status_t status = ST_SUCCESS;
-    op_screen_desc *desc;
+    op_screen_desc *this = _this;
     font_ttf_glyph_t *glyph;
-    point_i_t origin;
-    int TAB = 0;
-    int LF = 0;
-    uint64_t cwch;
+    double scaling_factor;
+    int16_t desired_em;
+    int16_t ascender;
+    int16_t descender;
+    int16_t advance_width; 
 
-    if (this == NULL) {
-        status = ST_INVALID_PARAMETER;
-        return status;
-    }
-    desc = this;
+    scaling_factor = (point_size * DPI) / (72 * font_family->head.table.unitsPerEm);
+    desired_em = ceil(scaling_factor * font_family->head.table.unitsPerEm);
+    ascender = ceil(scaling_factor * font_family->hhea.table.ascender);
+    descender = ceil(scaling_factor * font_family->hhea.table.descender);
+    advance_width = desired_em >> 1;
+    
+    for (size_t i = 0; string[i] != 0; i++) 
+    {
+        switch (string[i]) 
+        {
 
-    cwch = *(uint32_t *)&color;
-    cwch <<= 32;
-    cwch |= wch;
-
-    desc->output_buf[desc->which_output_buf][desc->output_buf_index++] = cwch;
-
-__inspect_begin:
-
-    // Situation 0:
-    // Current row can't put any characters, so we need to wrap.
-    if (desc->cursor.x + family->space_advance_width >= OUTPUT_AREA_BRC_X) {
-        desc->cursor.y += family->line_height;
-        desc->cursor.x = (int)LSB_SIZE + OUTPUT_AREA_TLC_X;
-    }
-    // Situation 1:
-    // scroll screen
-    if ((desc->cursor.y + family->line_height) >= OUTPUT_AREA_BRC_Y)
-        scroll_screen(desc, family);
-
-    switch (wch) {
         case ' ':
-            desc->cursor.x += family->space_advance_width;
-            goto __draw_ch_exit;
+            origin.x += advance_width;
             break;
 
         case '\t':
-            desc->cursor.x += family->space_advance_width;
-            while (TAB < TAB_SIZE) {
-                TAB++;
-                goto __inspect_begin;
-            }
-            goto __draw_ch_exit;
+            origin.x += (advance_width) * TAB_SIZE;
             break;
 
         case '\b':
-            if (desc->cursor.x == (int)LSB_SIZE) {
-                goto __draw_ch_exit;
-            }
-            desc->cursor.x -= family->space_advance_width;
-            goto __draw_ch_exit;
-            break;
-
-        case '\n':
-
-            desc->cursor.y += family->line_height;
-            desc->cursor.x = (int)LSB_SIZE + OUTPUT_AREA_TLC_X;
-            if ((desc->cursor.y + family->line_height) >= OUTPUT_AREA_BRC_Y)
-                scroll_screen(desc, family);
-            goto __draw_ch_exit;
+            origin.x -= advance_width;
             break;
 
         default:
+            status = new_a_glyph(&glyph);
+            if (ST_ERROR(status)) 
+                krnl_panic();
+
+            glyph->init(glyph, string[i], font_family);
+            status = glyph->rasterize(glyph, this, buf_index, origin, color);
+            if (ST_ERROR(status)) 
+                krnl_panic();
+
+            origin.x += ceil(glyph->advance_width * glyph->font_family->scaling_factor);
+            del_a_glyph(glyph);
+
             break;
+        }
+
+        if (origin.x >= this->horizontal) 
+            break;
+        
     }
+    return status;
 
-    // Situation 2:
-    // Current row can still continue to put characters more than one.
-    origin.x = desc->cursor.x;
-    origin.y = desc->cursor.y;
+}
 
-    status = new_a_glyph(&glyph);
-    if (ST_ERROR(status)) {
-        return status;
-    }
-    glyph->init(glyph, wch, family);
-    glyph->rasterize(glyph, desc, buf_id, origin, color);
+static status_t draw_rectangle(
+    _in_ void                                   *_this,
+    _in_ int                                    x,
+    _in_ int                                    y,
+    _in_ int                                    width,
+    _in_ int                                    height,
+    _in_ go_blt_pixel_t                         color,
+	_in_ int                            		buf_index
+)
+{
+    op_screen_desc *this = _this;
+    status_t status;
+    go_blt_pixel_t col = color;
+    uint32_t c = *(uint32_t*)&col;
+    go_blt_pixel_t* buf = this->frame_bufs[buf_index] + y * this->horizontal + x;
 
-    del_a_glyph(glyph);
-
-__draw_ch_exit:
+    for (int i = 0; i < height; i++) 
+        memsetd((uint32_t*)(buf + i * this->horizontal), c, width);
 
     return status;
 }
 
 void _op_install_a_screen(
-        _in_ _out_ struct _op_screen_desc       *screen,
-        _in_ go_blt_pixel_t                     *frame_buf_base, 
-        _in_ size_t                             frame_buf_size,
-        _in_ int                                horizontal_resolution, 
-        _in_ int                                vertical_resolution,
-        _in_ int                                pixels_per_scan_line
-        ) 
+    _in_ _out_ struct _op_screen_desc       *screen,
+    _in_ go_blt_pixel_t                     *frame_buf_base, 
+    _in_ size_t                             frame_buf_size,
+    _in_ int                                horizontal_resolution, 
+    _in_ int                                vertical_resolution,
+    _in_ int                                pixels_per_scan_line
+) 
 {
 
     memzero(screen, sizeof(*screen));
@@ -562,8 +649,8 @@ void _op_install_a_screen(
     screen->frame_bufs[0] = screen->frame_buf_base;
     screen->secondary_buf = screen->frame_bufs[BACKBUFFER_INDEX];
 
-    screen->cursor.x = (int)LSB_SIZE + OUTPUT_AREA_TLC_X;
-    screen->cursor.y = OUTPUT_AREA_TLC_Y;
+    // screen->cursor.x = (int)LSB_SIZE + OUTPUT_AREA_TLC_X;
+    // screen->cursor.y = OUTPUT_AREA_TLC_Y;
 
     status_t status = new_a_rbtree(&screen->windows);
     if (ST_ERROR(status)) {
@@ -572,7 +659,8 @@ void _op_install_a_screen(
 
     screen->Blt = blt;
     screen->SwapTwoBuffers = swap_framebuffer;
-    screen->DrawChar = draw_ch;
+    screen->DrawString = draw_string;
+    screen->DrawRectangle = draw_rectangle;
     screen->DrawHollowRectangle = draw_hollow_rectangle;
     screen->DrawSecondOrderBezierCurve = draw_second_order_bezier_curve;
     screen->DrawBresenhamsLine = draw_bresenhams_line;

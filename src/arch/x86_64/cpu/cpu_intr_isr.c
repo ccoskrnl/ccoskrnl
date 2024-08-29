@@ -18,7 +18,7 @@ static void gp_isr()
     for (int i = 0; i < (_op_def_screen->frame_buf_size >> 2); i++) {
         _op_def_screen->secondary_buf[i] = pixel;
     }
-    _op_def_screen->swap_two_buffers(_op_def_screen, 0, 1);
+    _op_def_screen->SwapTwoBuffers(_op_def_screen, 0, 1);
     // _op_def_screen->clear_framebuffer(_op_def_screen);
     krnl_panic();
 }

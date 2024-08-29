@@ -7,8 +7,67 @@
 #include "../../include/libk/math.h"
 #include "../../include/libk/stdlib.h"
 
+static status_t draw_window_border(
+    _in_ void                                   *_this
+)
+{
+    status_t status = ST_SUCCESS;
+    op_screen_desc* screen;
+    window_t* this;
+    this = _this;
+    if (this->screen == NULL)
+    {
+        status = ST_INVALID_PARAMETER;
+        return status;
+    }
+    screen = this->screen;
+    point_i_t border_origin = 
+        { this->upper_left_hand.x - WINDOW_BORDER_STROKE_SIZE, 
+        this->upper_left_hand.y - WINDOW_BORDER_STROKE_SIZE };
+
+    uint32_t width = this->width + (WINDOW_BORDER_STROKE_SIZE << 1);
+    uint32_t height = this->height + (WINDOW_BORDER_STROKE_SIZE << 1);
+
+    go_blt_pixel_t border_color = WINDOW_BORDER_COLOR;
+
+    screen->DrawHollowRectangle(
+        screen,
+        border_origin.x,
+        border_origin.y,
+        width,
+        height,
+        WINDOW_BORDER_STROKE_SIZE,
+        border_color,
+        BACKBUFFER_INDEX
+    );
+
+    border_origin.y -= WINDOW_TITLE_DECORATION_SIZE;
+    screen->DrawRectangle(
+        screen,
+        border_origin.x,
+        border_origin.y,
+        width,
+        WINDOW_TITLE_DECORATION_SIZE,
+        border_color,
+        BACKBUFFER_INDEX
+    );
+
+    go_blt_pixel_t title_color = WINDOW_TITLE_COLOR;
+    screen->DrawString(
+        screen,
+        this->window_title,
+        border_origin,
+        _op_font_ttfs.fonts[0],
+        18,
+        title_color,
+        BACKBUFFER_INDEX
+    );
+
+    return status;
+}
+
 static status_t show_window(
-        _in_ void                               *_this
+    _in_ void                                   *_this
 )
 {
     status_t status = ST_SUCCESS;
@@ -34,44 +93,33 @@ static status_t show_window(
     screen->SwapTwoBuffers(screen, 1, 0);
 
     // draw window
-    if (this->style.flags == WINDOW_STYLE_COLOR) 
+    if (this->style.flags != WINDOW_STYLE_NONE) 
     {
-        uint32_t color = this->style.color.Blue;
-        color <<= 8;
-        color |= this->style.color.Green;
-        color <<= 8;
-        color |= this->style.color.Red;
-        color <<= 8;
+
         go_blt_pixel_t* win_start = (screen->frame_bufs[BACKBUFFER_INDEX] 
                 + this->upper_left_hand.y * screen->horizontal 
                 + this->upper_left_hand.x);
 
         // set background color
-        for (int i = 0; i < (this->buttom_right_hand.y - this->buttom_right_hand.y); i++) 
-            memsetd(
-                (uint32_t*)(win_start + i * screen->horizontal), 
-                color, 
-                this->buttom_right_hand.x - this->upper_left_hand.x);
-    } 
-    else if (this->style.flags == WINDOW_STYLE_BG)
-    {
-        // TODO:        
-    }
+        for (int i = 0; i < this->height ; i++) 
+            memcpy(
+            win_start + i * screen->horizontal, 
+            this->framebuffer + i * this->width, 
+            this->width * sizeof(go_blt_pixel_t));
 
+    } 
+
+    draw_window_border(this);
+
+    screen->SwapTwoBuffers(screen, FRAMEBUFFER_INDEX, BACKBUFFER_INDEX);
     // TODO: release screen lock
 
     return status;;
 }
 
 
-static status_t register_window(
+static status_t register_text_window(
     _in_ void                   *_this,
-    _in_ wch_t                  *window_title,
-    _in_ window_style_t         style,
-    _in_ int                    x_of_upper_left_hand,
-    _in_ int                    y_of_upper_left_hand,
-    _in_ int                    x_of_buttom_right_hand,
-    _in_ int                    y_of_buttom_right_hand,
     _in_ font_ttf_t             *font_family,
     _in_ double                 point_size,
     _in_ int                    fix_line_gap
@@ -84,31 +132,24 @@ static status_t register_window(
         return status;
     }
 
-    window_t *window = _this;
+    window_text_t *this = _this;
 
 
-    window->window_title = window_title;
-    window->style = style;
 
-    window->upper_left_hand.x = x_of_upper_left_hand;
-    window->upper_left_hand.y = y_of_upper_left_hand;
-    window->buttom_right_hand.x = x_of_buttom_right_hand;
-    window->buttom_right_hand.y = y_of_buttom_right_hand;
+    this->font_family = font_family;
+    this->point_size = point_size;
 
-    window->font_family = font_family;
-    window->point_size = point_size;
-
-    window->scaling_factor = (point_size * DPI) / (72 * font_family->head.table.unitsPerEm);
-    window->desired_em = ceil(window->scaling_factor * font_family->head.table.unitsPerEm);
-    window->num_of_ch_per_line = floor((double)(x_of_buttom_right_hand - x_of_upper_left_hand) / window->desired_em);
-    window->fix_line_gap = fix_line_gap;
-    window->ascender = ceil(window->scaling_factor * font_family->hhea.table.ascender);
-    window->descender = ceil(window->scaling_factor * font_family->hhea.table.descender);
-    window->line_height = ceil(
+    this->scaling_factor = (point_size * DPI) / (72 * font_family->head.table.unitsPerEm);
+    this->desired_em = ceil(this->scaling_factor * font_family->head.table.unitsPerEm);
+    this->advance_width = this->desired_em >> 1;
+    this->num_of_ch_per_line = floor((double)(this->window.width) / this->desired_em);
+    this->fix_line_gap = fix_line_gap;
+    this->ascender = ceil(this->scaling_factor * font_family->hhea.table.ascender);
+    this->descender = ceil(this->scaling_factor * font_family->hhea.table.descender);
+    this->line_height = ceil(
             (font_family->hhea.table.ascender
             - font_family->hhea.table.descender
-            + font_family->hhea.table.lineGap) * window->scaling_factor) + window->fix_line_gap;
-
+            + font_family->hhea.table.lineGap) * this->scaling_factor) + this->fix_line_gap;
 
     return status;
 }
@@ -116,9 +157,16 @@ static status_t register_window(
 
 status_t new_a_window(
     _in_ uint64_t                           tag,
+    _in_ WindowType                         type,
     _in_ window_t                           *parent_window,
     _in_ void                               *screen,
-    _in_ _out_ window_t                     **window
+    _in_ wch_t                              *window_title,
+    _in_ window_style_t                     style,
+    _in_ int                                x_of_upper_left_hand,
+    _in_ int                                y_of_upper_left_hand,
+    _in_ int                                width,
+    _in_ int                                height,
+    _in_ _out_ void                         **window
 )
 {
     status_t status = ST_SUCCESS;
@@ -129,20 +177,51 @@ status_t new_a_window(
         return status;
     }
     op_screen_desc *screen_desc = screen;
+    window_t* win = NULL;
 
-    *window = (window_t*)malloc(sizeof(window_t));
-    if (*window == NULL) {
-        status = ST_FAILED;
-        return status;
+    switch (type) 
+    {
+        case WindowNone:
+            win = malloc(sizeof(window_t));
+            assert(win != NULL);
+            memzero(win, sizeof(*win));
+            break;
+        case WindowText:
+            win = malloc(sizeof(window_text_t));
+            assert(win != NULL);
+            memzero(win, sizeof(*win));
+            *(_window_text_register_t*)((uint64_t)win + element_offset(window_text_t, Register)) = register_text_window;
+            *(_window_show_window_t*)((uint64_t)win + element_offset(window_text_t, ShowWindow)) = show_window;
+            break;
+        default:
+            break;
     }
-    memzero(*window, sizeof(window_t));
 
-    (*window)->rbnode.key = tag;
-    (*window)->screen = screen;
-    (*window)->parent_window = parent_window;
-    (*window)->Register = register_window;
 
-    screen_desc->windows->Insert(screen_desc->windows, &(*window)->rbnode);
+    win->node.key = tag;
+    win->screen = screen;
+    win->parent_window = parent_window;
+    win->window_title = window_title;
+    win->height = height;
+    win->width = width;
+    win->style = style;
+    win->upper_left_hand.x = x_of_upper_left_hand;
+    win->upper_left_hand.y = y_of_upper_left_hand;
+
+    if (style.flags == WINDOW_STYLE_BG) 
+    {
+        assert((style.bg.height == height) && (style.bg.width == width));
+        win->framebuffer = style.bg.buf;
+    }
+    else if (style.flags == WINDOW_STYLE_COLOR)
+    {
+        win->framebuffer = (go_blt_pixel_t*)malloc(sizeof(go_blt_pixel_t) * (width * height));
+        uint32_t color = *(uint32_t*)&win->style.color;
+        assert(win->framebuffer != NULL);
+        memsetd((uint32_t*)win->framebuffer, color, (width * height));
+    }
+    *window = win;
+    screen_desc->windows->Insert(screen_desc->windows, (rbtree_node_t*)((uint64_t)win + element_offset(window_t, node)));
 
     return status;
 }
