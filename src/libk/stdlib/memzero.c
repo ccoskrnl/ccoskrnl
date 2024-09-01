@@ -48,7 +48,7 @@ __256bits:
     }
     if (remainder)
     {
-        memset(((uint8_t*)dst + 32 * csize), 0, remainder);
+        memset(((uint8_t*)dst + csize), 0, remainder);
     }
 
     return;
@@ -62,14 +62,14 @@ __128bits:
     }
     if (remainder)
     {
-        memset(((uint8_t*)dst + 16 * csize), 0, remainder);
+        memset(((uint8_t*)dst + csize), 0, remainder);
     }
 
     return;
 
 __64bits:
     remainder = size & 0x7;
-    csize = size  >> 3;
+    csize = size >> 3;
     uint64_t* dest = dst;
     for (uint64_t i = 0; i < csize; i++)
         dest[i] = 0;

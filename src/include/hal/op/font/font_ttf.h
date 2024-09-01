@@ -5,60 +5,7 @@
 #include "../graphics.h"
 #include "font_ttf_tables_def.h"
 
-#define MAX_INSTALLED_FONTS									0xFF
-
-// 0	If set, the point is on the curve; Otherwise, it is off the curve.
-#define GLYPH_FLAG_On_Curve 0x1
-
-// Vector	1	If set, the corresponding x-coordinate is 1 byte long;
-// Otherwise, the corresponding x-coordinate is 2 bytes long
-#define GLYPH_FLAG_x_Short 0x2
-
-// Vector	2	If set, the corresponding y-coordinate is 1 byte long;
-// Otherwise, the corresponding y-coordinate is 2 bytes long
-#define GLYPH_FLAG_y_Short 0x4
-
-// 3	If set, the next byte specifies the number of additional times this set
-// of flags is to be repeated. In this way, the number of flags listed can
-// be smaller than the number of points in a character.
-#define GLYPH_FLAG_Repeat 0x8
-
-// This x is same (Positive x-Short vector)
-// 4	This flag has one of two meanings,
-// depending on how the x-Short Vector flag is set. If the x-Short Vector bit is
-// set, this bit describes the sign of the value, with a value of 1 equalling
-// positive and a zero value negative. If the x-short Vector bit is not set, and
-// this bit is set, then the current x-coordinate is the same as the previous
-// x-coordinate. If the x-short Vector bit is not set, and this bit is not set,
-// the current x-coordinate is a signed 16-bit delta vector. In this case, the
-// delta vector is the change in x
-#define GLYPH_FLAG_x_Dual 0x10
-
-// This y is same (Positive y-Short vector)
-// 5	This flag has one of two meanings,
-// depending on how the y-Short Vector flag is set. If the y-Short Vector bit is
-// set, this bit describes the sign of the value, with a value of 1 equalling
-// positive and a zero value negative. If the y-short Vector bit is not set, and
-// this bit is set, then the current y-coordinate is the same as the previous
-// y-coordinate. If the y-short Vector bit is not set, and this bit is not set,
-// the current y-coordinate is a signed 16-bit delta vector. In this case, the
-// delta vector is the change in y
-#define GLYPH_FLAG_y_Dual 0x20
-
-#define __glyph_on_curve(flag) ((flag & GLYPH_FLAG_On_Curve) != 0)
-#define __glyph_off_curve(flag) ((flag & GLYPH_FLAG_On_Curve) == 0)
-#define __glyph_x_short(flag) ((flag & GLYPH_FLAG_x_Short) != 0)
-#define __glyph_y_short(flag) ((flag & GLYPH_FLAG_y_Short) != 0)
-#define __glyph_repeat(flag) ((flag & GLYPH_FLAG_Repeat) != 0)
-#define __glyph_x_Dual(flag) ((flag & GLYPH_FLAG_x_Dual) != 0)
-#define __glyph_y_Dual(flag) ((flag & GLYPH_FLAG_y_Dual) != 0)
-
-#define POINT_STATE_NOT_PROCESS 0x0
-#define POINT_STATE_IS_CONTOUR 0x2
-#define POINT_STATE_ON_CONTOUR 0x4
-#define POINT_STATE_OFF_CONTOUR 0x8
-
-// typedef uint8_t point_state_t;
+#define MAX_INSTALLED_FONTS									0x10
 
 typedef struct _bezier_curve {
 
@@ -122,20 +69,6 @@ typedef struct _font_ttf {
         font_ttf_hmtx_table_t table;
     } hmtx;
 
-    double scaling_factor;
-    double point_size;
-
-    int16_t desired_em;
-
-    int16_t line_space;
-    int16_t line_height;
-    int16_t ascender;
-    int16_t descender;
-
-    double dpi;
-    
-    int space_advance_width;
-
     _font_ttf_init init;
     _font_ttf_get_glyph_id get_glyph_id;
     _font_ttf_destroy destroy;
@@ -146,7 +79,7 @@ typedef struct _font_ttf {
 
 typedef status_t (*_font_ttf_glyph_destroy)(void *_this);
 typedef status_t (*_font_ttf_glyph_init)(void* _this, wch_t wch_code, font_ttf_t* family);
-typedef status_t (*_font_ttf_glyph_rasterize)(void *_this, void* screen, uint8_t buf_id, point_i_t origin, go_blt_pixel_t color);
+typedef status_t (*_font_ttf_glyph_rasterize)(void *_this, go_buf_t* buffer, point_i_t origin, double point_size, go_blt_pixel_t color);
 
 typedef struct _font_ttf_glyph {
 
@@ -197,10 +130,24 @@ status_t del_a_font(font_ttf_t *font);
 status_t new_a_glyph(font_ttf_glyph_t **glyph);
 status_t del_a_glyph(font_ttf_glyph_t *glyph);
 
+status_t _op_text_out(
+    _in_ _out_ go_buf_t                         *buf,
+    _in_ wch_t                                  *string,
+    _in_ point_i_t                              origin,
+    _in_ font_ttf_t                             *font_family,
+    _in_ double                                 point_size,
+    _in_ go_blt_pixel_t                         color
+);
+
 struct _installed_font_ttfs{
     int64_t num;
     struct _font_ttf* fonts[MAX_INSTALLED_FONTS];
 };
+
+
+#define TAB_SIZE                                        4
+
+
 
 extern struct _installed_font_ttfs _op_font_ttfs;
 #endif

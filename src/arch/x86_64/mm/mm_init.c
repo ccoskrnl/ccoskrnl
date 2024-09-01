@@ -900,7 +900,7 @@ static void memory_pool_init()
     pool = _mm_pools[POOL_INDEX_KERNEL_DEFAULT];
     pool->pool_index = POOL_INDEX_KERNEL_DEFAULT;
     pool->pool_type = 0;
-    memzero(&pool->list_heads, sizeof(list_node) * POOL_LIST_HEADS);
+    memzero(&pool->list_heads, sizeof(list_node_t) * POOL_LIST_HEADS);
 }
 
 static void sys_pte_pool_init()

@@ -78,17 +78,17 @@ typedef struct _coordinates_2d_f
 } point_f_t;
 
 
-struct _go_image_output
+typedef struct _go_buffer
 {
 	go_blt_pixel_t* buf;
 	uint16_t width;
 	uint16_t height;
 	uint32_t size;
-};
+} __attribute__((packed)) go_buf_t;
 
 
 
-#define POINT_SIZE  						        18.0f
+#define POINT_SIZE  						18.0f
 #define LSB_SIZE  							5.0f
 #define LINE_SPACE							2.0f
 #define DPI  								96.0f

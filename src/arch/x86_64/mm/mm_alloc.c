@@ -284,10 +284,10 @@ void _mm_free_pages(void *addr)
 /*  Upper Memory Pool Services  */
 void *_mm_malloc(uint64_t size, uint16_t pool_index, uint32_t tag)
 {
-    list_node *ret_block;
+    list_node_t *ret_block;
     pool_header *ret_block_head;
 
-    list_node *separate_block;
+    list_node_t *separate_block;
     pool_header *separate_block_head;
 
     pool_header *next_block_head;
@@ -295,7 +295,7 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index, uint32_t tag)
     boolean does_it_need_to_be_updated;
 
     pool *pool_desc;
-    list_node *free_list;
+    list_node_t *free_list;
     uint64_t suitable_block_size;
     uint64_t list_index;
 
@@ -385,7 +385,7 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index, uint32_t tag)
         {
             // separate_block points back block here.
             separate_block_head = (pool_header *)(new_page + size + POOL_HEAD_OVERHEAD);
-            separate_block = (list_node *)((uint64_t)separate_block_head + POOL_HEAD_OVERHEAD);
+            separate_block = (list_node_t *)((uint64_t)separate_block_head + POOL_HEAD_OVERHEAD);
 
             // it will be added to free list.
             separate_block_head->prev_size = (size) >> POOL_BLOCK_SHIFT;
@@ -401,7 +401,7 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index, uint32_t tag)
 
             // set the block header of block will be returned.
             ret_block_head = (pool_header *)new_page;
-            ret_block = (list_node *)((uint64_t)ret_block_head + POOL_HEAD_OVERHEAD);
+            ret_block = (list_node_t *)((uint64_t)ret_block_head + POOL_HEAD_OVERHEAD);
             ret_block_head->prev_size = 0;
             ret_block_head->block_size = separate_block_head->prev_size;
             ret_block_head->pool_type = POOL_TYPE_ACTIVE;
@@ -485,7 +485,7 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index, uint32_t tag)
 
         ret_block_head =
             (pool_header *)((uint64_t)separate_block + (separate_block_head->block_size << POOL_BLOCK_SHIFT));
-        ret_block = (list_node *)((uint64_t)ret_block_head + POOL_HEAD_OVERHEAD);
+        ret_block = (list_node_t *)((uint64_t)ret_block_head + POOL_HEAD_OVERHEAD);
 
         ret_block_head->prev_size = separate_block_head->block_size;
         ret_block_head->block_size = (size >> POOL_BLOCK_SHIFT);
@@ -511,7 +511,7 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index, uint32_t tag)
         ret_block = separate_block;
 
         separate_block_head = (pool_header *)((uint64_t)ret_block + size);
-        separate_block = (list_node *)((uint64_t)separate_block_head + POOL_HEAD_OVERHEAD);
+        separate_block = (list_node_t *)((uint64_t)separate_block_head + POOL_HEAD_OVERHEAD);
 
         separate_block_head->block_size =
             ret_block_head->block_size - ((size + POOL_HEAD_OVERHEAD) >> POOL_BLOCK_SHIFT);
@@ -554,12 +554,12 @@ void _mm_free(void *addr, uint16_t pool_index)
     pool_header *predict_block_head;
     boolean does_back_block_need_to_update;
 
-    list_node *released_block;
-    list_node *prev_block;
-    list_node *next_block;
+    list_node_t *released_block;
+    list_node_t *prev_block;
+    list_node_t *next_block;
 
     pool *pool_desc;
-    list_node *free_list;
+    list_node_t *free_list;
 
     uint16_t free_size;
 
@@ -585,7 +585,7 @@ void _mm_free(void *addr, uint16_t pool_index)
     pool_desc = _mm_pools[pool_index];
 
     // be released block
-    released_block = (list_node *)(addr);
+    released_block = (list_node_t *)(addr);
     released_block_head = (pool_header *)((uint64_t)released_block - POOL_HEAD_OVERHEAD);
 
     // check pool_type
@@ -612,7 +612,7 @@ void _mm_free(void *addr, uint16_t pool_index)
         // record next block
         next_block_head = (pool_header *)((uint64_t)released_block +
                                           (released_block_head->block_size << POOL_BLOCK_SHIFT));
-        next_block = (list_node *)((uint64_t)next_block_head + POOL_HEAD_OVERHEAD);
+        next_block = (list_node_t *)((uint64_t)next_block_head + POOL_HEAD_OVERHEAD);
 
         // check if prev_size in next block header is not equal to the size of released block
         // Normally, they are equal.
@@ -658,7 +658,7 @@ void _mm_free(void *addr, uint16_t pool_index)
             // the next block
             next_block_head = (pool_header *)((uint64_t)next_block +
                                               (next_block_head->block_size << POOL_BLOCK_SHIFT));
-            next_block = (list_node *)((uint64_t)next_block_head + POOL_HEAD_OVERHEAD);
+            next_block = (list_node_t *)((uint64_t)next_block_head + POOL_HEAD_OVERHEAD);
         }
     }
 
@@ -666,7 +666,7 @@ void _mm_free(void *addr, uint16_t pool_index)
     if (released_block_head->prev_size != 0)
     {
 
-        prev_block = (list_node *)((uint64_t)released_block_head -
+        prev_block = (list_node_t *)((uint64_t)released_block_head -
                                    (released_block_head->prev_size << POOL_BLOCK_SHIFT));
         prev_block_head = (pool_header *)((uint64_t)prev_block - POOL_HEAD_OVERHEAD);
 
@@ -702,7 +702,7 @@ void _mm_free(void *addr, uint16_t pool_index)
                 }
 
                 // the block in front of the released_block.
-                prev_block = (list_node *)((uint64_t)prev_block_head -
+                prev_block = (list_node_t *)((uint64_t)prev_block_head -
                                            (prev_block_head->block_size << POOL_BLOCK_SHIFT));
                 prev_block_head = (pool_header *)((uint64_t)prev_block - POOL_HEAD_OVERHEAD);
             }

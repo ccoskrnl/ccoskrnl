@@ -293,7 +293,7 @@ typedef struct _pool_header {
 
 #define POOL_PAGE_SIZE                          PAGE_SIZE
 
-//  the size of smallest block is 16 bytes. block must can hold list_node structure.
+//  the size of smallest block is 16 bytes. block must can hold list_node_t structure.
 #define POOL_SMALLEST_BLOCK                     0x10
 #define POOL_BLOCK_SHIFT                        3
 #define POOL_BLOCK_SHIFT_MASK                   (0x7)
@@ -302,7 +302,7 @@ typedef struct _pool_header {
 #define POOL_HEAD_OVERHEAD                      ((uint64_t)sizeof(pool_header))
 
 // the overhead of free block 
-#define POOL_FREE_BLOCK_OVERHEAD                (POOL_HEAD_OVERHEAD + (uint64_t)sizeof(list_node))
+#define POOL_FREE_BLOCK_OVERHEAD                (POOL_HEAD_OVERHEAD + (uint64_t)sizeof(list_node_t))
 
 // define a free block tag
 #define POOL_FREE_TAG                           0
@@ -329,7 +329,7 @@ typedef struct _pool {
     uint64_t reserved3;
 
     // The first two items is reserved. we not use them.
-    list_node list_heads[POOL_LIST_HEADS];
+    list_node_t list_heads[POOL_LIST_HEADS];
 
 } pool;
 

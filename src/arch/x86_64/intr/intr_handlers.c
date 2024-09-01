@@ -25,7 +25,7 @@ void _intr_gpf_handler (
     )
 {
     struct _op_screen_desc* desc = _op_def_screen;
-    desc->clear_screen(desc);
+    desc->ClearScreen(desc);
 
     put_check(false, L"General Protection Fault!\n");
     putsxs("Interrupt Vector Number: ", error_code & 0xFF, "\n");

@@ -113,7 +113,7 @@ static void parse_madt(_in_ struct _MADT *madt_ptr, _in_ _out_ intr_ctr_struct_h
     // initialize all list heads
     for (uint8_t i = 0; i < MAX_MADT_INTURRUPT_CONTROLLER_STRUCTURE_TYPES; i++)
     {
-        list_node *head = &(intr_ctr_structs + i)->head;
+        list_node_t *head = &(intr_ctr_structs + i)->head;
         (intr_ctr_structs + i)->total = 0;
         _list_init(head);
     }
@@ -131,12 +131,12 @@ static void parse_madt(_in_ struct _MADT *madt_ptr, _in_ _out_ intr_ctr_struct_h
         {
             processor_local_apic_t *lapic =
                 (processor_local_apic_t *)_mm_kmalloc(sizeof(processor_local_apic_t));
-            memcpy(lapic, madt_structures, sizeof(processor_local_apic_t) - sizeof(list_node));
+            memcpy(lapic, madt_structures, sizeof(processor_local_apic_t) - sizeof(list_node_t));
 
             (intr_ctr_structs + type)->total++;
             _list_push(
                 &(intr_ctr_structs + type)->head,
-                (list_node *)((uint8_t *)lapic + sizeof(processor_local_apic_t) - sizeof(list_node)));
+                (list_node_t *)((uint8_t *)lapic + sizeof(processor_local_apic_t) - sizeof(list_node_t)));
         }
         break;
 
@@ -144,12 +144,12 @@ static void parse_madt(_in_ struct _MADT *madt_ptr, _in_ _out_ intr_ctr_struct_h
         {
             io_apic_t *ioapic =
                 (io_apic_t *)_mm_kmalloc(sizeof(io_apic_t));
-            memcpyb(ioapic, madt_structures, sizeof(io_apic_t) - sizeof(list_node));
+            memcpyb(ioapic, madt_structures, sizeof(io_apic_t) - sizeof(list_node_t));
 
             (intr_ctr_structs + type)->total++;
             _list_push(
                 &(intr_ctr_structs + type)->head,
-                (list_node *)((uint8_t *)ioapic + sizeof(io_apic_t) - sizeof(list_node)));
+                (list_node_t *)((uint8_t *)ioapic + sizeof(io_apic_t) - sizeof(list_node_t)));
         }
         break;
 
@@ -157,12 +157,12 @@ static void parse_madt(_in_ struct _MADT *madt_ptr, _in_ _out_ intr_ctr_struct_h
         {
             iso_t *iso =
                 (iso_t *)_mm_kmalloc(sizeof(iso_t));
-            memcpyb(iso, madt_structures, sizeof(iso_t) - sizeof(list_node));
+            memcpyb(iso, madt_structures, sizeof(iso_t) - sizeof(list_node_t));
 
             (intr_ctr_structs + type)->total++;
             _list_push(
                 &(intr_ctr_structs + type)->head,
-                (list_node *)((uint8_t *)iso + sizeof(iso_t) - sizeof(list_node)));
+                (list_node_t *)((uint8_t *)iso + sizeof(iso_t) - sizeof(list_node_t)));
         }
         break;
 
@@ -170,12 +170,12 @@ static void parse_madt(_in_ struct _MADT *madt_ptr, _in_ _out_ intr_ctr_struct_h
         {
             nmi_t *nmi =
                 (nmi_t *)_mm_kmalloc(sizeof(nmi_t));
-            memcpyb(nmi, madt_structures, sizeof(nmi_t) - sizeof(list_node));
+            memcpyb(nmi, madt_structures, sizeof(nmi_t) - sizeof(list_node_t));
 
             (intr_ctr_structs + type)->total++;
             _list_push(
                 &(intr_ctr_structs + type)->head,
-                (list_node *)((uint8_t *)nmi + sizeof(nmi_t) - sizeof(list_node)));
+                (list_node_t *)((uint8_t *)nmi + sizeof(nmi_t) - sizeof(list_node_t)));
         }
         break;
 
@@ -184,13 +184,13 @@ static void parse_madt(_in_ struct _MADT *madt_ptr, _in_ _out_ intr_ctr_struct_h
             local_apic_addr_override_t *lapic_addr_or =
                 (local_apic_addr_override_t *)_mm_kmalloc(sizeof(local_apic_addr_override_t));
             memcpyb(lapic_addr_or, madt_structures,
-                   sizeof(local_apic_addr_override_t) - sizeof(list_node));
+                   sizeof(local_apic_addr_override_t) - sizeof(list_node_t));
 
             (intr_ctr_structs + type)->total++;
             _list_push(
                 &(intr_ctr_structs + type)->head,
-                (list_node *)((uint8_t *)lapic_addr_or +
-                              sizeof(local_apic_addr_override_t) - sizeof(list_node)));
+                (list_node_t *)((uint8_t *)lapic_addr_or +
+                              sizeof(local_apic_addr_override_t) - sizeof(list_node_t)));
         }
         break;
 
@@ -204,9 +204,9 @@ static void parse_madt(_in_ struct _MADT *madt_ptr, _in_ _out_ intr_ctr_struct_h
 
     // walk through list
     puts("Processor Local APIC: \n");
-    list_node *head = &(intr_ctr_structs + ProcessorLocalAPIC)->head;
+    list_node_t *head = &(intr_ctr_structs + ProcessorLocalAPIC)->head;
     processor_local_apic_t *lapic = struct_base(processor_local_apic_t, node, head->flink);
-    list_node *node = head->flink;
+    list_node_t *node = head->flink;
 
     for (; node != 0; node = node->flink)
     {

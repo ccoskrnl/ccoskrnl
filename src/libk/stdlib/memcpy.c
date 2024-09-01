@@ -60,7 +60,7 @@ __256bits:
 
     if (remainder)
     {
-        memcpyb(((uint8_t*)dstptr + 32 * csize), ((uint8_t*)srcptr + 32 * csize), remainder);
+        memcpyb(((uint8_t*)dstptr + csize), ((uint8_t*)srcptr + csize), remainder);
     }
 
     return dstptr;	
@@ -76,7 +76,7 @@ __128bits:
 
     if (remainder)
     {
-        memcpyb(((uint8_t*)dstptr + 16 * csize), ((uint8_t*)srcptr + 16 * csize), remainder);
+        memcpyb(((uint8_t*)dstptr + csize), ((uint8_t*)srcptr + csize), remainder);
     }
 
     return dstptr;	

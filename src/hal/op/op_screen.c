@@ -28,9 +28,10 @@ static status_t clear_screen(
     op_screen_desc *desc = (op_screen_desc *)this;
 
     for (int i = 1; i < MAX_FRAMEBUFFER; i++)
-        memzero(desc->frame_bufs[i], desc->frame_buf_size);
+        memzero(desc->frame_bufs[i].buf, desc->frame_buf_size);
 
-    memcpy(desc->frame_buf_base, _op_bg->buf, _op_bg->size);
+    if (_go_default_wallpaper->buf != NULL)
+        memcpy(desc->frame_buf_base, _go_default_wallpaper->buf, _go_default_wallpaper->size);
 
     return status;
 }
@@ -55,7 +56,7 @@ static status_t clear_framebuffer(
 
     op_screen_desc *desc = (op_screen_desc *)this;
     for (int i = 0; i < MAX_FRAMEBUFFER; i++)
-        memzero(desc->frame_bufs[i], desc->frame_buf_size);
+        memzero(desc->frame_bufs[i].buf, desc->frame_buf_size);
 
     return status;
 }
@@ -201,7 +202,7 @@ static status_t swap_framebuffer(
     }
     desc = (op_screen_desc *)this;
 
-    memcpy(desc->frame_bufs[dest_buf_index], desc->frame_bufs[src_buf_index],
+    memcpy(desc->frame_bufs[dest_buf_index].buf, desc->frame_bufs[src_buf_index].buf,
             desc->frame_buf_size);
 
     return status;
@@ -226,62 +227,77 @@ static status_t swap_framebuffer(
  * @retval          ST_INVALID_PARAMETER        blt_operation is not valid.
  */
 static status_t blt(
-        _in_ void                               *this, 
-        _in_ _out_ go_blt_pixel_t               *blt_buffer,
-        _in_ GO_BLT_OPERATIONS                  blt_operation, 
-        _in_ uint64_t                           src_x,
-        _in_ uint64_t                           src_y, 
-        _in_ uint64_t                           dest_x,
-        _in_ uint64_t                           dest_y, 
-        _in_ uint64_t                           width,
-        _in_ uint64_t                           height, 
-        _in_ _optional_ int                     buffer_index
-        ) 
+    _in_ void                               *_this, 
+    _in_ _out_ go_blt_pixel_t               *blt_buffer,
+    _in_ GO_BLT_OPERATIONS                  blt_operation, 
+    _in_ uint64_t                           src_x,
+    _in_ uint64_t                           src_y, 
+    _in_ uint16_t                           src_buf_width, 
+    _in_ uint16_t                           src_buf_height, 
+    _in_ uint64_t                           dest_x,
+    _in_ uint64_t                           dest_y, 
+    _in_ uint16_t                           drawing_width,
+    _in_ uint16_t                           drawing_height, 
+    _in_ _optional_ int                     buffer_index
+) 
 {
 
-    op_screen_desc *desc;
+    op_screen_desc *this;
     go_blt_pixel_t *framebuffer;
     status_t status = ST_SUCCESS;
     uint64_t row, column;
 
-    if (this == NULL) {
+
+    if (_this == NULL) {
         status = ST_INVALID_PARAMETER;
         return status;
     }
-    desc = (op_screen_desc *)this;
+    this = (op_screen_desc *)_this;
 
-    if (buffer_index == BACKBUFFER_INDEX) {
-        framebuffer = desc->secondary_buf;
-    } else {
-        framebuffer = desc->frame_buf_base;
+    if (   dest_x >= this->horizontal 
+        || dest_y >= this->vertical
+        || dest_x < 0
+        || dest_y < 0
+        || src_x < 0
+        || src_y < 0
+        || src_x >= drawing_width 
+        || src_y >= drawing_height 
+       ) 
+    {
+        status = ST_INVALID_PARAMETER;
+        return status;
     }
+
+    framebuffer = this->frame_bufs[buffer_index].buf;
 
     switch (blt_operation) {
         case GoBltVideoFill:
-            for (row = 0; row < height; row++) {
-                for (column = 0; column < width; column++) {
-                    framebuffer[(dest_y + row) * desc->pixels_per_scanline +
+            for (row = 0; row < drawing_height; row++) {
+                for (column = 0; column < drawing_width; column++) {
+                    framebuffer[(dest_y + row) * this->pixels_per_scanline +
                         (dest_x + column)] = *blt_buffer;
                 }
             }
             break;
 
         case GoBltVideoToBltBuffer:
-            for (row = 0; row < height; row++) {
-                for (column = 0; column < width; column++) {
-                    blt_buffer[row * width + column] =
-                        framebuffer[(src_y + row) * desc->pixels_per_scanline +
+            for (row = 0; row < drawing_height; row++) {
+                for (column = 0; column < drawing_width; column++) {
+                    blt_buffer[row * drawing_width + column] =
+                        framebuffer[(src_y + row) * this->pixels_per_scanline +
                         (src_x + column)];
                 }
             }
             break;
 
         case GoBltBufferToVideo:
-            for (row = 0; row < height; row++) {
-                for (column = 0; column < width; column++) {
-                    framebuffer[(dest_y + row) * desc->pixels_per_scanline +
-                        (dest_x + column)] = blt_buffer[row * width + column];
-                }
+            for (row = 0; row < drawing_height; row++) 
+            {
+                memcpy(
+                    this->frame_bufs[buffer_index].buf + (dest_y + row) * this->pixels_per_scanline + dest_x,
+                    blt_buffer + (src_y + row) * src_buf_width + src_x,
+                    drawing_width * sizeof(go_blt_pixel_t)
+                );
             }
             break;
 
@@ -310,7 +326,7 @@ static status_t blt(
  * @retval      ST_INVALID_PARAMETER        One of parameters is not valid.
  */
 static status_t draw_hollow_rectangle(
-        _in_ void                               *this, 
+        _in_ void                               *_this, 
         _in_ uint32_t                           x,
         _in_ uint32_t                           y, 
         _in_ uint32_t                           width,
@@ -323,285 +339,101 @@ static status_t draw_hollow_rectangle(
     status_t status;
     go_blt_pixel_t *bitbuffer;
     uint32_t i;
-    op_screen_desc *desc;
+    op_screen_desc *this;
 
-    if (this == NULL) {
+    if (_this == NULL) {
         status = ST_INVALID_PARAMETER;
         return status;
     }
 
-    desc = this;
+    this = _this;
 
-    // Allocate buffer to blt operation
-    bitbuffer = malloc(width * height);
-    if (bitbuffer == NULL) {
-        status = ST_OUT_OF_RESOURCES;
+    if (   x >= this->horizontal 
+        || y >= this->vertical
+        || width > this->horizontal
+        || height > this->vertical 
+        || width == 0
+        || height == 0
+       ) 
+    {
+        status = ST_INVALID_PARAMETER;
         return status;
     }
 
-    // fill the buffer with the specified color
-    for (i = 0; i < stroke_size * width; i++) {
-        bitbuffer[i] = color;
-    }
+    go_blt_pixel_t* buf = this->frame_bufs[buf_index].buf + y * this->horizontal + x;
+
+    // The maximum stroke size is the minimum value of the height or width of the rectangle
+    if  (stroke_size > width || stroke_size > height)
+        stroke_size = width < height ? width : height;
+    
+    boolean do_we_need_to_draw_right_side = x + width - stroke_size <= this->horizontal;
+    boolean do_we_need_to_draw_buttom_side = y + height - stroke_size <= this->vertical;
 
     // draw top side
-    status = desc->Blt(desc, bitbuffer, GoBltBufferToVideo, 0, 0, x, y, width,
-            stroke_size, buf_index);
-    if (ST_ERROR(status)) {
-        free(bitbuffer);
-        return status;
-    }
+    int drawing_width = x + width <= this->horizontal ? width : this->horizontal - x;
+    int drawing_height = y + stroke_size <= this->vertical ? stroke_size : this->vertical - y;
 
-    // draw bottom side
-    status = desc->Blt(desc, bitbuffer, GoBltBufferToVideo, 0, 0, x,
-            y + height - stroke_size, width, stroke_size, buf_index);
-    if (ST_ERROR(status)) {
-        free(bitbuffer);
-        return status;
-    }
+    // draw top side
+    drawing_height = stroke_size;
+    for (int i = 0; i < drawing_height; i++) 
+        memsetd((uint32_t*)(buf + i * this->horizontal), *(uint32_t*)&color, drawing_width);
 
-    // reallocate buffer for vertical sides
-    free(bitbuffer);
-    bitbuffer = malloc(stroke_size * height * sizeof(go_blt_pixel_t));
-    if (bitbuffer == NULL) {
-        return ST_OUT_OF_RESOURCES;
-    }
-
-    // fill the buffer with specified color
-    for (i = 0; i < stroke_size * height; i++) {
-        bitbuffer[i] = color;
-    }
-
-    status = desc->Blt(desc, bitbuffer, GoBltBufferToVideo, 0, 0, x, y,
-            stroke_size, height, buf_index);
-    if (ST_ERROR(status)) {
-        free(bitbuffer);
-        return status;
-    }
-
-    status = desc->Blt(desc, bitbuffer, GoBltBufferToVideo, 0, 0,
-            x + width - stroke_size, y, stroke_size, height, buf_index);
-    if (ST_ERROR(status)) {
-        free(bitbuffer);
-        return status;
-    }
-
-    free(bitbuffer);
-    return status;
-}
-
-// static status_t scroll_screen(
-//         _in_ void                               *this, 
-//         _in_ font_ttf_t                         *family
-//         ) 
-// {
-//     status_t status = ST_SUCCESS;
-//     op_screen_desc *desc;
-//     // int old_buffer_index;
-
-//     if (this == NULL) {
-//         status = ST_INVALID_PARAMETER;
-//         return status;
-//     }
-//     desc = this;
-
-//     uint64_t *lf = desc->output_buf[desc->which_output_buf];
-
-//     for (; *(wch_t *)lf != 0; ++lf) {
-//         if (*(wch_t *)lf == '\n') {
-//             lf++;
-//             break;
-//         }
-//     }
-
-//     desc->which_output_buf ^= 1;
-//     desc->cursor.x = LSB_SIZE + OUTPUT_AREA_TLC_X;
-//     desc->cursor.y = OUTPUT_AREA_TLC_Y;
-//     desc->output_buf_index = 0;
-
-//     memzero(desc->output_buf[desc->which_output_buf], OUTPUT_BUF_SIZE);
-//     memcpy(desc->frame_bufs[BACKBUFFER_INDEX], _op_bg->buf, _op_bg->size);
-
-//     while (*lf != 0) {
-//         go_blt_pixel_t *color = (go_blt_pixel_t *)((uint64_t)(lf) + sizeof(wch_t));
-//         wch_t wc = *lf & 0xffffffff;
-
-//         // status = desc->DrawChar(desc, BACKBUFFER_INDEX, wc, family, *color);
-//         if (ST_ERROR(status)) {
-//             krnl_panic();
-//         }
-
-//         lf++;
-//     }
-
-//     desc->SwapTwoBuffers(desc, 0, BACKBUFFER_INDEX);
-
-//     return status;
-// }
-
-// static status_t draw_ch(
-//     _in_ void                               *this, 
-//     _in_ int                                buf_id, 
-//     _in_ wch_t                              wch,
-//     _in_ font_ttf_t                         *family, 
-//     _in_ go_blt_pixel_t                     color
-//     ) 
-// {
-
-//     status_t status = ST_SUCCESS;
-//     op_screen_desc *desc;
-//     font_ttf_glyph_t *glyph;
-//     point_i_t origin;
-//     int TAB = 0;
-//     int LF = 0;
-//     uint64_t cwch;
-
-//     if (this == NULL) {
-//         status = ST_INVALID_PARAMETER;
-//         return status;
-//     }
-//     desc = this;
-
-//     cwch = *(uint32_t *)&color;
-//     cwch <<= 32;
-//     cwch |= wch;
-
-//     desc->output_buf[desc->which_output_buf][desc->output_buf_index++] = cwch;
-
-// __inspect_begin:
-
-//     // Situation 0:
-//     // Current row can't put any characters, so we need to wrap.
-//     if (desc->cursor.x + family->space_advance_width >= OUTPUT_AREA_BRC_X) {
-//         desc->cursor.y += family->line_height;
-//         desc->cursor.x = (int)LSB_SIZE + OUTPUT_AREA_TLC_X;
-//     }
-//     // Situation 1:
-//     // scroll screen
-//     if ((desc->cursor.y + family->line_height) >= OUTPUT_AREA_BRC_Y)
-//         scroll_screen(desc, family);
-
-//     switch (wch) {
-//         case ' ':
-//             desc->cursor.x += family->space_advance_width;
-//             goto __draw_ch_exit;
-//             break;
-
-//         case '\t':
-//             desc->cursor.x += family->space_advance_width;
-//             while (TAB < TAB_SIZE) {
-//                 TAB++;
-//                 goto __inspect_begin;
-//             }
-//             goto __draw_ch_exit;
-//             break;
-
-//         case '\b':
-//             if (desc->cursor.x == (int)LSB_SIZE) {
-//                 goto __draw_ch_exit;
-//             }
-//             desc->cursor.x -= family->space_advance_width;
-//             goto __draw_ch_exit;
-//             break;
-
-//         case '\n':
-
-//             desc->cursor.y += family->line_height;
-//             desc->cursor.x = (int)LSB_SIZE + OUTPUT_AREA_TLC_X;
-//             if ((desc->cursor.y + family->line_height) >= OUTPUT_AREA_BRC_Y)
-//                 scroll_screen(desc, family);
-//             goto __draw_ch_exit;
-//             break;
-
-//         default:
-//             break;
-//     }
-
-//     // Situation 2:
-//     // Current row can still continue to put characters more than one.
-//     origin.x = desc->cursor.x;
-//     origin.y = desc->cursor.y;
-
-//     status = new_a_glyph(&glyph);
-//     if (ST_ERROR(status)) {
-//         return status;
-//     }
-//     glyph->init(glyph, wch, family);
-//     glyph->rasterize(glyph, desc, buf_id, origin, color);
-
-//     del_a_glyph(glyph);
-
-// __draw_ch_exit:
-
-//     return status;
-// }
-
-
-static status_t draw_string(
-    _in_ void                                   *_this,
-    _in_ wch_t                                  *string,
-    _in_ point_i_t                              origin,
-    _in_ font_ttf_t                             *font_family,
-    _in_ double                                 point_size,
-    _in_ go_blt_pixel_t                         color,
-	_in_ int                            		buf_index
-)
-{
-    status_t status = ST_SUCCESS;
-    op_screen_desc *this = _this;
-    font_ttf_glyph_t *glyph;
-    double scaling_factor;
-    int16_t desired_em;
-    int16_t ascender;
-    int16_t descender;
-    int16_t advance_width; 
-
-    scaling_factor = (point_size * DPI) / (72 * font_family->head.table.unitsPerEm);
-    desired_em = ceil(scaling_factor * font_family->head.table.unitsPerEm);
-    ascender = ceil(scaling_factor * font_family->hhea.table.ascender);
-    descender = ceil(scaling_factor * font_family->hhea.table.descender);
-    advance_width = desired_em >> 1;
-    
-    for (size_t i = 0; string[i] != 0; i++) 
+    // draw left side     
+    if (y + stroke_size > this->vertical)
     {
-        switch (string[i]) 
+        return status;
+    }
+    else
+    {
+        buf = this->frame_bufs[buf_index].buf + (y + stroke_size) * this->horizontal + x;
+        drawing_height = y + height <= this->vertical ? height - stroke_size : this->vertical - y - stroke_size;
+        if (y + height <= this->vertical)
         {
-
-        case ' ':
-            origin.x += advance_width;
-            break;
-
-        case '\t':
-            origin.x += (advance_width) * TAB_SIZE;
-            break;
-
-        case '\b':
-            origin.x -= advance_width;
-            break;
-
-        default:
-            status = new_a_glyph(&glyph);
-            if (ST_ERROR(status)) 
-                krnl_panic();
-
-            glyph->init(glyph, string[i], font_family);
-            status = glyph->rasterize(glyph, this, buf_index, origin, color);
-            if (ST_ERROR(status)) 
-                krnl_panic();
-
-            origin.x += ceil(glyph->advance_width * glyph->font_family->scaling_factor);
-            del_a_glyph(glyph);
-
-            break;
+            drawing_height = height - stroke_size;
+        }
+        else
+        {
+            drawing_height = this->vertical - y - stroke_size;
+            do_we_need_to_draw_buttom_side = false;
         }
 
-        if (origin.x >= this->horizontal) 
-            break;
-        
-    }
-    return status;
+        if (x + stroke_size <= this->horizontal) 
+        {
+            drawing_width = stroke_size;
+        }
+        else
+        {
+            drawing_width = this->horizontal - x;
+            do_we_need_to_draw_right_side = false;
+        }
 
+        for (int i = 0; i < drawing_height; i++) 
+            memsetd((uint32_t*)(buf + i * this->horizontal), *(uint32_t*)&color, drawing_width);
+    }
+
+    // draw right side
+    if (do_we_need_to_draw_right_side)
+    {
+        buf = this->frame_bufs[buf_index].buf + (y + stroke_size) * this->horizontal + (x + width - stroke_size);
+        drawing_width = this->horizontal - x - width >= 0 ? stroke_size : (this->horizontal - x - width) + stroke_size;
+        for (int i = 0; i < drawing_height; i++) 
+            memsetd((uint32_t*)(buf + i * this->horizontal), *(uint32_t*)&color, drawing_width);
+    }
+    
+    if (do_we_need_to_draw_buttom_side)
+    {
+        go_blt_pixel_t* buf = this->frame_bufs[buf_index].buf + (y + height - stroke_size) * this->horizontal + x;
+        int drawing_width = x + width <= this->horizontal ? width : this->horizontal - x;
+        int drawing_height = y + height <= this->vertical ? stroke_size : this->vertical - y - height + stroke_size;
+
+        for (int i = 0; i < drawing_height; i++) 
+            memsetd((uint32_t*)(buf + i * this->horizontal), *(uint32_t*)&color, drawing_width);
+    }
+
+
+    return status;
 }
+
 
 static status_t draw_rectangle(
     _in_ void                                   *_this,
@@ -617,10 +449,23 @@ static status_t draw_rectangle(
     status_t status;
     go_blt_pixel_t col = color;
     uint32_t c = *(uint32_t*)&col;
-    go_blt_pixel_t* buf = this->frame_bufs[buf_index] + y * this->horizontal + x;
+    go_blt_pixel_t* buf = this->frame_bufs[buf_index].buf + y * this->horizontal + x;
 
-    for (int i = 0; i < height; i++) 
-        memsetd((uint32_t*)(buf + i * this->horizontal), c, width);
+    if (   x >= this->horizontal 
+        || y >= this->vertical
+        || width > this->horizontal
+        || height > this->vertical 
+       ) 
+    {
+        status = ST_INVALID_PARAMETER;
+        return status;
+    }
+
+    int drawing_width = x + width <= this->horizontal ? width : this->horizontal - x;
+    int drawing_height = y + height <= this->vertical ? height : this->vertical - y;
+
+    for (int i = 0; i < drawing_height; i++) 
+        memsetd((uint32_t*)(buf + i * this->horizontal), c, drawing_width);
 
     return status;
 }
@@ -643,14 +488,19 @@ void _op_install_a_screen(
     screen->vertical = vertical_resolution;
     screen->pixels_per_scanline = pixels_per_scan_line;
 
-    for (int i = 1; i < MAX_FRAMEBUFFER; i++) {
-        screen->frame_bufs[i] = (go_blt_pixel_t *)malloc(screen->frame_buf_size);
-    }
-    screen->frame_bufs[0] = screen->frame_buf_base;
-    screen->secondary_buf = screen->frame_bufs[BACKBUFFER_INDEX];
+    screen->frame_bufs[0].buf = screen->frame_buf_base;
+    screen->frame_bufs[0].size = screen->frame_buf_size;
+    screen->frame_bufs[0].height = screen->vertical;
+    screen->frame_bufs[0].width = screen->horizontal;
 
-    // screen->cursor.x = (int)LSB_SIZE + OUTPUT_AREA_TLC_X;
-    // screen->cursor.y = OUTPUT_AREA_TLC_Y;
+    for (int i = 1; i < MAX_FRAMEBUFFER; i++) {
+        screen->frame_bufs[i].buf = (go_blt_pixel_t *)malloc(screen->frame_buf_size);
+        screen->frame_bufs[i].size = screen->frame_buf_size;
+        screen->frame_bufs[i].height = screen->vertical;
+        screen->frame_bufs[i].width = screen->horizontal;
+    }
+
+    screen->secondary_buf = screen->frame_bufs[BACKBUFFER_INDEX].buf;
 
     status_t status = new_a_rbtree(&screen->windows);
     if (ST_ERROR(status)) {
@@ -659,11 +509,10 @@ void _op_install_a_screen(
 
     screen->Blt = blt;
     screen->SwapTwoBuffers = swap_framebuffer;
-    screen->DrawString = draw_string;
     screen->DrawRectangle = draw_rectangle;
     screen->DrawHollowRectangle = draw_hollow_rectangle;
     screen->DrawSecondOrderBezierCurve = draw_second_order_bezier_curve;
     screen->DrawBresenhamsLine = draw_bresenhams_line;
     screen->ClearFrameBuffers = clear_framebuffer;
-    screen->clear_screen = clear_screen;
+    screen->ClearScreen = clear_screen;
 }

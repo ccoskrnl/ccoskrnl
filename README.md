@@ -5,7 +5,7 @@
 ccos 是一个基于x86_64架构开发的64位操作系统，尽可能地提供现代设备的驱动(我不保证能实现出来:)。ccos 项目的创立和开发主要来自我个人对操作系统的兴趣。内核的大部分设计思路都来源于Windows NT内核。
 
 ***
-![Sample](./conf/firstwindow.png)
+![Sample](./conf/sample.png)
 ***
 
 ## 目录

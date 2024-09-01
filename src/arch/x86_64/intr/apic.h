@@ -60,7 +60,7 @@
 typedef struct _intr_ctr_struct_head
 {
     uint64_t total;
-    list_node head;
+    list_node_t head;
 
 } intr_ctr_struct_head_t;
 

@@ -1,6 +1,7 @@
 #include "../../include/types.h"
 #include "../../include/hal/op/graphics.h"
 #include "../../include/hal/op/window.h"
+#include "../../include/hal/op/window_text.h"
 #include "../../include/hal/op/screen.h"
 #include "../../include/hal/op/font/font_ttf.h"
 #include "../../include/libk/string.h"
@@ -9,8 +10,8 @@
 
 
 /* Default Wallpaper */
-static struct _go_image_output background;
-struct _go_image_output *_op_bg;
+static struct _go_buffer background;
+struct _go_buffer *_go_default_wallpaper;
 
 
 /**
@@ -38,7 +39,7 @@ struct _installed_font_ttfs _op_font_ttfs;
  * Windows
  */
 
-window_text_t* default_window;
+window_text_t* bsp_window;
 
 /**
  * A boolean type to indicate whether output module has
@@ -73,7 +74,7 @@ void op_init()
     background.height = _current_machine_info->bg.height;
     background.width = _current_machine_info->bg.width;
     background.size = _current_machine_info->bg.size;
-    _op_bg = &background;
+    _go_default_wallpaper = &background;
   
 
     status = new_a_font(&_font_family_SourceHanSansSCVF);
@@ -97,18 +98,15 @@ void op_init()
     // _op_font_ttfs.fonts[0] = _font_family_agefonts001;
     // _op_font_ttfs.fonts[1] = _font_family_SourceHanSansSCVF;
 
-    // point_i_t base = { 5, 0};
     // go_blt_pixel_t col = {143,188,143};
-
-    // screen0.DrawString(&screen0, L"Hello, World", base,_font_family_SourceHanSansSCVF, 18, col, 0);
-
+    go_blt_pixel_t font_color = {255,255,255};
 
     // set wallpaper
     if (_op_def_screen->horizontal == background.width && _op_def_screen->vertical == background.height)
-        memcpy(_op_def_screen->frame_buf_base, _op_bg->buf, _op_bg->size);
+        memcpy(_op_def_screen->frame_buf_base, _go_default_wallpaper->buf, _go_default_wallpaper->size);
 
     window_style_t def_wnd = { 
-        WINDOW_STYLE_COLOR, 
+        WINDOW_STYLE_COLOR,
         // {143,188,143}, 
         {0xc0,0xc0,0xc0}, 
         { 0 }
@@ -119,30 +117,62 @@ void op_init()
         WindowText,
         NULL,
         _op_def_screen,
-        L"默认窗口",
+        L"Bootstrap Processor",
         def_wnd,
-        200,
-        100,
+        20,
+        20,
         800,
-        600,
-        (void**)&default_window
+        800,
+        (void**)&bsp_window
     );
 
     if (ST_ERROR(status)) {
         krnl_panic();
     }
 
-    default_window->Register(
-        default_window,
-        _font_family_agefonts001,
+    bsp_window->Register(
+        bsp_window,
+        _font_family_SourceHanSansSCVF,
         POINT_SIZE,
-        3
+        0
+    );
+    
+    bsp_window->ShowWindow(bsp_window);
+    bsp_window->PutString(bsp_window, L"你好，我是Bootstrap Processor。\n", font_color);
+
+    font_color.Red = 238;
+    font_color.Green = 44;
+    font_color.Blue = 44;
+
+    window_text_t *sp1_window;
+    status = new_a_window(
+        0x646566,
+        WindowText,
+        NULL,
+        _op_def_screen,
+        L"SP1",
+        def_wnd,
+        1000,
+        20,
+        800,
+        400,
+        (void**)&sp1_window
     );
 
-    default_window->ShowWindow(default_window);
+    if (ST_ERROR(status)) {
+        krnl_panic();
+    }
 
-
-
+    sp1_window->Register(
+        sp1_window,
+        _font_family_agefonts001,
+        80,
+        0
+    );
+    
+    sp1_window->ShowWindow(sp1_window);
+    sp1_window->PutChar(sp1_window, 'V', font_color, true);
+    
 
     _op_has_been_initialize = true;
 }

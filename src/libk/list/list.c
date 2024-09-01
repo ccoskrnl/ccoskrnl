@@ -1,13 +1,13 @@
 #include "../../include/libk/list.h"
 
 
-inline void _list_init(list_node* list)
+inline void _list_init(list_node_t* list)
 {
     list->blink = NULL;
     list->flink = NULL;
 }
 
-inline void _list_push(list_node* list, list_node* node)
+inline void _list_push(list_node_t* list, list_node_t* node)
 {
     if (list->flink == NULL)
     {
@@ -26,7 +26,7 @@ inline void _list_push(list_node* list, list_node* node)
     
 }
 
-void _list_remove_from_list(list_node* list, list_node* node)
+void _list_remove_from_list(list_node_t* list, list_node_t* node)
 {
 
     // the node is only one in list

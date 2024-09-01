@@ -8,6 +8,60 @@
 #include "../../../include/libk/string.h"
 #include "../../../include/types.h"
 
+// 0	If set, the point is on the curve; Otherwise, it is off the curve.
+#define GLYPH_FLAG_On_Curve 0x1
+
+// Vector	1	If set, the corresponding x-coordinate is 1 byte long;
+// Otherwise, the corresponding x-coordinate is 2 bytes long
+#define GLYPH_FLAG_x_Short 0x2
+
+// Vector	2	If set, the corresponding y-coordinate is 1 byte long;
+// Otherwise, the corresponding y-coordinate is 2 bytes long
+#define GLYPH_FLAG_y_Short 0x4
+
+// 3	If set, the next byte specifies the number of additional times this set
+// of flags is to be repeated. In this way, the number of flags listed can
+// be smaller than the number of points in a character.
+#define GLYPH_FLAG_Repeat 0x8
+
+// This x is same (Positive x-Short vector)
+// 4	This flag has one of two meanings,
+// depending on how the x-Short Vector flag is set. If the x-Short Vector bit is
+// set, this bit describes the sign of the value, with a value of 1 equalling
+// positive and a zero value negative. If the x-short Vector bit is not set, and
+// this bit is set, then the current x-coordinate is the same as the previous
+// x-coordinate. If the x-short Vector bit is not set, and this bit is not set,
+// the current x-coordinate is a signed 16-bit delta vector. In this case, the
+// delta vector is the change in x
+#define GLYPH_FLAG_x_Dual 0x10
+
+// This y is same (Positive y-Short vector)
+// 5	This flag has one of two meanings,
+// depending on how the y-Short Vector flag is set. If the y-Short Vector bit is
+// set, this bit describes the sign of the value, with a value of 1 equalling
+// positive and a zero value negative. If the y-short Vector bit is not set, and
+// this bit is set, then the current y-coordinate is the same as the previous
+// y-coordinate. If the y-short Vector bit is not set, and this bit is not set,
+// the current y-coordinate is a signed 16-bit delta vector. In this case, the
+// delta vector is the change in y
+#define GLYPH_FLAG_y_Dual 0x20
+
+#define __glyph_on_curve(flag) ((flag & GLYPH_FLAG_On_Curve) != 0)
+#define __glyph_off_curve(flag) ((flag & GLYPH_FLAG_On_Curve) == 0)
+#define __glyph_x_short(flag) ((flag & GLYPH_FLAG_x_Short) != 0)
+#define __glyph_y_short(flag) ((flag & GLYPH_FLAG_y_Short) != 0)
+#define __glyph_repeat(flag) ((flag & GLYPH_FLAG_Repeat) != 0)
+#define __glyph_x_Dual(flag) ((flag & GLYPH_FLAG_x_Dual) != 0)
+#define __glyph_y_Dual(flag) ((flag & GLYPH_FLAG_y_Dual) != 0)
+
+#define POINT_STATE_NOT_PROCESS 0x0
+#define POINT_STATE_IS_CONTOUR 0x2
+#define POINT_STATE_ON_CONTOUR 0x4
+#define POINT_STATE_OFF_CONTOUR 0x8
+
+// typedef uint8_t point_state_t;
+
+
 
 static status_t font_tty_destroy(void *this) {
     status_t status = ST_SUCCESS;
@@ -228,21 +282,6 @@ static status_t font_tty_init(void *this, uint8_t *font_bin_data) {
     font->hmtx.table.hMetrics = (struct _font_ttf_long_hor_metric*)(font_bin_data + font->hmtx.dir.offset);
     font->hmtx.table.leftSideBearings = (int16_t*)
         ((uint64_t)font->hmtx.table.hMetrics + sizeof(struct _font_ttf_long_hor_metric) * font->hhea.table.numberOfHMetrics);
-
-    font->scaling_factor =
-        (font->point_size * font->dpi) / (72 * font->head.table.unitsPerEm);
-    double em = font->head.table.unitsPerEm * font->scaling_factor;
-
-    font->space_advance_width = ceil((font->head.table.unitsPerEm / 2.0f) * font->scaling_factor);
-
-    font->line_space = (int16_t)(ceil(font->hhea.table.lineGap * font->scaling_factor));
-    font->descender = (int16_t)(ceil(font->hhea.table.descender * font->scaling_factor));
-    font->ascender = (int16_t)(ceil(font->hhea.table.ascender * font->scaling_factor));
-
-    font->line_height = (int16_t)(ceil(
-        (font->hhea.table.ascender - font->hhea.table.descender + font->hhea.table.lineGap) * font->scaling_factor) + LINE_SPACE);
-
-    font->desired_em = ceil(em) + 3;   // extend its size
 
     return status;
 }
@@ -732,22 +771,21 @@ typedef enum _point_state
 static void fill_neighbor(int start_x, int start_y, point_state_t state, point_state_t** flags, int width, int height);
 #endif
 
-status_t glyph_rasterize(void *this, void* screen_desc, uint8_t buf_id, point_i_t origin, go_blt_pixel_t color) 
+status_t glyph_rasterize(void *_this, go_buf_t* buffer, point_i_t origin, double point_size, go_blt_pixel_t color) 
 {
     status_t status = ST_SUCCESS;
-    font_ttf_glyph_t *glyph;
-    op_screen_desc* screen;
+    font_ttf_glyph_t *this;
 
-    if (this == NULL || screen_desc == NULL) {
+    if (_this == NULL || buffer == NULL) {
         status = ST_INVALID_PARAMETER;
         return status;
     }
 
-    glyph = this;
-    screen = screen_desc;
+    this = _this;
 
 
-    int contour_num = glyph->numberOfContours;
+    int contour_num = this->numberOfContours;
+    double scaling_factor = (point_size * DPI) / (72 * this->font_family->head.table.unitsPerEm);
 
 #ifdef FILL_CHAR
 
@@ -764,15 +802,15 @@ status_t glyph_rasterize(void *this, void* screen_desc, uint8_t buf_id, point_i_
 #endif
 
     // int char_width = ceil((glyph->xMax - glyph->xMin) * glyph->font_family->scaling_factor);
-    origin.x += ceil(glyph->lsb * glyph->font_family->scaling_factor);
-    origin.y -= ceil(glyph->yMin * glyph->font_family->scaling_factor);
+    origin.x += ceil(this->lsb * scaling_factor);
+    origin.y -= ceil(this->yMin * scaling_factor);
     // origin.y += ceil((glyph->font_family->head.table.unitsPerEm - glyph->yMax) * glyph->font_family->scaling_factor);
 
 
 
     for (int i = 0; i < contour_num; i++) {
 
-        bezier_curve_t *curve = glyph->contour_list[i];
+        bezier_curve_t *curve = this->contour_list[i];
         int curve_num = curve->count;
 
         for (int c = 0; curve != NULL; c++) {
@@ -780,30 +818,30 @@ status_t glyph_rasterize(void *this, void* screen_desc, uint8_t buf_id, point_i_
             point_i_t p;
             bezier_curve_t *next = curve->flink;
             
-            curve->p0.x += (-glyph->xMin);
-            curve->p1.x += (-glyph->xMin);
-            curve->p2.x += (-glyph->xMin);
+            curve->p0.x += (-this->xMin);
+            curve->p1.x += (-this->xMin);
+            curve->p2.x += (-this->xMin);
 
-            curve->p0.y += (-glyph->yMin);
-            curve->p1.y += (-glyph->yMin);
-            curve->p2.y += (-glyph->yMin);
+            curve->p0.y += (-this->yMin);
+            curve->p1.y += (-this->yMin);
+            curve->p2.y += (-this->yMin);
 
-            curve->p0.y = glyph->font_family->hhea.table.ascender - curve->p0.y;
-            curve->p1.y = glyph->font_family->hhea.table.ascender - curve->p1.y;
-            curve->p2.y = glyph->font_family->hhea.table.ascender - curve->p2.y;
+            curve->p0.y = this->font_family->hhea.table.ascender - curve->p0.y;
+            curve->p1.y = this->font_family->hhea.table.ascender - curve->p1.y;
+            curve->p2.y = this->font_family->hhea.table.ascender - curve->p2.y;
 
             if (curve->is_curve) 
             {
-                curve->p0.x *= glyph->font_family->scaling_factor;
-                curve->p0.y *= glyph->font_family->scaling_factor;
+                curve->p0.x *= scaling_factor;
+                curve->p0.y *= scaling_factor;
 
-                curve->p1.x *= glyph->font_family->scaling_factor;
-                curve->p1.y *= glyph->font_family->scaling_factor;
+                curve->p1.x *= scaling_factor;
+                curve->p1.y *= scaling_factor;
 
-                curve->p2.x *= glyph->font_family->scaling_factor;
-                curve->p2.y *= glyph->font_family->scaling_factor;
+                curve->p2.x *= scaling_factor;
+                curve->p2.y *= scaling_factor;
 
-                const float delta = 1 / ((glyph->yMax - glyph->yMin) * 2 * glyph->font_family->scaling_factor);
+                const float delta = 1 / ((this->yMax - this->yMin) * 2 * scaling_factor);
                 // const float delta = 0.0005;
 
                 float i = 0.0f;
@@ -829,7 +867,8 @@ status_t glyph_rasterize(void *this, void* screen_desc, uint8_t buf_id, point_i_
                     p_i.x += origin.x;
                     p_i.y += origin.y;
 
-                    __draw_at_point(_op_def_screen, buf_id, p_i, color);
+                    // __draw_at_point(_op_def_screen, buf_id, p_i, color);
+                    buffer->buf[(uint16_t)p_i.y * buffer->width + (uint16_t)p_i.x] = color;
                     i += delta; 
 
                 } while (i <= 1.0f);
@@ -840,11 +879,11 @@ status_t glyph_rasterize(void *this, void* screen_desc, uint8_t buf_id, point_i_
 
                 point_i_t p_i0, p_i1;
 
-                p_i0.x = round(curve->p0.x * glyph->font_family->scaling_factor);
-                p_i0.y = round(curve->p0.y * glyph->font_family->scaling_factor);
+                p_i0.x = round(curve->p0.x * scaling_factor);
+                p_i0.y = round(curve->p0.y * scaling_factor);
 
-                p_i1.x = round(curve->p1.x * glyph->font_family->scaling_factor);
-                p_i1.y = round(curve->p1.y * glyph->font_family->scaling_factor);
+                p_i1.x = round(curve->p1.x * scaling_factor);
+                p_i1.y = round(curve->p1.y * scaling_factor);
 
                 int64_t dx = abs(p_i1.x - p_i0.x);
                 int64_t dy = abs(p_i1.y - p_i0.y);
@@ -861,7 +900,8 @@ status_t glyph_rasterize(void *this, void* screen_desc, uint8_t buf_id, point_i_
 #ifdef FILL_CHAR
                     flags[p_i0.y][p_i0.x] = IsContour;
 #endif
-                    __draw_at_point(_op_def_screen, buf_id, p, color);
+                    buffer->buf[(uint16_t)p.y * buffer->width + (uint16_t)p.x] = color;
+                    // __draw_at_point(_op_def_screen, buf_id, p, color);
 
                     if (p_i0.x == p_i1.x && p_i0.y == p_i1.y) break;
                     int e2 = 2 * err;
@@ -938,10 +978,10 @@ static void fill_neighbor(int start_x, int start_y, point_state_t state, point_s
     typedef struct _point_node
     {
         point_i_t p;
-        list_node node;
+        list_node_t node;
     } point_node_t ;
 
-    list_node queue = { NULL, NULL};
+    list_node_t queue = { NULL, NULL};
     int count_node = 0;
     point_node_t* s = (point_node_t*)malloc(sizeof(point_node_t) * 2);
     s->p.x = start_x; 
@@ -1019,8 +1059,6 @@ status_t new_a_font(font_ttf_t **font) {
         return ST_OUT_OF_RESOURCES;
     }
 
-    obj->point_size = POINT_SIZE;
-    obj->dpi = DPI;
 
     obj->init = font_tty_init;
     obj->destroy = font_tty_destroy;
@@ -1038,3 +1076,68 @@ status_t del_a_font(font_ttf_t *font) {
     free(font);
     return ST_SUCCESS;
 }
+
+status_t _op_text_out(
+    _in_ _out_ go_buf_t                         *buf,
+    _in_ wch_t                                  *string,
+    _in_ point_i_t                              origin,
+    _in_ font_ttf_t                             *font_family,
+    _in_ double                                 point_size,
+    _in_ go_blt_pixel_t                         color
+)
+{
+    status_t status = ST_SUCCESS;
+    font_ttf_glyph_t *glyph;
+    double scaling_factor;
+    int16_t desired_em;
+    int16_t ascender;
+    int16_t descender;
+    int16_t advance_width; 
+
+    scaling_factor = (point_size * DPI) / (72 * font_family->head.table.unitsPerEm);
+    desired_em = ceil(scaling_factor * font_family->head.table.unitsPerEm);
+    ascender = ceil(scaling_factor * font_family->hhea.table.ascender);
+    descender = ceil(scaling_factor * font_family->hhea.table.descender);
+    advance_width = desired_em >> 1;
+
+    for (size_t i = 0; string[i] != 0; i++) 
+    {
+        switch (string[i]) 
+        {
+
+        case ' ':
+            origin.x += advance_width;
+            break;
+
+        case '\t':
+            origin.x += (advance_width) * TAB_SIZE;
+            break;
+
+        case '\b':
+            // origin.x -= advance_width;
+            break;
+
+        default:
+            status = new_a_glyph(&glyph);
+            if (ST_ERROR(status)) 
+                krnl_panic();
+
+            glyph->init(glyph, string[i], font_family);
+            status = glyph->rasterize(glyph, buf, origin, point_size, color);
+            if (ST_ERROR(status)) 
+                krnl_panic();
+
+            origin.x += ceil(glyph->advance_width * scaling_factor);
+            del_a_glyph(glyph);
+
+            break;
+        }
+
+        if (origin.x >= buf->width) 
+            break;
+        
+    }
+
+    return status;
+}
+

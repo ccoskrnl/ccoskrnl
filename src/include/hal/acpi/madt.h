@@ -45,7 +45,7 @@ typedef struct _processor_local_apic
     uint8_t apic_id;       // Local APIC ID
     uint32_t flags;        // Flags (e.g., if the processor is enabled)
 						   // Flags (bit 0 = Processor Enabled) (bit 1 = Online Capable)
-    list_node node;
+    list_node_t node;
 } __attribute__((packed)) processor_local_apic_t;
 
 // I/O APIC structure
@@ -61,7 +61,7 @@ typedef struct _io_apic
     // I/O APIC’s Max Redir Entry register.
     uint32_t global_sys_interrupt_base; // Global System Interrupt Base
 
-    list_node node;
+    list_node_t node;
 } __attribute__((packed)) io_apic_t;
 
 // Interrupt Source Override structure
@@ -73,7 +73,7 @@ typedef struct _iso
     uint32_t global_sys_interrupt; // Global System Interrupt this source will signal
     uint16_t flags;        // Flags (e.g., polarity and trigger mode)
 
-    list_node node;
+    list_node_t node;
 } __attribute__((packed)) iso_t;
 
 // Non-maskable Interrupts structure
@@ -84,7 +84,7 @@ typedef struct _nmi
     uint16_t flags;        // Flags
     uint8_t lint;          // Local APIC LINTn pin number
 
-    list_node node;
+    list_node_t node;
 } __attribute__((packed)) nmi_t;
 
 // Local APIC Address Override structure
@@ -94,7 +94,7 @@ typedef struct _local_apic_addr_override
     uint16_t reserved;     // Reserved, must be zero
     uint64_t local_apic_addr; // 64-bit physical address of local APIC
 
-    list_node node;
+    list_node_t node;
 } __attribute__((packed)) local_apic_addr_override_t;
 
 
