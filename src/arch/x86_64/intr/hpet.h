@@ -2,7 +2,7 @@
 #define __INTR_HPET_H__
 
 #include "../../../include/types.h"
-#include "../../../include/hal/acpi/sdt.h"
+#include "../../../include/hal/acpi.h"
 
 // HPET Address Structure
 typedef struct _hpet_addr_struct{

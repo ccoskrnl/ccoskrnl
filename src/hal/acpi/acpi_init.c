@@ -1,7 +1,7 @@
 #include "../../include/types.h"
-#include "../../include/hal/acpi/sdt.h"
+#include "./sdt.h"
 #include "../../include/libk/string.h"
-#include "../../include/libk/stdio.h"
+#include "../../include/go/go.h"
 #include "../../include/machine_info.h"
 #include "../../include/arch/io.h"
 
@@ -111,7 +111,7 @@ void acpi_init()
     }
     else
     {
-        puts("[ERROR]::acpi_init()  _S5_ Object not found...");
+        puts(0, "[ERROR]::acpi_init()  _S5_ Object not found...");
     }
         
 }
@@ -150,7 +150,7 @@ static int acpi_enable()
         }
         else
         {
-            puts("No known way to enable ACPI.\n");
+            puts(0, "No known way to enable ACPI.\n");
             return -1;
         }
 
@@ -169,16 +169,16 @@ void power_off()
         return;
     }
 
-    putsxs("SMI_CMD\t", SMI_CMD, "\n");
-    putsxs("ACPI_ENABLE\t", ACPI_ENABLE, "\n");
-    putsxs("ACPI_DISABLE\t", ACPI_DISABLE, "\n");
-    putsxs("PM1a_CNT\t", PM1a_CNT, "\n");
-    putsxs("PM1b_CNT\t", PM1b_CNT, "\n");
-    putsxs("SLP_TYPa\t", SLP_TYPa, "\n");
-    putsxs("SLP_TYPb\t", SLP_TYPb, "\n");
-    putsxs("SLP_EN\t", SLP_EN, "\n");
-    putsxs("SCI_EN\t", SCI_EN, "\n");
-    putsxs("PM1_CNT_LEN\t", PM1_CNT_LEN, "\n");
+    putsxs(0, "SMI_CMD\t", SMI_CMD, "\n");
+    putsxs(0, "ACPI_ENABLE\t", ACPI_ENABLE, "\n");
+    putsxs(0, "ACPI_DISABLE\t", ACPI_DISABLE, "\n");
+    putsxs(0, "PM1a_CNT\t", PM1a_CNT, "\n");
+    putsxs(0, "PM1b_CNT\t", PM1b_CNT, "\n");
+    putsxs(0, "SLP_TYPa\t", SLP_TYPa, "\n");
+    putsxs(0, "SLP_TYPb\t", SLP_TYPb, "\n");
+    putsxs(0, "SLP_EN\t", SLP_EN, "\n");
+    putsxs(0, "SCI_EN\t", SCI_EN, "\n");
+    putsxs(0, "PM1_CNT_LEN\t", PM1_CNT_LEN, "\n");
 
     acpi_enable();
 
@@ -187,13 +187,13 @@ void power_off()
 
     if (current_slp_typa == SLP_TYPa)
     {
-        puts("The PM1a_CNT value is correct.\n");
+        puts(0, "The PM1a_CNT value is correct.\n");
     }
     else
     {
-        puts("The PM1a_CNT value is incorrect.");
-        putsx("Expected SLP_TYPa: ", SLP_TYPa);
-        putsxs(", but got ", current_slp_typa, ".\n");
+        puts(0, "The PM1a_CNT value is incorrect.");
+        putsxs(0, "Expected SLP_TYPa: ", SLP_TYPa, NULL);
+        putsxs(0, ", but got ", current_slp_typa, ".\n");
     }
     
 
@@ -203,6 +203,6 @@ void power_off()
         outw(PM1b_CNT, SLP_TYPb | SLP_EN);
     }
 
-    puts("ACPI power off failed.\n");
+    puts(0, "ACPI power off failed.\n");
     
 }

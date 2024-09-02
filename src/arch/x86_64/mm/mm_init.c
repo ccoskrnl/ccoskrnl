@@ -14,7 +14,9 @@ Memory Manager Initialization.
 #include "../../../include/libk/bitmap.h"
 #include "../../../include/libk/stdlib.h"
 #include "../cpu/cpu.h"
-#include "mm.h"
+#include "mm_arch.h"
+#include "mm_pfn.h"
+#include "mm_pool.h"
 
 extern void _acpi_init(
     struct _LOADER_ACPI_INFORMATION* acpi_info,

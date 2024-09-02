@@ -6,7 +6,7 @@ ARCH!=../conf/uname.sh
 include ../conf/target.conf
 include ../conf/simulator/qemu.conf
 
-SUBDIRS = arch/$(ARCH) kernel hal libk
+SUBDIRS = arch/$(ARCH) go kernel hal libk
 
 TARGET = $(BUILD_DIR)/ccoskrnl
 
@@ -14,6 +14,7 @@ TARGET = $(BUILD_DIR)/ccoskrnl
 OBJS = \
        $(BUILD_DIR)/kernel/kernel.o \
        $(BUILD_DIR)/arch/$(ARCH)/arch.o \
+       $(BUILD_DIR)/go/go.o \
        $(BUILD_DIR)/hal/hal.o \
        $(BUILD_DIR)/libk/libk.a \
 	   $(REFLIBS_DIR)/libm.a \

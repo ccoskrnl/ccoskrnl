@@ -1,7 +1,9 @@
 #include "../../../include/types.h"
 #include "../../../include/libk/stdlib.h"
 #include "../../../include/libk/string.h"
-#include "mm.h"
+#include "mm_arch.h"
+#include "mm_pfn.h"
+#include "mm_pool.h"
 
 extern pool* _mm_pools[12];
 extern pool_free_list_head _mm_non_paged_pool_free_list_array[NON_PAGED_POOL_LIST_HEADS_MAXIMUM];

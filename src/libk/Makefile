@@ -3,7 +3,7 @@ ARCH!=../../conf/uname.sh
 include ../../conf/target.conf
 
 BUILD_DIR = ../../build/libk
-SRC_DIRS = . stdio stdlib string bitmap list ctype rbtree
+SRC_DIRS = . stdlib string bitmap list ctype rbtree
 
 # 获取所有的 .c 源文件
 SRCS = $(foreach dir, $(SRC_DIRS), $(wildcard $(dir)/*.c))
@@ -14,7 +14,6 @@ ASM_OBJS += $(BUILD_DIR)/stdlib/memcpy_sse2.o
 ASM_OBJS += $(BUILD_DIR)/stdlib/memzero_avx.o
 ASM_OBJS += $(BUILD_DIR)/stdlib/memzero_sse2.o
 
-LIBM = ./math/libm.a
 TARGET = $(BUILD_DIR)/libk.a
 
 all: $(TARGET)
@@ -23,8 +22,7 @@ $(TARGET): $(ASM_OBJS) $(OBJS)
 	$(shell mkdir -p $(dir $@))
 	@echo "AR objects to $@"
 	@$(AR) $(ARFLAGS) -o $@ $^
-# @mkdir -pv $(BUILD_DIR)/math
-# @cp -vf $(LIBM) $(BUILD_DIR)/$(LIBM)
+
 
 $(BUILD_DIR)/%.o: %.c
 	$(shell mkdir -p $(dir $@))
@@ -61,19 +59,13 @@ $(BUILD_DIR)/%.o: stdlib/%.c
 	@echo "	Compiling $<"
 	@$(CC) $(CFLAGS) -c -o $@ $<
 
-$(BUILD_DIR)/%.o: stdio/%.c
-	$(shell mkdir -p $(dir $@))
-	@echo "	Compiling $<"
-	@$(CC) $(CFLAGS) -c -o $@ $<
-
 $(BUILD_DIR)/%.o: ctype/%.c
 	$(shell mkdir -p $(dir $@))
 	@echo "	Compiling $<"
 	@$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	@rm -vf $(OBJS) $(TARGET)
+	@rm -vf $(OBJS) $(TARGET) $(ASM_OBJS)
 
-# @rm -vf $(OBJS) $(TARGET) $(BUILD_DIR)/$(LIBM)
 
 .PHONY: clean all

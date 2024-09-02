@@ -10,6 +10,7 @@ typedef struct _list_node_t {
 }__attribute__((packed)) list_node_t;
 
 void _list_init(list_node_t* list);
+list_node_t* _list_dequeue(list_node_t *list);
 void _list_push(list_node_t* list, list_node_t* node);
 void _list_remove_from_list(list_node_t* list, list_node_t* node);
 

@@ -1,9 +1,8 @@
 #include "../include/types.h"
 #include "../include/machine_info.h"
-#include "../include/hal/op/graphics.h"
-#include "../include/hal/op/screen.h"
+#include "../include/go/go.h"
 #include "../include/arch/mm.h"
-#include "../include/libk/stdio.h"
+#include "../include/go/go.h"
 #include "../include/libk/stdlib.h"
 
 #include "../arch/x86_64/intr/hpet.h"
@@ -105,72 +104,29 @@ void krnl_init()
 
     // Output Initialization
     op_init();
-    // put_check(true, L"Ccoskrnl loaded.\n");
-    // put_check(true, L"Bootstrap Processor initializated.\n");
-    // put_check(true, L"Kernel memory layout divided.\n");
-    // put_check(true, L"Dynamic memory alloctor is ready to be used.\n");
-    // put_check(true, L"Default font family has been parsed completely.\n");
+    put_check(0, true, L"Ccoskrnl loaded.\n");
+    put_check(0, true, L"Bootstrap Processor initializated.\n");
+    put_check(0, true, L"Kernel memory layout has divided.\n");
+    put_check(0, true, L"Dynamic memory allocator is ready to be used.\n");
+    put_check(0, true, L"Default font family has been parsed completely.\n");
 
-    // // Initialize OSPM
-    // acpi_init();
+    // Initialize OSPM
+    acpi_init();
 
-    // // Interrupt module initialization. 
-    // // when the routines finish, it will set interrupt flag.
-    // // intr_init();
+    // Interrupt module initialization. 
+    // when the routines finish, it will set interrupt flag.
+    // intr_init();
     
-    // put_check(true, L"System diagnostic completed. All systems nominal.\n");
-    // put_check(false, L"ACPI initialized.\n");
-    // put_check(false, L"Power Off.\n");
+    put_check(0, true, L"System diagnostic completed. All systems nominal.\n");
+    put_check(0, false, L"Power Off.\n");
 
     // __asm__ ("sti"); 
 
 
-    // // _intr_intr_handler_test();
-    // while (1) {
-    //     puts("y\n");
-    // }
-    // putws(chushibiao);
-    // putws(tengwangge);
-    
-    // print_machine_info();
+    // _intr_intr_handler_test();
+;
 
     krnl_exit();
-    
-}
-
-
-void print_machine_info()
-{
-    
-    
-    // puts("System diagnostic completed. All systems nominal.\n");
-
-    // puts("Processor Name: ");
-    // puts(cpu_brand_string);
-    // putc('\n');
-
-    // puts("TSC invariant: ");
-    // puts(tsc_invariant ? "true\n" : "false\n");
-
-    // putsx("Kernel Space Size: ", _current_machine_info->memory_space_info[0].size);
-    // putc('\n');
-    // putsx("RAM Size: ", _current_machine_info->memory_info.ram_size);
-    // putc('\n');
-    // putsd("Screen Width: ", _current_machine_info->graphics_info.HorizontalResolution);
-    // putc('\n');
-    // putsd("Screen Height: ", _current_machine_info->graphics_info.VerticalResolution);
-    // putc('\n');
-
-    // puts("IA-PC HPET: ");
-    // puts(_current_machine_info->acpi_info.hpet != 0 ? "true\n" : "false\n");
-    // if (_current_machine_info->acpi_info.hpet != 0)
-    // {
-    //     putsxs("IA-PC HPET Address: ", hpet_table->BaseAddressLower32Bit.Address, "\n");
-    // }
-    // while (1) {
-    //     ;
-    // }
-    
     
 }
 

@@ -26,6 +26,28 @@ inline void _list_push(list_node_t* list, list_node_t* node)
     
 }
 
+list_node_t* _list_dequeue(list_node_t *list)
+{
+    list_node_t *front = list->flink;
+
+    if (list->flink != NULL)
+    {
+        if (list->flink == list->blink)
+        {
+            _list_init(list);
+            return front;
+        }
+
+        if (list->flink != list->blink)
+        {
+            list->flink = list->flink->flink;
+            return front;
+        }
+    }
+
+    return front;
+}
+
 void _list_remove_from_list(list_node_t* list, list_node_t* node)
 {
 
@@ -35,7 +57,8 @@ void _list_remove_from_list(list_node_t* list, list_node_t* node)
         _list_init(list);
     }
     // the node is the last item in list
-    else if (list->blink == node && list->flink != list->blink && node->flink == NULL) {
+    else if (list->blink == node && list->flink != list->blink && node->flink == NULL) 
+    {
         node->blink->flink = NULL;
         list->blink = node->blink;
     }

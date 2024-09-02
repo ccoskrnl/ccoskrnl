@@ -2,8 +2,8 @@
 #define __MACHINE_INFO_H__
 
 #include "types.h"
-#include "hal/acpi/sdt.h"
-#include "hal/op/graphics.h"
+#include "hal/acpi.h"
+#include "go/go.h"
 
 /*  The size of LOADER_MACHINE_INFORMATION structure in bytes  */
 #define MACHINE_INFO_SIZE 0x10000

@@ -3,7 +3,8 @@
 #include "arch.h"
 
 #ifdef x86_64
-#include "../../arch/x86_64/mm/mm.h"
+#include "../../arch/x86_64/mm/mm_arch.h"
+#include "../../arch/x86_64/mm/mm_pool.h"
 #endif 
 
 #endif

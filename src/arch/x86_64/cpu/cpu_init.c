@@ -1,10 +1,11 @@
 #include "../../../include/types.h"
 #include "../../../include/machine_info.h"
 #include "../../../include/libk/stdlib.h"
-#include "../../../include/libk/stdio.h"
+#include "../../../include/go/go.h"
 
 #include "cpu.h"
-#include "../mm/mm.h"
+#include "../mm/mm_arch.h"
+#include "../mm/mm_pool.h"
 
 seg_desc_t gdt[SEG_DESC_MAXIMUM] = { 0 };
 idt_desc_t idt[IDT_DESC_MAXIMUM] = { 0 };

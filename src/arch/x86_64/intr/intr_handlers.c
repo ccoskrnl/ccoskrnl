@@ -1,6 +1,6 @@
 #include "../../../include/types.h"
-#include "../../../include/hal/op/screen.h"
-#include "../../../include/libk/stdio.h"
+#include "../../../include/go/go.h"
+#include "../../../include/go/window.h"
 
 /*
  * @brief General Protection Fault Handler
@@ -24,15 +24,14 @@ void _intr_gpf_handler (
     uint64_t SS
     )
 {
-    struct _op_screen_desc* desc = _op_def_screen;
-    desc->ClearScreen(desc);
+    _go_cpu_output_window[0]->ClearWindow((window_t*)_go_cpu_output_window[0]);
 
-    put_check(false, L"General Protection Fault!\n");
-    putsxs("Interrupt Vector Number: ", error_code & 0xFF, "\n");
-    putsxs("Exception Code: ", (error_code >> 32), "\n");
-    putsxs("RIP: ", RIP, "\n");
-    putsxs("CS: ", CS, "\n");
-    putsxs("EFLAGS: ", EFLAGS, "\n");
-    putsxs("RSP: ", RSP, "\n");
-    putsxs("SS: ", SS, "\n");
+    put_check(0, false, L"General Protection Fault!\n");
+    putsxs(0, "Interrupt Vector Number: ", error_code & 0xFF, "\n");
+    putsxs(0, "Exception Code: ", (error_code >> 32), "\n");
+    putsxs(0, "RIP: ", RIP, "\n");
+    putsxs(0, "CS: ", CS, "\n");
+    putsxs(0, "EFLAGS: ", EFLAGS, "\n");
+    putsxs(0, "RSP: ", RSP, "\n");
+    putsxs(0, "SS: ", SS, "\n");
 }

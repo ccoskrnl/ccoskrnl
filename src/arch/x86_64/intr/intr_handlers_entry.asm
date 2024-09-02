@@ -6,6 +6,11 @@ section .text
     global _intr_gpf_handler_entry
     global _intr_intr_handler_test
 
+
+; In IA-32e mode, the RSP is aligned to a 16-byte boundary before pushing the stack frame. The stack 
+; frame itself is aligned on a 16-byte boundary when the interrupt handler is called. The processor can arbitrarily 
+; realign the new RSP on interrupts because the previous (possibly unaligned) RSP is unconditionally saved on the 
+; newly aligned stack. The previous RSP will be automatically restored by a subsequent IRET.
     
 ; 1st: error
 ; 2nd: RIP
@@ -33,7 +38,7 @@ _intr_gpf_handler_entry:
     ud2
 
 
-_intr_intr_handler_test
+_intr_intr_handler_test:
 
     nop
     nop
