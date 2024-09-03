@@ -119,12 +119,12 @@ typedef struct _window_text
     /**
      * @brief Indicate which buffer as primary output. 
      */
-    int                         which_output_buf;
+    uint64_t                    which_output_buf : 1;
 
     /**
      * @brief Index for output_buf
      */
-    size_t                      output_buf_index;
+    uint64_t                    output_buf_index : 63;
 
     /**
      * @brief all output buffers in current window.

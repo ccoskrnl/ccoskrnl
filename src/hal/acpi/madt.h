@@ -54,7 +54,7 @@ typedef struct _io_apic
     apic_header_t header;  // Type 1
     uint8_t io_apic_id;    // I/O APIC ID
     uint8_t reserved;      // Reserved, must be zero
-    uint32_t io_apic_addr; // I/O APIC Address
+    uint32_t ioapic_addr; // I/O APIC Address
 
     // The global system interrupt number where this I/O APIC’s interrupt 
     // inputs start. The number of interrupt inputs is determined by the 

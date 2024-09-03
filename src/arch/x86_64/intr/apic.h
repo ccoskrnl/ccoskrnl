@@ -64,4 +64,73 @@ typedef struct _intr_ctr_struct_head
 
 } intr_ctr_struct_head_t;
 
+/**
+ * This function writes a value to a specified APIC register.
+ *
+ * @param[in]           reg             Which register to write.
+ * @param[in]           value           The value will be written to specific register.
+ *
+ * @retval              none
+ */
+void write_apic_register(uint32_t reg, uint32_t value);
+
+/**
+ * This function reads a value from a specified APIC register.
+ *
+ * @param[in]           reg             Which register to read.
+ *
+ * @retval                              The value of specific register.
+ */
+uint32_t read_apic_register(uint32_t reg);
+
+
+/**
+ * This function writes a value to a specified I/O APIC register.
+ *
+ * @param[in]           reg             Which register to write.
+ * @param[in]           value           The value will be written to specific register.
+ *
+ * @retval              none
+ */
+void ioapic_write(uint32_t reg, uint32_t value);
+
+/**
+ * This function reads a value from a specified I/O APIC register.
+ *
+ * @param[in]           reg             Which register to read.
+ *
+ * @retval                              The value of specific register.
+ */
+uint32_t ioapic_read(uint32_t reg);
+
+
+void map_lapic_and_ioapic(
+    _in_ uint64_t lapic_phys_addr, 
+    _in_ intr_ctr_struct_head_t* ioapic_intr_ctr_structure
+);
+
+
+/**
+ * @brief Local APIC Address for single processor system.
+
+ * @note CPU core in a modern multiprocessor system typically has its own LAPIC. 
+ * The LAPIC is responsible for handling interrupts that are specific to the CPU 
+ * core it is associated with.
+
+ */
+extern volatile uint64_t local_apic_addr;
+
+/**
+ * @brief I/O APIC address for single processor system.
+
+ * @note IOAPIC is responsible for handling interrupts from peripheral devices and 
+ * routing them to the appropriate CPU cores. A system can have multiple IOAPICs, 
+ * especially in configurations with multiple peripheral buses. 
+
+ */  
+extern volatile uint64_t io_apic_addr;
+
+
+extern uint32_t apic_version;
+
 #endif

@@ -5,7 +5,7 @@ include ../../../conf/target.conf
 
 BUILD_DIR = ../../../build/arch/$(ARCH)
 
-SRC_DIRS = . intr mm cpu io
+SRC_DIRS = . intr mm cpu io lib
 
 SRCS = $(foreach dir, $(SRC_DIRS), $(wildcard $(dir)/*.c))
 OBJS = $(patsubst %.c,$(BUILD_DIR)/%.o,$(SRCS))
@@ -14,6 +14,7 @@ ASM_OBJS = $(BUILD_DIR)/io/io.o
 ASM_OBJS += $(BUILD_DIR)/intr/pit.o
 ASM_OBJS += $(BUILD_DIR)/cpu/cpu_flush.o
 ASM_OBJS += $(BUILD_DIR)/intr/intr_handlers_entry.o
+ASM_OBJS += $(BUILD_DIR)/lib/cmpxchg.o
 
 TARGET = $(BUILD_DIR)/arch.o
 
@@ -38,6 +39,16 @@ $(BUILD_DIR)/io/%.o: io/%.asm
 	@mkdir -p $(@D)
 	@echo "	Compiling $<"
 	@nasm -f elf64 -o $@ $<
+
+$(BUILD_DIR)/lib/%.o: lib/%.asm
+	@mkdir -p $(@D)
+	@echo "	Compiling $<"
+	@nasm -f elf64 -o $@ $<
+
+$(BUILD_DIR)/lib/%.o: lib/%.c
+	$(shell mkdir -p $(dir $@))
+	@echo "	Compiling $<"
+	@$(CC) $(CFLAGS) -c -o $@ $<
 
 $(BUILD_DIR)/intr/%.o: intr/%.asm
 	@mkdir -p $(@D)

@@ -6,7 +6,7 @@
 #include "../../include/libk/math.h"
 #include "../../include/libk/limits.h"
 
-#define MAXPUTBUF                   0x80
+#define MAXPUTBUF                   0x1000
 
 #define FLOAT_BINARY_64             64
 
@@ -41,7 +41,8 @@
 
 #define __get_sign_of_double(f)     (f & (0x8000000000000000))
 
-static char putbuf[MAXPUTBUF];
+static char wstr_buf[MAXPUTBUF * sizeof(wch_t)];
+static char digit_buf[0x40];
 
 
 static go_blt_pixel_t get_color(_in_ PREDEFINED_COLOR color_val)
@@ -166,9 +167,9 @@ void put_check(int window_index, boolean cond, const wch_t *ws)
 {
     putc(window_index, '[');
     if (cond) 
-        putwsc(window_index, L" Successful ", SPRINT_GREEN2);
+        putwsc(window_index, L"Successful", SPRINT_GREEN2);
     else
-        putwsc(window_index, L" Failed ", FIRE_BRICK2);
+        putwsc(window_index, L"  Failed  ", FIRE_BRICK2);
     putws(window_index, L"]  ");
     putws(window_index, ws);
 }
@@ -188,11 +189,10 @@ void putws(int window_index, const wch_t *ws)
 void puts(int window_index, const char *s)
 {
     size_t len_s = strlen(s);
-    wch_t* wstr = malloc(len_s * sizeof(char));
+    wch_t* wstr = (wch_t*)wstr_buf;
     str2wstr(s, wstr, len_s);
     window_text_t *text = _go_cpu_output_window[window_index];
     text->PutString(text, wstr, default_color);
-    free(wstr);
 }
 
 
@@ -218,8 +218,8 @@ void putsd(int window_index, const char *s, int64_t d)
     {
         puts(window_index, s);
     }
-    long2str(d, putbuf, INT64_MIN, 10);
-    puts(window_index, putbuf);
+    long2str(d, digit_buf, INT64_MIN, 10);
+    puts(window_index, digit_buf);
     
 }
 
@@ -231,10 +231,10 @@ void putsx(int window_index, const char *s, uint64_t x)
     {
         puts(window_index, s);
     }
-    putbuf[0] = '0';
-    putbuf[1] = 'x';
-    uint64_to_hexstr(x, putbuf+2);
-    puts(window_index, putbuf);
+    digit_buf[0] = '0';
+    digit_buf[1] = 'x';
+    uint64_to_hexstr(x, digit_buf+2);
+    puts(window_index, digit_buf);
 }
 
 
@@ -259,7 +259,7 @@ void putsf(int window_index, const char *s, double f)
     }
     
     uf.f = f;
-    str = putbuf;
+    str = digit_buf;
 
     exp = (uf.d & 0x7FF0000000000000) >> 52;
 
@@ -311,7 +311,7 @@ void putsf(int window_index, const char *s, double f)
 
 __put_str:
 
-    puts(window_index, putbuf);
+    puts(window_index, digit_buf);
 
 }
 

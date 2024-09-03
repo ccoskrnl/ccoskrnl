@@ -4,9 +4,8 @@
 #include "../include/arch/mm.h"
 #include "../include/go/go.h"
 #include "../include/libk/stdlib.h"
+#include "../include/arch/lib.h"
 
-#include "../arch/x86_64/intr/hpet.h"
-#include "../arch/x86_64/intr/pit.h"
 
 extern void preparing_for_bsp(boolean is_first);
 extern void detecting_cpu();
@@ -25,10 +24,7 @@ extern uint64_t _mm_stack_buttom_of_initialization_thread;
 extern boolean tsc_invariant;
 extern char cpu_brand_string[49];  // 48 characters + null terminator
 
-extern hpet_table_t *hpet_table;
-
 void krnl_init();
-void print_machine_info();
 void krnl_exit();
 
 
@@ -114,17 +110,17 @@ void krnl_init()
     acpi_init();
 
     // Interrupt module initialization. 
-    // when the routines finish, it will set interrupt flag.
-    // intr_init();
-    
+    // when the routine finishes, it will set the interrupt flag.
+    putws(0, L"\t\tInterrupt module initializing...\n");
+    intr_init();
+    put_check(0, true, L"Interrupt module has initialized.\n");
+    // __asm__ ("sti"); 
+
     put_check(0, true, L"System diagnostic completed. All systems nominal.\n");
     put_check(0, false, L"Power Off.\n");
 
-    // __asm__ ("sti"); 
-
 
     // _intr_intr_handler_test();
-;
 
     krnl_exit();
     

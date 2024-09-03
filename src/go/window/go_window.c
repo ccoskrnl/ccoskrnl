@@ -263,7 +263,7 @@ static status_t scroll_screen(
     this->cursor.y = 0;
     this->output_buf_index = 0;
 
-    memzero(this->output_bufs[this->which_output_buf], OUTPUT_BUF_SIZE);
+    memzero(this->output_bufs[this->which_output_buf], OUTPUT_BUF_SIZE * sizeof(wch_t));
     clear_window(this);
 
     while (*lf != 0)
@@ -339,6 +339,11 @@ __inspect_begin:
 
             this->cursor.y += this->line_height;
             this->cursor.x = this->lsb;
+
+            // Situation 1:
+            // We need to scroll screen.
+            // if ((this->cursor.y + (this->ascender - this->descender)) >= this->window.height)
+            //     scroll_screen(this);
 
             goto __draw_ch_exit;
             break;

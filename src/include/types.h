@@ -21,13 +21,15 @@ typedef uint64_t                    qword;
 
 typedef struct _uint128
 {
-    uint64_t u0;
-    uint64_t u1;
+    // high:low
+    uint64_t low;
+    uint64_t high;
 
 } uint128_t, oword;
 
 typedef struct _uint256
 {
+    // u3:u2:u1:u0
     uint64_t u0;
     uint64_t u1;
     uint64_t u2;
