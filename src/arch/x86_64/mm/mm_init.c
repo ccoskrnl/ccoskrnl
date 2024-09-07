@@ -13,7 +13,10 @@ Memory Manager Initialization.
 #include "../../../include/libk/string.h"
 #include "../../../include/libk/bitmap.h"
 #include "../../../include/libk/stdlib.h"
+
 #include "../cpu/cpu.h"
+#include "../cpu/cpu_features.h"
+
 #include "mm_arch.h"
 #include "mm_pfn.h"
 #include "mm_pool.h"
@@ -1053,7 +1056,7 @@ static void dynamic_memory_management_test()
     status = _mm_alloc_pages((5 << PAGE_SHIFT), (void **)&alloc0);
     if (ST_ERROR(status))
     {
-        krnl_panic();
+        krnl_panic(NULL);
     }
 
     _mm_free_pages(alloc0);
@@ -1061,18 +1064,18 @@ static void dynamic_memory_management_test()
     status = _mm_alloc_pages((15 << PAGE_SHIFT), (void **)&alloc0);
     if (ST_ERROR(status))
     {
-        krnl_panic();
+        krnl_panic(NULL);
     }
 
     status = _mm_alloc_pages((8 << PAGE_SHIFT), (void **)&alloc1);
     if (ST_ERROR(status))
     {
-        krnl_panic();
+        krnl_panic(NULL);
     }
     status = _mm_alloc_pages((1 << PAGE_SHIFT), (void **)&alloc2);
     if (ST_ERROR(status))
     {
-        krnl_panic();
+        krnl_panic(NULL);
     }
 
     _mm_free_pages(alloc1);
@@ -1081,12 +1084,12 @@ static void dynamic_memory_management_test()
     status = _mm_alloc_pages((39 << PAGE_SHIFT), (void **)&alloc3);
     if (ST_ERROR(status))
     {
-        krnl_panic();
+        krnl_panic(NULL);
     }
     status = _mm_alloc_pages((28 << PAGE_SHIFT), (void **)&alloc4);
     if (ST_ERROR(status))
     {
-        krnl_panic();
+        krnl_panic(NULL);
     }
     _mm_free_pages(alloc2);
     _mm_free_pages(alloc4);
@@ -1109,15 +1112,15 @@ static void dynamic_memory_management_test()
 
     status = _mm_alloc_pages(1 << PAGE_SHIFT, (void**)&alloc0);
     if (ST_ERROR(status)) {
-        krnl_panic();
+        krnl_panic(NULL);
     }
     status = _mm_alloc_pages(1 << PAGE_SHIFT, (void**)&alloc1);
     if (ST_ERROR(status)) {
-        krnl_panic();
+        krnl_panic(NULL);
     }
     status = _mm_alloc_pages(1 << PAGE_SHIFT, (void**)&alloc2);
     if (ST_ERROR(status)) {
-        krnl_panic();
+        krnl_panic(NULL);
     }
 
 

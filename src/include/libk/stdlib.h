@@ -7,8 +7,16 @@ int stoi(const char *str, int base);
 long stol(const char *str, int base);
 long strtol(const char *str, char **endptr, int base);
 int64_t rand();
-void assert(boolean result);
-void krnl_panic();
+
+void assertion_failure(char *exp, char *file, char *base, int line);
+
+#define assert(exp) \
+    if (exp)        \
+        ;           \
+    else            \
+        assertion_failure(#exp, __FILE__, __BASE_FILE__, __LINE__)
+
+void krnl_panic(wch_t * wstr);
 
 void* malloc(size_t size);
 void free(void* addr);

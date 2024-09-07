@@ -51,11 +51,6 @@
  * sent back to the sender with a retry request.
  * 
  */
- 
-
-
-
-
 
 typedef struct _intr_ctr_struct_head
 {
@@ -63,6 +58,11 @@ typedef struct _intr_ctr_struct_head
     list_node_t head;
 
 } intr_ctr_struct_head_t;
+
+
+#define IRQ_KEYBOARD                                1
+
+
 
 /**
  * This function writes a value to a specified APIC register.
@@ -72,7 +72,7 @@ typedef struct _intr_ctr_struct_head
  *
  * @retval              none
  */
-void write_apic_register(uint32_t reg, uint32_t value);
+void write_lapic_register(uint32_t reg, uint32_t value);
 
 /**
  * This function reads a value from a specified APIC register.
@@ -81,7 +81,7 @@ void write_apic_register(uint32_t reg, uint32_t value);
  *
  * @retval                              The value of specific register.
  */
-uint32_t read_apic_register(uint32_t reg);
+uint32_t read_lapic_register(uint32_t reg);
 
 
 /**
@@ -92,7 +92,7 @@ uint32_t read_apic_register(uint32_t reg);
  *
  * @retval              none
  */
-void ioapic_write(uint32_t reg, uint32_t value);
+void write_ioapic_register(uint32_t reg, uint32_t value);
 
 /**
  * This function reads a value from a specified I/O APIC register.
@@ -101,7 +101,7 @@ void ioapic_write(uint32_t reg, uint32_t value);
  *
  * @retval                              The value of specific register.
  */
-uint32_t ioapic_read(uint32_t reg);
+uint32_t read_ioapic_register(uint32_t reg);
 
 
 void map_lapic_and_ioapic(
@@ -132,5 +132,21 @@ extern volatile uint64_t io_apic_addr;
 
 
 extern uint32_t apic_version;
+
+typedef struct _ioapic_version
+{
+    // This 4 bit field contains the IOAPIC identification.
+    uint32_t ioapic_identification : 4;
+
+    // This member identifies the implementation version.
+    uint8_t apic_version;
+
+    // This field contains the entry number of the highest
+    // entry in the I/O Rediection Table.
+    uint8_t max_redirection_entry;
+
+} ioapic_version_t;
+
+extern ioapic_version_t ioapic_version;
 
 #endif

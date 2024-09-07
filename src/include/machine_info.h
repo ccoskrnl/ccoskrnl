@@ -6,7 +6,10 @@
 #include "go/go.h"
 
 /*  The size of LOADER_MACHINE_INFORMATION structure in bytes  */
-#define MACHINE_INFO_SIZE 0x10000
+#define MACHINE_INFO_SIZE 					0x10000
+
+/*  The size of start-up routine in bytes  */
+#define STARTUP_ROUTINE_SIZE 					0x1000
 
 //******************************************************
 // EFI_MEMORY_TYPE
@@ -156,10 +159,13 @@ typedef struct _LOADER_MEMORY_SPACE_DESCRIPTOR
 typedef struct _LOADER_MACHINE_INFORMATION
 {
     // Memory Informations
-    // The first item recorded Kernel Space
-    // second item: ccldr image space
-    // third item: krnl image space
-    LOADER_MEMORY_SPACE_DESCRIPTOR memory_space_info[3]; 
+    //
+    // 1st: kernel Space
+    // 2nd: ccldr image space
+    // 3rd: krnl image space
+    // 4th: start-up routine
+    //
+    LOADER_MEMORY_SPACE_DESCRIPTOR memory_space_info[4]; 
     
     // Background Info
     LOADER_IMAGE_DESCRIPTOR bg; 

@@ -12,14 +12,14 @@ long stol(const char *str, int base) {
     // }
     if ((val == LONG_MAX || val == LONG_MIN))
     {
-        krnl_panic();
+        krnl_panic(NULL);
         return 0;
     }
     
 
     if (endptr == str) {
         // fprintf(stderr, "No digits were found\n");
-        krnl_panic();
+        krnl_panic(NULL);
         return 0;
     }
 

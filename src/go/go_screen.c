@@ -504,7 +504,7 @@ void _go_install_a_screen(
 
     status_t status = new_a_rbtree(&screen->windows);
     if (ST_ERROR(status)) {
-        krnl_panic();
+        krnl_panic(NULL);
     }
 
     screen->Blt = blt;

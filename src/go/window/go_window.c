@@ -48,6 +48,16 @@ static void clear_window(
 
 }
 
+static void text_window_clear_window(
+    _in_ void                   *_this
+)
+{
+    clear_window(_this);
+    window_text_t *this = _this;
+    this->cursor.x = this->lsb;
+    this->cursor.y = 0;
+}
+
 static status_t init_window_framebuffer(
     _in_ void                                   *_this
 )
@@ -236,7 +246,7 @@ static status_t show_window(
         );
         if (ST_ERROR(status))
         {
-            krnl_panic();
+            krnl_panic(NULL);
         }
 
     } 
@@ -248,7 +258,7 @@ static status_t show_window(
     return status;;
 }
 
-static status_t scroll_screen(
+static status_t text_window_scroll_screen(
     _in_ void                                   *_this
 )
 {
@@ -273,7 +283,7 @@ static status_t scroll_screen(
         this->PutChar(this, wc, *color, false);
         if (ST_ERROR(status))
         {
-            krnl_panic();
+            krnl_panic(NULL);
         }
         lf++;
     }
@@ -319,7 +329,7 @@ __inspect_begin:
     // Situation 1:
     // We need to scroll screen.
     if ((this->cursor.y + (this->ascender - this->descender)) >= this->window.height)
-        scroll_screen(this);
+        text_window_scroll_screen(this);
     
     switch(wch)
     {
@@ -340,10 +350,12 @@ __inspect_begin:
             this->cursor.y += this->line_height;
             this->cursor.x = this->lsb;
 
-            // Situation 1:
-            // We need to scroll screen.
-            // if ((this->cursor.y + (this->ascender - this->descender)) >= this->window.height)
-            //     scroll_screen(this);
+            goto __draw_ch_exit;
+            break;
+
+        case '\r':
+
+            this->cursor.x = this->lsb;
 
             goto __draw_ch_exit;
             break;
@@ -351,14 +363,14 @@ __inspect_begin:
         default:
             status = new_a_glyph(&glyph);
             if (ST_ERROR(status)) 
-                krnl_panic();
+                krnl_panic(NULL);
 
             glyph->init(glyph, wch,this->font_family);
             draw_at_point.x = this->cursor.x + this->window.origin.x;
             draw_at_point.y = this->cursor.y + this->window.origin.y;
             status = glyph->rasterize(glyph, &this->window.framebuffer, draw_at_point, this->point_size, color);
             if (ST_ERROR(status)) 
-                krnl_panic();
+                krnl_panic(NULL);
 
             this->cursor.x += ceil(glyph->advance_width * this->scaling_factor);
             del_a_glyph(glyph);
@@ -383,6 +395,29 @@ __draw_ch_exit:
 }
 
 static status_t text_window_puts(
+    _in_ void                                   *_this,
+    _in_ const char                             *string,
+    _in_ go_blt_pixel_t                         color
+)
+{
+    status_t status = ST_SUCCESS;
+    window_text_t *this = _this;
+
+
+    if (this == NULL)
+    {
+        status = ST_INVALID_PARAMETER;
+        return status;
+    }
+
+    for (size_t i = 0; string[i] != '\0'; i++) 
+        text_window_putc(this, string[i], color, false);
+
+    this->ShowWindow(this);
+    return status;
+}
+
+static status_t text_window_putws(
     _in_ void                                   *_this,
     _in_ const wch_t                            *wstring,
     _in_ go_blt_pixel_t                         color
@@ -443,7 +478,7 @@ static status_t register_text_window(
 
     status = init_window_framebuffer(this);
     if (ST_ERROR(status)) {
-        krnl_panic();
+        krnl_panic(NULL);
     }
     clear_window(this);
 
@@ -488,9 +523,10 @@ status_t new_a_window(
             memzero(win, sizeof(*win));
             *(_window_text_register_t*)((uint64_t)win + element_offset(window_text_t, Register)) = register_text_window;
             *(_window_show_window_t*)((uint64_t)win + element_offset(window_text_t, ShowWindow)) = show_window;
-            *(_window_text_clear_window_t*)((uint64_t)win + element_offset(window_text_t, ClearWindow)) = clear_window;
+            *(_window_text_clear_window_t*)((uint64_t)win + element_offset(window_text_t, ClearWindow)) = text_window_clear_window;
             *(_window_text_putc_t*)((uint64_t)win + element_offset(window_text_t, PutChar)) = text_window_putc;
             *(_window_text_puts_t*)((uint64_t)win + element_offset(window_text_t, PutString)) = text_window_puts;
+            *(_window_text_putws_t*)((uint64_t)win + element_offset(window_text_t, PutWString)) = text_window_putws;
             break;
         default:
             break;

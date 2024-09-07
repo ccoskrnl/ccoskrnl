@@ -456,7 +456,7 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index, uint32_t tag)
 
         // remove the block from original list.
         if (ret_block->blink == 0) {
-            krnl_panic();
+            krnl_panic(NULL);
         }
         _list_remove_from_list(free_list, ret_block);
 
@@ -475,7 +475,7 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index, uint32_t tag)
 
         // remove the block from original list.
         if (separate_block->blink == 0) {
-            krnl_panic();
+            krnl_panic(NULL);
         }
         _list_remove_from_list(free_list, separate_block);
 
@@ -525,7 +525,7 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index, uint32_t tag)
         ret_block_head->pool_index = pool_index;
 
         if (ret_block->blink == 0) {
-            krnl_panic();
+            krnl_panic(NULL);
         }
         _list_remove_from_list(free_list, ret_block);
 
@@ -594,14 +594,14 @@ void _mm_free(void *addr, uint16_t pool_index)
     if (released_block_head->pool_type != POOL_TYPE_ACTIVE)
     {
         // Buggy
-        krnl_panic();
+        krnl_panic(NULL);
     }
 
     // // "tag mechanism", not be implemented.
     // if (released_block_head->pool_tag != P)
     // {
     //     // Buggy
-    //     krnl_panic();
+    //     krnl_panic(NULL);
     // }
 
     // record releasalbe size.
@@ -621,7 +621,7 @@ void _mm_free(void *addr, uint16_t pool_index)
         if (released_block_head->block_size != next_block_head->prev_size)
         {
             // Buggy
-            krnl_panic();
+            krnl_panic(NULL);
         }
 
         // It is necessary to update the header of the active block that follows the 
@@ -643,7 +643,7 @@ void _mm_free(void *addr, uint16_t pool_index)
             free_size += (next_block_head->block_size << POOL_BLOCK_SHIFT) + POOL_HEAD_OVERHEAD;
             free_list = &pool_desc->list_heads[next_block_head->block_size];
             if (next_block->blink == 0) {
-                krnl_panic();
+                krnl_panic(NULL);
             }
             _list_remove_from_list(free_list, next_block);
 
@@ -684,7 +684,7 @@ void _mm_free(void *addr, uint16_t pool_index)
 
                 // remove the block from origianl list.
                 if (prev_block->blink == 0) {
-                    krnl_panic();
+                    krnl_panic(NULL);
                 }
                 _list_remove_from_list(free_list, prev_block);
 

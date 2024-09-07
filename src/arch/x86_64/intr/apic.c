@@ -14,6 +14,7 @@ extern uint64_t _mm_get_sys_pte_next_page();
 extern intr_ctr_struct_head_t intr_ctr_structs[MAX_MADT_INTURRUPT_CONTROLLER_STRUCTURE_TYPES];
 
 uint32_t apic_version;
+ioapic_version_t ioapic_version;
 
 /**
  * @brief Local APIC Address for single processor system.
@@ -43,7 +44,7 @@ volatile uint64_t io_apic_addr;
  *
  * @retval              none
  */
-void write_apic_register(uint32_t reg, uint32_t value)
+void write_lapic_register(uint32_t reg, uint32_t value)
 {
     *(uint32_t *)(local_apic_addr + reg) = value;
 }
@@ -55,7 +56,7 @@ void write_apic_register(uint32_t reg, uint32_t value)
  *
  * @retval                              The value of specific register.
  */
-uint32_t read_apic_register(uint32_t reg)
+uint32_t read_lapic_register(uint32_t reg)
 {
     return *(uint32_t *)(local_apic_addr + reg);
 }
@@ -68,7 +69,7 @@ uint32_t read_apic_register(uint32_t reg)
  *
  * @retval              none
  */
-void ioapic_write(uint32_t reg, uint32_t value)
+void write_ioapic_register(uint32_t reg, uint32_t value)
 {
     volatile uint32_t *ioapic = (volatile uint32_t*)io_apic_addr;
     ioapic[0] = reg;
@@ -82,7 +83,7 @@ void ioapic_write(uint32_t reg, uint32_t value)
  *
  * @retval                              The value of specific register.
  */
-uint32_t ioapic_read(uint32_t reg)
+uint32_t read_ioapic_register(uint32_t reg)
 {
     volatile uint32_t *ioapic = (volatile uint32_t*)io_apic_addr;
     ioapic[0] = reg;
@@ -149,16 +150,25 @@ void map_lapic_and_ioapic(
         pte[pte_index].pwt = 1;
         pte[pte_index].pcd = 1;
         pte[pte_index].address = (ioapic->ioapic_addr) >> PAGE_SHIFT;
-        ioapic->ioapic_addr = 0xFFFF000000000000UL |
+
+        io_apic_addr = 0xFFFF000000000000UL |
                         (PML4E_OFFSET_OF_HARDWARE << 39) |
                         (0x1FFUL << 30) |
                         (0x1FFUL << 21) |
                         (pte_index << 12);
 
         // if (i == 0)
-            io_apic_addr = ioapic->ioapic_addr;
+            // io_apic_addr = ioapic->ioapic_addr;
 
         // pte_index++;
     // }
+
+    // Read local apic version registers, record local apic version.
+    apic_version = (read_lapic_register(LOCAL_APIC_VERSION_REG)) & 0xFF;
+    ioapic_version.ioapic_identification = (read_ioapic_register(0) >> 24) & 0xF;
+
+    uint32_t reg_value = read_ioapic_register(1);
+    ioapic_version.apic_version = reg_value & 0xFF;
+    ioapic_version.max_redirection_entry = (reg_value >> 16) & 0xFF;
 
 }

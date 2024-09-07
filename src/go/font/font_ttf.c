@@ -119,7 +119,7 @@ static status_t font_tty_init(void *this, uint8_t *font_bin_data) {
             font->head.table.magicNumber = swap_endian_32(*(uint32_t *)(head + 12));
 
             if (font->head.table.magicNumber != 0x5F0F3CF5)
-                krnl_panic();
+                krnl_panic(NULL);
 
             font->head.table.majorVersion = swap_endian_16(*(uint16_t *)(head));
             font->head.table.minorVersion = swap_endian_16(*(uint16_t *)(head + 2));
@@ -243,7 +243,7 @@ static status_t font_tty_init(void *this, uint8_t *font_bin_data) {
                         (uint16_t *)malloc(font->cmap.fmt4_segcount * sizeof(uint16_t));
 
                     if (font->cmap.fmt4.endCode == NULL)
-                        krnl_panic();
+                        krnl_panic(NULL);
                     for (size_t i = 0; i < font->cmap.fmt4_segcount; i++)
                         font->cmap.fmt4.endCode[i] = swap_endian_16(tm[i]);
 
@@ -255,7 +255,7 @@ static status_t font_tty_init(void *this, uint8_t *font_bin_data) {
                         (uint16_t *)malloc(font->cmap.fmt4_segcount * sizeof(uint16_t));
 
                     if (font->cmap.fmt4.startCode == NULL)
-                        krnl_panic();
+                        krnl_panic(NULL);
                     for (size_t i = 0; i < font->cmap.fmt4_segcount; i++)
                         font->cmap.fmt4.startCode[i] = swap_endian_16(tm[i]);
 
@@ -264,7 +264,7 @@ static status_t font_tty_init(void *this, uint8_t *font_bin_data) {
                         (int16_t *)malloc(font->cmap.fmt4_segcount * sizeof(int16_t));
 
                     if (font->cmap.fmt4.idDelta == NULL)
-                        krnl_panic();
+                        krnl_panic(NULL);
                     for (size_t i = 0; i < font->cmap.fmt4_segcount; i++)
                         font->cmap.fmt4.idDelta[i] = swap_endian_16(tm[i]);
 
@@ -478,7 +478,7 @@ __glyph_init:
             (uint16_t **)malloc(glyph->numberOfContours * sizeof(uint16_t *));
 
         if (glyph->point_index_in_contour == NULL) {
-            krnl_panic();
+            krnl_panic(NULL);
         }
 
         glyph->point_index_in_contour[0] =
@@ -1018,7 +1018,7 @@ status_t new_a_glyph(font_ttf_glyph_t **glyph) {
     obj = (font_ttf_glyph_t *)malloc(sizeof(font_ttf_glyph_t));
 
     if (obj == NULL)
-        krnl_panic();
+        krnl_panic(NULL);
     else
         memset(obj, 0, sizeof(*obj));
 
@@ -1047,7 +1047,7 @@ status_t new_a_font(font_ttf_t **font) {
     obj = (font_ttf_t *)malloc(sizeof(font_ttf_t));
 
     if (obj == NULL)
-        krnl_panic();
+        krnl_panic(NULL);
     // else
         // memzero(obj, sizeof(*obj));
 
@@ -1116,12 +1116,12 @@ status_t _op_text_out(
         default:
             status = new_a_glyph(&glyph);
             if (ST_ERROR(status)) 
-                krnl_panic();
+                krnl_panic(NULL);
 
             glyph->init(glyph, string[i], font_family);
             status = glyph->rasterize(glyph, buf, origin, point_size, color);
             if (ST_ERROR(status)) 
-                krnl_panic();
+                krnl_panic(NULL);
 
             origin.x += ceil(glyph->advance_width * scaling_factor);
             del_a_glyph(glyph);

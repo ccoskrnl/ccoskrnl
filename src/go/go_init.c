@@ -86,13 +86,13 @@ void op_init()
 
     status = new_a_font(&_font_family_SourceHanSansSCVF);
     if (ST_ERROR(status)) {
-        krnl_panic();
+        krnl_panic(NULL);
     }
     _font_family_SourceHanSansSCVF->init(_font_family_SourceHanSansSCVF, (uint8_t*)_current_machine_info->font[0].ttf_addr);
 
     status = new_a_font(&_font_family_agefonts001);
     if (ST_ERROR(status)) {
-        krnl_panic();
+        krnl_panic(NULL);
     }
     _font_family_SourceHanSansSCVF->init(_font_family_agefonts001, (uint8_t*)_current_machine_info->font[1].ttf_addr);
 
@@ -135,7 +135,7 @@ void op_init()
     );
 
     if (ST_ERROR(status)) {
-        krnl_panic();
+        krnl_panic(NULL);
     }
 
     win->Register(
@@ -164,7 +164,7 @@ void op_init()
     );
 
     if (ST_ERROR(status)) {
-        krnl_panic();
+        krnl_panic(NULL);
     }
 
     win->Register(
@@ -192,7 +192,7 @@ void op_init()
     );
 
     if (ST_ERROR(status)) {
-        krnl_panic();
+        krnl_panic(NULL);
     }
 
     win->Register(

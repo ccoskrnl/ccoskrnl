@@ -237,6 +237,9 @@ UefiMain(
   UINTN DescriptorSize = 0;
   UINT32 DesVersion = 0;
 
+  // Start-up routine
+  UINTN StartUpRoutineAddress = 0x1000;
+
 
   // initialization
   gSystemTable = SystemTable;
@@ -316,7 +319,8 @@ UefiMain(
   // Ccldr request 16MB memory for mapping kernel space.
   CcldrSpaceSize = MM16MB;
 
-  Status = gBS->AllocatePages(AllocateAnyPages, EfiLoaderData, CcldrSpaceSize >> EFI_PAGE_SHIFT, &CcldrBase); if (EFI_ERROR(Status))
+  Status = gBS->AllocatePages(AllocateAnyPages, EfiLoaderData, CcldrSpaceSize >> EFI_PAGE_SHIFT, &CcldrBase); 
+  if (EFI_ERROR(Status))
   {
     Print(L"[ERROR]: Allocate memory for ccldr failed...\n\r");
     goto ExitUefi;
@@ -335,6 +339,20 @@ UefiMain(
     goto ExitUefi;
   }
 
+  // Allocate one page to store start-up routine code for application processors initialization.
+  Status = gBS->AllocatePages(AllocateAddress, EfiLoaderData, STARTUP_ROUTINE_SIZE >> EFI_PAGE_SHIFT, &StartUpRoutineAddress); 
+  while (EFI_ERROR(Status) && StartUpRoutineAddress <= 0x100000)
+  {
+    StartUpRoutineAddress += EFI_PAGE_SIZE;
+    Status = gBS->AllocatePages(AllocateAddress, EfiLoaderData, STARTUP_ROUTINE_SIZE >> EFI_PAGE_SHIFT, &StartUpRoutineAddress); 
+  }
+  if (EFI_ERROR(Status))
+  {
+    Print(L"[ERROR]: Allocate memory for start-up routine failed...\n\r");
+    goto ExitUefi;
+  }
+  
+
 
 
   ReadFileToBufferAt(KRNL_PATH, KrnlImageBase, &KernelBufferSize);
@@ -346,6 +364,8 @@ UefiMain(
   MachineInfo->MemorySpaceInformation[1].Size = CcldrSpaceSize;
   MachineInfo->MemorySpaceInformation[2].BaseAddress = KrnlImageBase;
   MachineInfo->MemorySpaceInformation[2].Size = KernelBufferSize;
+  MachineInfo->MemorySpaceInformation[3].BaseAddress = StartUpRoutineAddress;
+  MachineInfo->MemorySpaceInformation[3].Size = STARTUP_ROUTINE_SIZE;
 
   MachineInfo->SumOfSizeOfFilesInPages = (PAGE_ALIGNED(KernelBufferSize) >> EFI_PAGE_SHIFT);
 
@@ -379,6 +399,7 @@ UefiMain(
 
 #ifdef _DEBUG
 
+  Print(L"Start-up Routine at %x\n\r", StartUpRoutineAddress);
   Print(L"Kernel Space at %x, size: %x\n\r", MachineInfo->MemorySpaceInformation[0].BaseAddress, MachineInfo->MemorySpaceInformation[0].Size);
   Print(L"Ccldr Space at %x, size: %x\n\r", MachineInfo->MemorySpaceInformation[1].BaseAddress, MachineInfo->MemorySpaceInformation[1].Size);
   Print(L"Ram Size: %x, Highest Physical Address: %x\n\r", MachineInfo->MemoryInformation.RamSize, MachineInfo->MemoryInformation.HighestPhysicalAddress);

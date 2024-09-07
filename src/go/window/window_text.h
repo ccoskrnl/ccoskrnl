@@ -26,6 +26,12 @@ typedef status_t (*_window_text_putc_t)(
 
 typedef status_t (*_window_text_puts_t)(
     _in_ void                                   *_this,
+    _in_ const char                             *string,
+    _in_ go_blt_pixel_t                         color
+);
+
+typedef status_t (*_window_text_putws_t)(
+    _in_ void                                   *_this,
     _in_ const wch_t                            *wstring,
     _in_ go_blt_pixel_t                         color
 );
@@ -47,6 +53,7 @@ typedef struct _window_text
     _window_text_clear_window_t ClearWindow;
     _window_text_putc_t         PutChar;
     _window_text_puts_t         PutString;
+    _window_text_putws_t        PutWString;
 
     /**
      * Window use this member to tell screen which Font family

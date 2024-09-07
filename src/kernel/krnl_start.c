@@ -14,6 +14,9 @@ extern void mm_init();
 extern void intr_init();
 extern void acpi_init();
 
+extern wch_t* tengwangge;
+extern wch_t* chushibiao;
+
 /*  Stack top of temporary stack of kernel initialization thread  */
 extern uint64_t _mm_stack_top_of_initialization_thread;
 /*  The size of stack of kernel initialization thread in bytes  */
@@ -21,17 +24,8 @@ extern uint64_t _mm_size_of_stack_of_initialization_thread_in_bytes;
 /*  Stack buttom of temporary stack of kernel initialization thread  */
 extern uint64_t _mm_stack_buttom_of_initialization_thread;
 
-extern boolean tsc_invariant;
-extern char cpu_brand_string[49];  // 48 characters + null terminator
-
 void krnl_init();
 void krnl_exit();
-
-
-extern wch_t* tengwangge;
-extern wch_t* chushibiao;
-
-extern void _intr_intr_handler_test();
 
 /**
  * Preparing base kernel code execution environment for continuing to initialize.
@@ -114,13 +108,16 @@ void krnl_init()
     putws(0, L"\t\tInterrupt module initializing...\n");
     intr_init();
     put_check(0, true, L"Interrupt module has initialized.\n");
-    // __asm__ ("sti"); 
 
     put_check(0, true, L"System diagnostic completed. All systems nominal.\n");
     put_check(0, false, L"Power Off.\n");
+    __asm__ ("sti"); 
 
 
+    // assert(false);
     // _intr_intr_handler_test();
+    uint32_t a = 0x12345, b = 0, c;
+    c = a / b;
 
     krnl_exit();
     
@@ -128,5 +125,5 @@ void krnl_init()
 
 void krnl_exit()
 {
-    krnl_panic();
+    krnl_panic(NULL);
 }

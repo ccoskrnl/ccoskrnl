@@ -3,7 +3,7 @@ ARCH!=../../conf/uname.sh
 include ../../conf/target.conf
 
 BUILD_DIR = ../../build/hal
-SRC_DIRS = . acpi 
+SRC_DIRS = . acpi devices
 
 # 获取所有的 .c 源文件
 SRCS = $(foreach dir, $(SRC_DIRS), $(wildcard $(dir)/*.c))
@@ -18,6 +18,11 @@ $(TARGET): $(OBJS)
 	@$(LD) $(LDFLAGS) --relocatable -o $@ $^
 
 $(BUILD_DIR)/%.o: %.c
+	$(shell mkdir -p $(dir $@))
+	@echo "	Compiling $<"
+	@$(CC) $(CFLAGS) -c -o $@ $<
+
+$(BUILD_DIR)/%.o: devices/%.c
 	$(shell mkdir -p $(dir $@))
 	@echo "	Compiling $<"
 	@$(CC) $(CFLAGS) -c -o $@ $<

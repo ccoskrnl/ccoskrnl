@@ -41,7 +41,6 @@
 
 #define __get_sign_of_double(f)     (f & (0x8000000000000000))
 
-static char wstr_buf[MAXPUTBUF * sizeof(wch_t)];
 static char digit_buf[0x40];
 
 
@@ -173,26 +172,26 @@ void put_check(int window_index, boolean cond, const wch_t *ws)
     putws(window_index, L"]  ");
     putws(window_index, ws);
 }
+
 /*  Put a wstring with specific predefined color */
 void putwsc(int window_index, const wch_t *ws, PREDEFINED_COLOR color)
 {
     window_text_t *text = _go_cpu_output_window[window_index];
-    text->PutString(text, ws, get_color(color));
+    text->PutWString(text, ws, get_color(color));
 }
+
 /*  Put a wstring */
 void putws(int window_index, const wch_t *ws)
 {
     window_text_t *text = _go_cpu_output_window[window_index];
-    text->PutString(text, ws, default_color);
+    text->PutWString(text, ws, default_color);
 }
+
 /*  Put a string */
 void puts(int window_index, const char *s)
 {
-    size_t len_s = strlen(s);
-    wch_t* wstr = (wch_t*)wstr_buf;
-    str2wstr(s, wstr, len_s);
     window_text_t *text = _go_cpu_output_window[window_index];
-    text->PutString(text, wstr, default_color);
+    text->PutString(text, s, default_color);
 }
 
 

@@ -15,14 +15,14 @@ int stoi(const char *str, int base)
     // }
     if ((val == LONG_MAX || val == LONG_MIN))
     {
-        krnl_panic();
+        krnl_panic(NULL);
         return 0;
     }
     
 
     if (endptr == str)
     {
-        krnl_panic();
+        krnl_panic(NULL);
         // fprintf(stderr, "No digits were found\n");
         return 0;
     }
@@ -30,7 +30,7 @@ int stoi(const char *str, int base)
     // Ensure the value fits in an int
     if (val > INT_MAX || val < INT_MIN)
     {
-        krnl_panic();
+        krnl_panic(NULL);
         // fprintf(stderr, "Value out of range for int\n");
         return 0;
     }

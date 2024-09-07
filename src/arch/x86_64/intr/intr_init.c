@@ -6,6 +6,7 @@
 #include "../../../include/go/go.h"
 #include "../../../include/libk/stdlib.h"
 
+#include "../cpu/cpu_features.h"
 #include "../cpu/cpu.h"
 #include "../io/io.h"
 #include "apic.h"
@@ -14,12 +15,10 @@
 
 // #define INTR_DEBUG
 
-void _intr_gpf_handler_entry();
 
 extern uint64_t fixup_acpi_table_addr(uint64_t phys_addr);
 
-extern cpu_core_desc_t cpu0;
-extern char cpu_vendor_id[16];
+extern cpu_core_desc_t bsp;
 
 static struct _MADT *madt_ptr;
 
@@ -69,6 +68,7 @@ intr_ctr_struct_head_t intr_ctr_structs[MAX_MADT_INTURRUPT_CONTROLLER_STRUCTURE_
 
 
 
+void keyboard_isr();
 
 static void parse_madt(_in_ struct _MADT *madt_ptr, _in_ _out_ intr_ctr_struct_head_t* intr_ctr_structs)
 {
@@ -247,6 +247,39 @@ static void parse_madt(_in_ struct _MADT *madt_ptr, _in_ _out_ intr_ctr_struct_h
 
 }
 
+// void send_ipi(uint8_t apic_id, uint8_t vector)
+// {
+//     // ICR_HIGH: Set destination APIC ID.
+//     write_apic_register(0x310, apic_id << 24);
+//     // ICR_LOW: Send INIT IPI
+//     write_apic_register(0x300, 0x00004500 | vector);
+//
+//     for (volatile int i = 0; i < 100000; i++); // Short delay
+//     write_apic_register(0x300, 0x00004600 | vector); // ICR_LOW: Send STARTUP IPI
+// }
+//
+//
+// void ap_entry()
+// {
+//     asm("nop");
+//     asm("nop");
+//     asm("nop");
+//     asm("nop");
+//     asm("nop");
+//     asm("nop");
+//     asm("nop");
+//     asm("nop");
+//     asm("nop");
+//     asm("nop");
+// }
+// // Function to activate other CPU cores
+// void activate_cores() {
+//     // Assuming APIC IDs are 1, 2, 3, etc.
+//     for (uint8_t apic_id = 1; apic_id < 4; apic_id++) {
+//         send_ipi(apic_id, (uint8_t)((uint64_t)ap_entry >> 12));
+//     }
+// }
+
 void intr_init()
 {
     uint64_t value;
@@ -287,10 +320,6 @@ void intr_init()
     value |= 1 << 8;
     wrmsr(IA32_APIC_BASE_MSR, value);
 
-    // Read local apic version registers, record local apic version.
-    value = read_apic_register(LOCAL_APIC_VERSION_REG);
-    apic_version = value & 0xFF;
-
     /**
      * Sporious Interrupt
      *
@@ -304,7 +333,7 @@ void intr_init()
      *
      * */
     lapicreg = 0xFF | (1 << 8);
-    write_apic_register(LOCAL_APIC_SPURIOUS_INTERRUPT_VEC_REG, lapicreg);
+    write_lapic_register(LOCAL_APIC_SPURIOUS_INTERRUPT_VEC_REG, lapicreg);
 
     /**
      * Configure I/O APIC.(Reference the I/O APIC specification.)
@@ -403,9 +432,9 @@ void intr_init()
         if (core_crystal_clock_frequency)
         {
             ticks_in_10ms = (core_crystal_clock_frequency >> 4) * 0.01;     // 10ms
-            write_apic_register(LOCAL_APIC_DIVIDE_CONF_REG, divide_value);
-            write_apic_register(LOCAL_APIC_INIT_COUNT_REG, ticks_in_10ms);
-            write_apic_register(LOCAL_APIC_LVT_TIMER_REG, 0x20 | (1 << 17));  // Periodic mode
+            write_lapic_register(LOCAL_APIC_DIVIDE_CONF_REG, divide_value);
+            write_lapic_register(LOCAL_APIC_INIT_COUNT_REG, ticks_in_10ms);
+            write_lapic_register(LOCAL_APIC_LVT_TIMER_REG, 0x20 | (1 << 17));  // Periodic mode
         }
         else
             goto _manually_calculate_initial_count;
@@ -441,22 +470,38 @@ _manually_calculate_initial_count:
         // Manually calcul  ate the value of initial count register that we need to configure it, which makes 
         // it can generate once clcok interrupt every 10ms.
         pit_prepare_sleep(10000);
-        write_apic_register(LOCAL_APIC_INIT_COUNT_REG, 0xFFFFFFFF);
+        write_lapic_register(LOCAL_APIC_INIT_COUNT_REG, 0xFFFFFFFF);
         pit_perform_sleep(); 
-        write_apic_register(LOCAL_APIC_LVT_TIMER_REG, 1 << 16);
-        ticks_in_10ms = 0xFFFFFFFF - read_apic_register(LOCAL_APIC_CURRENT_COUNT_REG);
-        write_apic_register(LOCAL_APIC_DIVIDE_CONF_REG, divide_value);
-        write_apic_register(LOCAL_APIC_INIT_COUNT_REG, ticks_in_10ms);
-        write_apic_register(LOCAL_APIC_LVT_TIMER_REG, 0x20 | (1 << 17));
+        write_lapic_register(LOCAL_APIC_LVT_TIMER_REG, 1 << 16);
+        ticks_in_10ms = 0xFFFFFFFF - read_lapic_register(LOCAL_APIC_CURRENT_COUNT_REG);
+        write_lapic_register(LOCAL_APIC_DIVIDE_CONF_REG, divide_value);
+        write_lapic_register(LOCAL_APIC_INIT_COUNT_REG, ticks_in_10ms);
+        write_lapic_register(LOCAL_APIC_LVT_TIMER_REG, 0x20 | (1 << 17));
 
     }
     else
     {
-        krnl_panic();
+        krnl_panic(NULL);
     }
 
-    _cpu_install_isr(&cpu0, 0xD, _intr_gpf_handler_entry, IDT_DESC_TYPE_INTERRUPT_GATE, 0);
+    uint32_t low = read_ioapic_register(0x12);
+    uint32_t high = read_ioapic_register(0x13);
+
+    low = (low & 0xFFFFFF00) | 0x21;
+    high = (high & 0x00FFFFFF) | 0;
+
+    write_ioapic_register(0x12, low);
+    write_ioapic_register(0x13, high);
+
+    _cpu_install_isr(&bsp, 0x21, keyboard_isr, IDT_DESC_TYPE_INTERRUPT_GATE, 0);
+
     // asm ("sti\n");
+
+    // for (uint32_t i = 0; i < 0xfffffff; i++);
+    // for (uint32_t i = 0; i < 0xfffffff; i++);
+    // for (uint32_t i = 0; i < 0xfffffff; i++);
+
+
 
     /**
      * Interrupt Command Register

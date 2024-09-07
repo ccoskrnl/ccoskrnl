@@ -6,7 +6,7 @@
 #include "types.h"
 
 #define MACHINE_INFO_STRUCT_SIZE                            0x10000
-
+#define STARTUP_ROUTINE_SIZE				    0x1000
 // Byte-Alignment
 #define MM1MB                                               0x100000
 #define MM16MB                                              0x1000000
@@ -84,10 +84,13 @@ typedef struct _LOADER_MEMORY_SPACE_DESCRIPTOR
 typedef struct _LOADER_MACHINE_INFORMATION
 {
     // Memory Informations
-    // The first item recorded Kernel Space
-    // second item: ccldr image space
-    // third item: krnl image space
-    LOADER_MEMORY_SPACE_DESCRIPTOR MemorySpaceInformation[3]; 
+    //
+    // 1st: kernel Space
+    // 2nd: ccldr image space
+    // 3rd: krnl image space
+    // 4th: start-up routine
+    //
+    LOADER_MEMORY_SPACE_DESCRIPTOR MemorySpaceInformation[4]; 
 
     // Background Info
     LOADER_IMAGE_DESCRIPTOR Background; 

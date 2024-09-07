@@ -4,22 +4,33 @@
 #include "../../../include/go/go.h"
 
 #include "cpu.h"
+#include "cpu_features.h"
 #include "../mm/mm_arch.h"
 #include "../mm/mm_pool.h"
 
+// references from ../intr/intr_handlers_entry.asm
+// which stored all Protected-Mode Exceptions and Interrupts Handlers.
+extern handler_t _intr_handler_entry_table[0x20];
+
+// All cores only use the same GDT and IDT.
 seg_desc_t gdt[SEG_DESC_MAXIMUM] = { 0 };
 idt_desc_t idt[IDT_DESC_MAXIMUM] = { 0 };
 tss_t tss0 = { 0 };
-cpu_core_desc_t cpu0 = { 0 };
 
-char cpu_vendor_id[16] = { 0 };;
+// The Bootstrap Processor Core descriptor.
+cpu_core_desc_t bsp = { 0 };
 
-char cpu_brand_string[49] = { 0 };;  // 48 characters + null terminator
+// CPU Vendor.
+char cpu_vendor_id[16] = { 0 };
 
+// Current Machine cpu brand.
+char cpu_brand_string[49] = { 0 };  // 48 characters + null terminator
+
+// rdrand instruction to generate a random number.
 boolean support_rdrand;
+
 // AVX2. Supports Intel® Advanced Vector Extensions 2 (Intel® AVX2) if 1.
 boolean support_avx2;
-
 // AVX instruction support
 boolean support_avx;
 // XSAVE (and related) instructions are enabled.
@@ -42,6 +53,18 @@ boolean support_ssse3;
 boolean support_sse3;
 
 
+
+
+/**
+ * @brief  
+ * @note   
+ * 
+ *      MP initialization protocol defines two classes of processors: the bootstrap processor (BSP) and the application 
+ * processors (APs). Following a power-up or RESET of an MP system, system hardware dynamically selects one of 
+ * the processors on the system bus as the BSP. The remaining processors are designated as APs.
+ *      As part of the BSP selection mechanism, the BSP flag is set in the IA32_APIC_BASE MSR (see Figure 11-5) of the 
+ * BSP, indicating that it is the BSP. This flag is cleared for all other processors.
+ */ 
 void preparing_for_bsp(boolean is_first)
 {
     if (is_first)
@@ -54,16 +77,16 @@ void preparing_for_bsp(boolean is_first)
             (void*)(_current_machine_info->memory_space_info[1].base_address + MACHINE_INFO_SIZE + 0x1000), 
             sizeof(seg_desc_t) * 3);
 
-        cpu0.gdt = gdt;
-        cpu0.gdtr.limit = (sizeof(seg_desc_t) * SEG_DESC_MAXIMUM) - 1;
-        cpu0.gdtr.base = (uint64_t)(cpu0.gdt);
+        bsp.gdt = gdt;
+        bsp.gdtr.limit = (sizeof(seg_desc_t) * SEG_DESC_MAXIMUM) - 1;
+        bsp.gdtr.base = (uint64_t)(bsp.gdt);
 
-        cpu0.idt = idt;
-        cpu0.idtr.limit = (sizeof(idt_desc_t) * IDT_DESC_MAXIMUM) - 1;
-        cpu0.idtr.base = (uint64_t)(cpu0.idt);
+        bsp.idt = idt;
+        bsp.idtr.limit = (sizeof(idt_desc_t) * IDT_DESC_MAXIMUM) - 1;
+        bsp.idtr.base = (uint64_t)(bsp.idt);
 
-        __set_gdtr(&cpu0.gdtr);
-        __set_idtr(&cpu0.idtr);
+        __set_gdtr(&bsp.gdtr);
+        __set_idtr(&bsp.idtr);
         _cpu_reload_seg_regs(SEG_SEL_KRNL_CODE, SEG_SEL_KRNL_DATA);
 
         if (support_xsave)
@@ -100,15 +123,15 @@ void preparing_for_bsp(boolean is_first)
         // define TSS seg for further initializing.
 
         // Set TSS descriptor.
-        cpu0.gdt[3].type = SEG_DESC_TYPE_64_TSS;
-        cpu0.gdt[3].limit0 = (sizeof(tss_t) - 1) & 0xFFFF;
-        cpu0.gdt[3].limit1 = ((sizeof(tss_t) - 1) >> 16) & 0xFFFF;
-        cpu0.gdt[3].base0 = (uint64_t)(&tss0) & 0xFFFF;
-        cpu0.gdt[3].base1 = ((uint64_t)(&tss0) >> 16) & 0xFF;
-        cpu0.gdt[3].base2 = ((uint64_t)(&tss0) >> 24) & 0xFF;
-        cpu0.gdt[3].dpl = 0;
-        cpu0.gdt[3].p = 1;
-        *(uint32_t*)(&cpu0.gdt[4]) = ((uint64_t)(&tss0) >> 32) & 0xFFFFFFFF;
+        bsp.gdt[3].type = SEG_DESC_TYPE_64_TSS;
+        bsp.gdt[3].limit0 = (sizeof(tss_t) - 1) & 0xFFFF;
+        bsp.gdt[3].limit1 = ((sizeof(tss_t) - 1) >> 16) & 0xFFFF;
+        bsp.gdt[3].base0 = (uint64_t)(&tss0) & 0xFFFF;
+        bsp.gdt[3].base1 = ((uint64_t)(&tss0) >> 16) & 0xFF;
+        bsp.gdt[3].base2 = ((uint64_t)(&tss0) >> 24) & 0xFF;
+        bsp.gdt[3].dpl = 0;
+        bsp.gdt[3].p = 1;
+        *(uint32_t*)(&bsp.gdt[4]) = ((uint64_t)(&tss0) >> 32) & 0xFFFFFFFF;
 
         void* rsp0;
         void* ist0;
@@ -121,6 +144,12 @@ void preparing_for_bsp(boolean is_first)
 
         // TSS descriptor is at index 3 in the GDT
         __load_tr(3 << 3);
+
+        // Install all PM exceptions and interrupts handlers.
+        for (int i = 0; i < IDT_RESERVED_ENTRY; i++) 
+        {
+            _cpu_install_isr(&bsp, i, _intr_handler_entry_table[i], IDT_DESC_TYPE_INTERRUPT_GATE, 0); 
+        }
 
     }
     
