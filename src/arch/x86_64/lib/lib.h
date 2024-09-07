@@ -30,4 +30,10 @@ uint128_t lock_cmpxchg16b(uint128_t volatile *destination, uint128_t exchange, u
  **/
 void sleep(uint32_t seconds);
 
+/**
+ * Reference from intr/apic.c
+ * The routine to notice the servicing of the current interrupt is complete.
+ **/
+extern void send_eoi();
+
 #endif

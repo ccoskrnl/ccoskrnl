@@ -26,8 +26,28 @@
 
 // Processor Priority Register (Read Only)
 #define LOCAL_APIC_PROCESSOR_PRIORITY_REG           0xA0
-// EOI Register
+
+/**
+ * For all interrupts except those delivered with the NMI, SMI, INIT, ExtINT, the start-up, or INIT-Deassert delivery 
+ * mode, the interrupt handler must include a write to the end-of-interrupt (EOI) register (see Figure 11-21). This 
+ * write must occur at the end of the handler routine, sometime before the IRET instruction. This action indicates that 
+ * the servicing of the current interrupt is complete and the local APIC can issue the next interrupt from the ISR.
+ **/
 #define LOCAL_APIC_EOI_REG                          0xB0
+
+
+/**
+ * Sporious Interrupt
+ *
+ * A special situation may occur when a processor raises its task priority to
+ * be greater than or equal to the level of the interrupt for which the
+ * processor INTR signal is currently being asserted. If at the time the INTA
+ * cycle is issued, the interrupt that was to be dispensed has become masked
+ * (programmed by software), the local APIC will deliver a spurious-interrupt
+ * vector. Dispensing the spurious-interrupt vector does not affect the ISR,
+ * so the handler for this vector should return without an EOI.
+ *
+ * */
 // Spurious Interrupt Vector Register (Read/Write)
 #define LOCAL_APIC_SPURIOUS_INTERRUPT_VEC_REG       0xF0
 
@@ -40,6 +60,38 @@
 #define LOCAL_APIC_CURRENT_COUNT_REG                0x390
 // Divide Configuration Register for Timer (Read/Write)
 #define LOCAL_APIC_DIVIDE_CONF_REG                  0x3E0
+
+
+
+
+#define LOCAL_APIC_LVT_TIMER_PERIODIC               (1 << 17)
+#define LOCAL_APIC_LVT_INT_MASKED                   (1 << 16)
+
+
+/**
+ * Interrupt Command Register
+ *
+ * @brief The interrupt command register (ICR) is a 64-bit local APIC register
+ * that allows software running on the processor to specify and send
+ * interprocessor interrupts (IPIs) to other processors in the system.
+ *
+ * @memberof Interrupt Command Register
+ * @property{bit 11}    Destination Mode        Selects either physical (0) or logical (1) destination mode
+ *
+ */
+
+/**
+ * Destination Mode
+ * @brief Selects either physical or logical destination mode.
+ */
+
+/**
+ * @brief Introduction to Physical destination mode.
+ * 
+ * In physical destination mode, the destination processor is specified by its local APIC ID
+ * 
+ * @note The number of local APICs that can be addressed on the system bus may be restricted by hardware.
+ */
 
 /**
  * @brief Accpeting System and IPI Interrupts
@@ -196,6 +248,12 @@ extern volatile uint64_t local_apic_addr;
 
  */  
 extern volatile uint64_t io_apic_addr;
+
+/**
+ * The routine to notice the servicing of the current interrupt is complete.
+ **/
+void send_eoi();
+
 
 
 extern uint32_t apic_version;

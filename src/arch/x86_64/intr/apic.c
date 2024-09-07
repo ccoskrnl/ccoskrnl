@@ -91,6 +91,15 @@ uint32_t read_ioapic_register(uint32_t reg)
     return ioapic[4];
 }
 
+/**
+ * The routine to notice the servicing of the current interrupt is complete.
+ **/
+void send_eoi()
+{
+    // Send EOI to local APIC
+    write_lapic_register(LOCAL_APIC_EOI_REG, 0);
+}
+
 
 void map_lapic_and_ioapic(
     _in_ uint64_t lapic_phys_addr, 

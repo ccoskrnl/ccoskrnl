@@ -5,20 +5,27 @@ include ../../../conf/target.conf
 
 BUILD_DIR = ../../../build/arch/$(ARCH)
 
-SRC_DIRS = . intr mm cpu io lib
+SRC_DIRS = . intr mm cpu io lib intr/isr
 
 SRCS = $(foreach dir, $(SRC_DIRS), $(wildcard $(dir)/*.c))
 OBJS = $(patsubst %.c,$(BUILD_DIR)/%.o,$(SRCS))
 
+
 ASM_OBJS = $(BUILD_DIR)/io/io.o
+
 ASM_OBJS += $(BUILD_DIR)/intr/pit.o
+ASM_OBJS += $(BUILD_DIR)/intr/isr/kbd.o
+ASM_OBJS += $(BUILD_DIR)/intr/isr/intr_handlers_entry.o
+
 ASM_OBJS += $(BUILD_DIR)/cpu/cpu_flush.o
-ASM_OBJS += $(BUILD_DIR)/intr/intr_handlers_entry.o
+
 ASM_OBJS += $(BUILD_DIR)/lib/cmpxchg.o
 ASM_OBJS += $(BUILD_DIR)/lib/memcpy_avx.o
 ASM_OBJS += $(BUILD_DIR)/lib/memcpy_sse2.o
 ASM_OBJS += $(BUILD_DIR)/lib/memzero_avx.o
 ASM_OBJS += $(BUILD_DIR)/lib/memzero_sse2.o
+
+
 
 TARGET = $(BUILD_DIR)/arch.o
 
@@ -50,6 +57,16 @@ $(BUILD_DIR)/lib/%.o: lib/%.asm
 	@nasm -f elf64 -o $@ $<
 
 $(BUILD_DIR)/lib/%.o: lib/%.c
+	$(shell mkdir -p $(dir $@))
+	@echo "	Compiling $<"
+	@$(CC) $(CFLAGS) -c -o $@ $<
+
+$(BUILD_DIR)/intr/isr/%.o: intr/isr/%.asm
+	@mkdir -p $(@D)
+	@echo "	Compiling $<"
+	@nasm -f elf64 -o $@ $<
+
+$(BUILD_DIR)/intr/isr/%.o: intr/isr/%.c
 	$(shell mkdir -p $(dir $@))
 	@echo "	Compiling $<"
 	@$(CC) $(CFLAGS) -c -o $@ $<

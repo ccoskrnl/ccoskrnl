@@ -8,17 +8,13 @@
 
 #include "../include/libk/stdlib.h"
 
-
-extern status_t pit_prepare_sleep(uint32_t microseconds);
-extern void pit_perform_sleep();
-
-
 extern void preparing_for_bsp(boolean is_first);
 extern void detecting_cpu();
-extern void op_init();
 extern void mm_init();
-extern void intr_init();
+
+extern void op_init();
 extern void acpi_init();
+extern void intr_init();
 
 extern wch_t* tengwangge;
 extern wch_t* chushibiao;
@@ -113,6 +109,7 @@ void krnl_init()
     // when the routine finishes, it will set the interrupt flag.
     putws(0, L"\t\tInterrupt module initializing...\n");
     intr_init();
+
     __asm__ ("sti"); 
 
     put_check(0, true, L"Interrupt module has initialized.\n");

@@ -1,6 +1,6 @@
-#include "../../../include/types.h"
-#include "../../../include/go/go.h"
-#include "../../../include/go/window.h"
+#include "../../../../include/types.h"
+#include "../../../../include/go/go.h"
+#include "../../../../include/go/window.h"
 
 #define MagicNumber                                 0x43433035
 
