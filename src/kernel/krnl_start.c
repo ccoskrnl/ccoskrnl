@@ -1,10 +1,16 @@
 #include "../include/types.h"
 #include "../include/machine_info.h"
+
 #include "../include/go/go.h"
+
 #include "../include/arch/mm.h"
-#include "../include/go/go.h"
-#include "../include/libk/stdlib.h"
 #include "../include/arch/lib.h"
+
+#include "../include/libk/stdlib.h"
+
+
+extern status_t pit_prepare_sleep(uint32_t microseconds);
+extern void pit_perform_sleep();
 
 
 extern void preparing_for_bsp(boolean is_first);
@@ -107,17 +113,11 @@ void krnl_init()
     // when the routine finishes, it will set the interrupt flag.
     putws(0, L"\t\tInterrupt module initializing...\n");
     intr_init();
-    put_check(0, true, L"Interrupt module has initialized.\n");
-
-    put_check(0, true, L"System diagnostic completed. All systems nominal.\n");
-    put_check(0, false, L"Power Off.\n");
     __asm__ ("sti"); 
 
-
-    // assert(false);
-    // _intr_intr_handler_test();
-    uint32_t a = 0x12345, b = 0, c;
-    c = a / b;
+    put_check(0, true, L"Interrupt module has initialized.\n");
+    put_check(0, true, L"System diagnostic completed. All systems nominal.\n");
+    put_check(0, false, L"Power Off.\n");
 
     krnl_exit();
     

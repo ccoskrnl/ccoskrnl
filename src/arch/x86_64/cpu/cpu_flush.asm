@@ -17,8 +17,8 @@ _cpu_reload_seg_regs:
     xor rax, rax
     mov rax, rdi
     push rax
-    lea rax, [rel next]
+    lea rax, [rel .next]
     push rax
     retfq
-next:
+.next:
     ret

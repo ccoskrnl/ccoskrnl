@@ -639,7 +639,7 @@ __glyph_init:
 
                 bezier_curve_t *curve =
                     (bezier_curve_t *)malloc(sizeof(bezier_curve_t));
-                memset(curve, 0, sizeof(bezier_curve_t));
+                memzero(curve, sizeof(bezier_curve_t));
 
                 if (__glyph_on_curve(p0_flag)) {
                     curve->p0.x = p0.x;
@@ -1020,7 +1020,7 @@ status_t new_a_glyph(font_ttf_glyph_t **glyph) {
     if (obj == NULL)
         krnl_panic(NULL);
     else
-        memset(obj, 0, sizeof(*obj));
+        memzero(obj, sizeof(font_ttf_glyph_t));
 
     if (obj == NULL) {
         return ST_OUT_OF_RESOURCES;
@@ -1048,8 +1048,8 @@ status_t new_a_font(font_ttf_t **font) {
 
     if (obj == NULL)
         krnl_panic(NULL);
-    // else
-        // memzero(obj, sizeof(*obj));
+    else
+        memzero(obj, sizeof(*obj));
 
     if (obj == NULL) {
         return ST_OUT_OF_RESOURCES;

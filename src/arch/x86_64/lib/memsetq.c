@@ -1,4 +1,4 @@
-#include "../../include/libk/stdlib.h"
+#include "../../../include/types.h"
 
 void* memsetq(uint64_t* bufptr, uint64_t value, size_t size_of_dest_in_qwords) {
 	uint64_t* buf = (uint64_t*) bufptr;

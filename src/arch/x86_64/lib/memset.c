@@ -1,4 +1,5 @@
-#include "../../include/libk/stdlib.h"
+#include "../../../include/types.h"
+#include "../cpu/cpu_features.h"
 
 void* memset(void* bufptr, int value, size_t size) {
 	unsigned char* buf = (unsigned char*) bufptr;

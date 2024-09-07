@@ -52,6 +52,7 @@
  * 
  */
 
+
 typedef struct _intr_ctr_struct_head
 {
     uint64_t total;
@@ -59,9 +60,75 @@ typedef struct _intr_ctr_struct_head
 
 } intr_ctr_struct_head_t;
 
+/**
+ *
+ * The IOAPIC has a message unit for sending and receiving APIC messages over
+ * the APIC bus. I/O devices inject interrupts into the system by asserting one
+ * of the interrupt lines to the IOAPIC. The IOAPIC selects the corresponding
+ * entry in the Redirection Table and uses the information in that entry to format
+ * an interrupt request message.
+ *
+ **/
+typedef struct _ioapic_rte
+{
+    // Interrupt vector. Allowed values are from 0x10 to 0xFE.
+    uint64_t intr_vector : 8;
 
+    // Type of delivery mode. 0 = Normal, 1 = Low priority, 
+    // 2 = System management interrupt, 4 = Non maskable interrupt, 
+    // 5 = INIT, 7 = External. All others are reserved.
+    uint64_t delivery_mode : 3;
+
+    // Destination mode. Affects how the destination field is read, 
+    // 0 is physical mode, 1 is logical. If the Destination Mode 
+    // of this entry is Physical Mode, bits 56-59 contain an APIC ID.
+    uint64_t dest_mode : 1;
+
+    // Set if this interrupt is going to be sent, but the APIC is busy.
+    // Read only.
+    uint64_t delivery_status : 1;
+
+
+    // Polarity of the interrupt. 0 = High is active, 1 = Low is active.
+    uint64_t intr_polarity: 1;
+
+    // Used for level triggered interrupts only to show if a local 
+    // APIC has received the interrupt (= 1), or has sent an EOI (= 0). 
+    // Read only.
+    uint64_t remote_irr : 1;
+
+    // Trigger mode. 0 = Edge sensitive, 1 = Level sensitive.
+    uint64_t trigger_mod : 1;
+
+    // Interrupt mask. Stops the interrupt from reaching the processor if set.
+    uint64_t intr_mask : 1;
+
+    uint64_t reserved : 39;
+
+    // Destination field. If the destination mode bit was clear, then the lower 
+    // 4 bits contain the bit APIC ID to sent the interrupt to. If the bit was set, 
+    // the upper 4 bits also contain a set of processors.
+    uint64_t dest_field : 8;
+
+} __attribute__((packed))  ioapic_rte_t;
+
+
+
+
+// Actually, we should not assume the value of any IRQ.
+// To handle IRQ, we need to check ISO structures at first.
+
+// Timer IRQ
+#define IRQ_TIMER                                   0
+// Keyboard IRQ
 #define IRQ_KEYBOARD                                1
 
+
+
+/**
+ * To calculate the offset in I/OAPIC address based on specific IRQ
+ **/
+#define OFFSET_OF_RTE(IRQ)                          (10 + (IRQ) << 1)
 
 
 /**

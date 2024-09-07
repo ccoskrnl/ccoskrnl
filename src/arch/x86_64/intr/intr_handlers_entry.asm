@@ -11,23 +11,27 @@ extern _intr_pm_handler
 MagicNumber equ 0x43433035
 
 section .text
-global _intr_handler_entry
 
 ; Define a macro, called INTERRUPT_HANDLER, which takes two parameters.
 %macro INTERRUPT_HANDLER 2
 
 ; Define a tag, a macro, takes a parameter. And %1 is the parameter.
 ; It's used as a part of the macro.
-_intr_handler_%1:
+._intr_handler_%1:
 ; If the second parameter doesn't exist, we need to push a magicnumber.
 %ifn %2
     push MagicNumber
 %endif
 ; Then, we push vector number and jump to intr_handler_entry.
     push %1
-    jmp _intr_handler_entry
+    jmp ._intr_handler_entry
 
 %endmacro
+
+
+
+
+
     
 ; 1st: error code with vector number
 ; 2nd: RIP
@@ -35,8 +39,8 @@ _intr_handler_%1:
 ; 4th: RFLAGS
 ; 5th: RSP
 ; 6th: SS
-_intr_handler_entry:
-
+._intr_handler_entry:
+    cli
     ; error code with vector number
     pop rax
     pop rdi
@@ -52,7 +56,8 @@ _intr_handler_entry:
     ; call Protected-Mode Exceptions and Interrupts Handler.
     mov rax, _intr_pm_handler
     call rax
-    iret
+    ; iret
+    hlt
 
 
     
@@ -108,35 +113,35 @@ global _intr_handler_entry_table
 ; each member is a function address.
 ; _intr_handler_entry_0x[xx] be treated as 'tag' in assembly.
 _intr_handler_entry_table:
-    dq _intr_handler_0x00
-    dq _intr_handler_0x01
-    dq _intr_handler_0x02
-    dq _intr_handler_0x03
-    dq _intr_handler_0x04
-    dq _intr_handler_0x05
-    dq _intr_handler_0x06
-    dq _intr_handler_0x07
-    dq _intr_handler_0x08
-    dq _intr_handler_0x09
-    dq _intr_handler_0x0a
-    dq _intr_handler_0x0b
-    dq _intr_handler_0x0c
-    dq _intr_handler_0x0d
-    dq _intr_handler_0x0e
-    dq _intr_handler_0x0f
-    dq _intr_handler_0x10
-    dq _intr_handler_0x11
-    dq _intr_handler_0x12
-    dq _intr_handler_0x13
-    dq _intr_handler_0x14
-    dq _intr_handler_0x15
-    dq _intr_handler_0x16
-    dq _intr_handler_0x17
-    dq _intr_handler_0x18
-    dq _intr_handler_0x19
-    dq _intr_handler_0x1a
-    dq _intr_handler_0x1b
-    dq _intr_handler_0x1c
-    dq _intr_handler_0x1d
-    dq _intr_handler_0x1e
-    dq _intr_handler_0x1f
+    dq ._intr_handler_0x00
+    dq ._intr_handler_0x01
+    dq ._intr_handler_0x02
+    dq ._intr_handler_0x03
+    dq ._intr_handler_0x04
+    dq ._intr_handler_0x05
+    dq ._intr_handler_0x06
+    dq ._intr_handler_0x07
+    dq ._intr_handler_0x08
+    dq ._intr_handler_0x09
+    dq ._intr_handler_0x0a
+    dq ._intr_handler_0x0b
+    dq ._intr_handler_0x0c
+    dq ._intr_handler_0x0d
+    dq ._intr_handler_0x0e
+    dq ._intr_handler_0x0f
+    dq ._intr_handler_0x10
+    dq ._intr_handler_0x11
+    dq ._intr_handler_0x12
+    dq ._intr_handler_0x13
+    dq ._intr_handler_0x14
+    dq ._intr_handler_0x15
+    dq ._intr_handler_0x16
+    dq ._intr_handler_0x17
+    dq ._intr_handler_0x18
+    dq ._intr_handler_0x19
+    dq ._intr_handler_0x1a
+    dq ._intr_handler_0x1b
+    dq ._intr_handler_0x1c
+    dq ._intr_handler_0x1d
+    dq ._intr_handler_0x1e
+    dq ._intr_handler_0x1f

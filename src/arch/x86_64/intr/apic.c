@@ -165,6 +165,8 @@ void map_lapic_and_ioapic(
 
     // Read local apic version registers, record local apic version.
     apic_version = (read_lapic_register(LOCAL_APIC_VERSION_REG)) & 0xFF;
+
+    // Read I/O APIC Identification and version.
     ioapic_version.ioapic_identification = (read_ioapic_register(0) >> 24) & 0xF;
 
     uint32_t reg_value = read_ioapic_register(1);

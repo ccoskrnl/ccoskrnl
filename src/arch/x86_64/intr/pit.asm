@@ -32,16 +32,16 @@ global pit_perform_sleep
 pit_prepare_sleep:
 
     cmp edi, 0
-    je error                ; Check if it is equal to zero.
+    je .error                ; Check if it is equal to zero.
 
     cmp edi, 55555          ; Check if it is less than 55555.
-    jb cont                 ; Continue execution.
+    jb .cont                 ; Continue execution.
 
-error:
+.error:
     mov eax, 2
     ret                     ; Otherwise, we set error value and return immediately.
 
-cont:
+.cont:
     ; Set frequency to specific
 
     ; prepare for division

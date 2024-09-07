@@ -1,5 +1,5 @@
-#include "../../include/libk/stdlib.h"
-#include "../../include/arch/cpu_features.h"
+#include "../../../include/types.h"
+#include "../cpu/cpu_features.h"
 
 extern void memcpy_avx(void* dstptr, const void* srcptr, uint64_t size);
 extern void memcpy_sse2(void* dstptr, const void* srcptr, uint64_t size);
@@ -21,7 +21,7 @@ void* memcpy(void* dstptr, const void* srcptr, size_t size) {
 
     if (size > (32 * 8)) {
 
-        if (((uint64_t)dstptr & 0x1F) == 0) 
+        if (((uint64_t)dstptr & 0x1F) == 0 && ((uint64_t)srcptr & 0x1F) == 0) 
         {
             if (support_avx || support_avx2)
                 goto __256bits;
@@ -30,7 +30,7 @@ void* memcpy(void* dstptr, const void* srcptr, size_t size) {
         }
 
 
-        if (((uint64_t)dstptr & 0xF) == 0) 
+        if (((uint64_t)dstptr & 0xF) == 0 && ((uint64_t)srcptr & 0xF) == 0) 
         {
             if (support_sse3 || support_sse41 || support_sse42 || support_ssse3)
                 goto __128bits; 
@@ -39,15 +39,18 @@ void* memcpy(void* dstptr, const void* srcptr, size_t size) {
         }
 
 
-        if (((uint64_t)dstptr & 0x7) == 0) 
+        if (((uint64_t)dstptr & 0x7) == 0 && ((uint64_t)srcptr & 0x7) == 0) 
             goto __64bits; 
         else
-            memcpyb(dstptr, srcptr, size);
+            return memcpyb(dstptr, srcptr, size);
 
     }
     else {
     
-        goto __64bits;
+        if (((uint64_t)dstptr & 0x7) == 0 && ((uint64_t)srcptr & 0x7) == 0) 
+            goto __64bits; 
+        else
+            return memcpyb(dstptr, srcptr, size);
     }
 
 __256bits:

@@ -9,7 +9,7 @@ memzero_avx:
     shr rsi, 5
     mov rcx, rsi
 
-memzero_avx_copy_loop:
+.memzero_avx_copy_loop:
     
     ; VXORPD AVX CPUID Fn0000_0001_ECX[AVX] (bit 28)
     vxorpd ymm0, ymm0
@@ -17,6 +17,6 @@ memzero_avx_copy_loop:
     vmovdqu [rdi], ymm0
     add rdi, 32
 
-    loop memzero_avx_copy_loop
+    loop .memzero_avx_copy_loop
 
     ret

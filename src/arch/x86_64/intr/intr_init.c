@@ -60,10 +60,23 @@ uint64_t max_perf_freq_clock_count;
 uint64_t actual_perf_freq_clock_count;
 
 uint64_t tsc_frequency;
+
+
+// Tsc Invariant
+// The TSC rate is ensured to be invariant across all P-States, C-States, and stop grant
+// transitions (such as STPCLK Throttling); therefore the TSC is suitable for use as a
+// source of time.
+// No such guarantee is made and software should avoid attempting to use the TSC as a source of time.
 boolean tsc_invariant;
+
 
 volatile uint64_t hpet_addr;
 hpet_table_t *hpet_table;
+
+/**
+ * Every structure declare the interrupt features of the machine.
+ * This structure is a list to collect all structures that have different types.
+ **/
 intr_ctr_struct_head_t intr_ctr_structs[MAX_MADT_INTURRUPT_CONTROLLER_STRUCTURE_TYPES];
 
 
@@ -295,21 +308,21 @@ void intr_init()
     // Parse madt and push structures to corresponding lists based on theirs type.
     parse_madt(madt_ptr, intr_ctr_structs);
 
-    // Prepare the PIT to sleep for 10ms (10000µs)
 
-    // Check if HPET is exist. Whether it exists or not, we also don't use.
+    // Check if HPET is exist. Whether it exists or not, we also don't use. {:?}
     if (_current_machine_info->acpi_info.hpet != 0)
         hpet_table = (hpet_table_t *)fixup_acpi_table_addr(
             (uint64_t)_current_machine_info->acpi_info.hpet);
 
-    // Get local apic address after it is mapped to virtual space.
 
     // Map local apic address and IOAPIC address. We don't handle mutilprocessor system.
     map_lapic_and_ioapic(
         madt_ptr->local_apic_addr, 
         &intr_ctr_structs[IOAPIC]);
 
-
+    // Because we use the processor local APIC and the I/O APIC,
+    // so we must first disable the PIC.
+    // This is done by masking every single interrupt.
     outb(0x21, 0xFF); // Mask all interrupts on PIC1
     outb(0xA1, 0xFF); // Mask all interrupts on PIC2
 
@@ -332,26 +345,11 @@ void intr_init()
      * so the handler for this vector should return without an EOI.
      *
      * */
+
+    // APIC Software Enable/Disable in 8th bit.
     lapicreg = 0xFF | (1 << 8);
     write_lapic_register(LOCAL_APIC_SPURIOUS_INTERRUPT_VEC_REG, lapicreg);
 
-    /**
-     * Configure I/O APIC.(Reference the I/O APIC specification.)
-     *
-     * The IOAPIC has a message unit for sending and receiving APIC messages over
-     * the APIC bus. I/O devices inject interrupts into the system by asserting one
-     * of the interrupt lines to the IOAPIC. The IOAPIC selects the corresponding
-     * entry in the Redirection Table and uses the information in that entry to format
-     * an interrupt request message.
-     *
-     */
-
-    /**
-     * Configure redirection table registers.
-     *
-     * There are 24 I/O Redirection table entry registers.
-     *
-     */
 
     /**
      * APIC Timer Configuration.
@@ -384,12 +382,7 @@ void intr_init()
           &eax, &ebx, &ecx, &edx);
     support_apic_time_always_running = (boolean)((eax >> 2) & 1);
 
-    // TscInvariant
     cpuid(CPUID_EX_LEFT_APMF, &eax, &ebx, &ecx, &edx);
-    // The TSC rate is ensured to be invariant across all P-States, C-States, and stop grant
-    // transitions (such as STPCLK Throttling); therefore the TSC is suitable for use as a
-    // source of time.
-    // No such guarantee is made and software should avoid attempting to use the TSC as a source of time.
     tsc_invariant = (boolean)((edx >> 8) & 1);
 
     // Configuration to APIC Timer
@@ -434,7 +427,7 @@ void intr_init()
             ticks_in_10ms = (core_crystal_clock_frequency >> 4) * 0.01;     // 10ms
             write_lapic_register(LOCAL_APIC_DIVIDE_CONF_REG, divide_value);
             write_lapic_register(LOCAL_APIC_INIT_COUNT_REG, ticks_in_10ms);
-            write_lapic_register(LOCAL_APIC_LVT_TIMER_REG, 0x20 | (1 << 17));  // Periodic mode
+            // write_lapic_register(LOCAL_APIC_LVT_TIMER_REG, 0x20 | (1 << 17));  // Periodic mode
         }
         else
             goto _manually_calculate_initial_count;
@@ -476,30 +469,26 @@ _manually_calculate_initial_count:
         ticks_in_10ms = 0xFFFFFFFF - read_lapic_register(LOCAL_APIC_CURRENT_COUNT_REG);
         write_lapic_register(LOCAL_APIC_DIVIDE_CONF_REG, divide_value);
         write_lapic_register(LOCAL_APIC_INIT_COUNT_REG, ticks_in_10ms);
-        write_lapic_register(LOCAL_APIC_LVT_TIMER_REG, 0x20 | (1 << 17));
+        // write_lapic_register(LOCAL_APIC_LVT_TIMER_REG, 0x20 | (1 << 17));
 
     }
     else
     {
-        krnl_panic(NULL);
+        krnl_panic(L"We don't handle any other vendors.");
     }
 
-    uint32_t low = read_ioapic_register(0x12);
-    uint32_t high = read_ioapic_register(0x13);
+    // Register Keyboard Interrupt
+    // ioapic_rte_t kbd_rte = { 0 }; 
+    // kbd_rte.intr_vector = 0x21;
+    // kbd_rte.dest_field = 0;
 
-    low = (low & 0xFFFFFF00) | 0x21;
-    high = (high & 0x00FFFFFF) | 0;
+    // uint32_t low = *(uint32_t*)&kbd_rte;
+    // uint32_t high = *(uint32_t*)((uint64_t)&kbd_rte + 4);
 
-    write_ioapic_register(0x12, low);
-    write_ioapic_register(0x13, high);
+    // write_ioapic_register(0x12, low);
+    // write_ioapic_register(0x13, high);
 
-    _cpu_install_isr(&bsp, 0x21, keyboard_isr, IDT_DESC_TYPE_INTERRUPT_GATE, 0);
-
-    // asm ("sti\n");
-
-    // for (uint32_t i = 0; i < 0xfffffff; i++);
-    // for (uint32_t i = 0; i < 0xfffffff; i++);
-    // for (uint32_t i = 0; i < 0xfffffff; i++);
+    // _cpu_install_isr(&bsp, 0x21, keyboard_isr, IDT_DESC_TYPE_INTERRUPT_GATE, 0);
 
 
 

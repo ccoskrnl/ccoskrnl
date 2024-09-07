@@ -15,6 +15,10 @@ ASM_OBJS += $(BUILD_DIR)/intr/pit.o
 ASM_OBJS += $(BUILD_DIR)/cpu/cpu_flush.o
 ASM_OBJS += $(BUILD_DIR)/intr/intr_handlers_entry.o
 ASM_OBJS += $(BUILD_DIR)/lib/cmpxchg.o
+ASM_OBJS += $(BUILD_DIR)/lib/memcpy_avx.o
+ASM_OBJS += $(BUILD_DIR)/lib/memcpy_sse2.o
+ASM_OBJS += $(BUILD_DIR)/lib/memzero_avx.o
+ASM_OBJS += $(BUILD_DIR)/lib/memzero_sse2.o
 
 TARGET = $(BUILD_DIR)/arch.o
 

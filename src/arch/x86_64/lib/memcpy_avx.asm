@@ -10,12 +10,12 @@ memcpy_avx:
     mov rcx, rdx
     mov rax, rdi
 
-memcpy_avx_copy_loop:
+.memcpy_avx_copy_loop:
 
     vmovdqu ymm0, [rsi]
     vmovdqu [rdi], ymm0
     add rsi, 32
     add rdi, 32
-    loop memcpy_avx_copy_loop
+    loop .memcpy_avx_copy_loop
 
     ret

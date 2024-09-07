@@ -1,6 +1,6 @@
-#include "../../include/libk/stdlib.h"
-
-#include "../../include/arch/cpu_features.h"
+#include "../../../include/types.h"
+#include "../cpu/cpu_features.h"
+#include "../../../include/libk/stdlib.h"
 
 extern void memzero_sse2(void* dst, uint64_t size);
 extern void memzero_avx(void* dst, uint64_t size);
@@ -33,7 +33,10 @@ void memzero(void* dst, uint64_t size)
         if (((uint64_t)dst & 0x7) == 0) 
             goto __64bits; 
         else
+        {
             memset(dst, 0, size);
+            return;
+        }
     }
     else {
         goto __64bits;
