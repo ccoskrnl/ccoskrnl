@@ -269,8 +269,11 @@ void enable_timer_intr()
 
     _cpu_install_isr(&bsp, 0x21, timer_isr, IDT_DESC_TYPE_INTERRUPT_GATE, 0);
 
+
     // Mask timer interrupt.
     write_lapic_register(LOCAL_APIC_INIT_COUNT_REG, 0);
-    write_lapic_register(LOCAL_APIC_LVT_TIMER_REG, LOCAL_APIC_LVT_INT_MASKED);
+    read_lapic_register(eax);
+    eax |= LOCAL_APIC_LVT_INT_MASKED;
+    write_lapic_register(LOCAL_APIC_LVT_TIMER_REG, eax);
 
 }

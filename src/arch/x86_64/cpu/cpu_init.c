@@ -74,7 +74,7 @@ void preparing_for_bsp(boolean is_first)
         // into new gdt space.
         memcpyb(
             gdt, 
-            (void*)(_current_machine_info->memory_space_info[1].base_address + MACHINE_INFO_SIZE + 0x1000), 
+            (void*)(_current_machine_info->memory_space_info[1].base_address + MACHINE_INFO_SIZE + 0x2000), 
             sizeof(seg_desc_t) * 3);
 
         bsp.gdt = gdt;

@@ -8,6 +8,7 @@
 
 #include "../cpu/cpu_features.h"
 #include "../cpu/cpu.h"
+#include "../mm/mm_arch.h"
 #include "../io/io.h"
 #include "apic.h"
 #include "hpet.h"
@@ -242,6 +243,62 @@ void enable_apic()
 
 }
 
+void send_ipi(uint8_t apic_id, uint8_t vector)
+{
+    lapic_icr_t icr = { 0 };
+    uint32_t low, high;
+    icr.vector = vector;
+    icr.dest_field = apic_id;
+    icr.dest_mode = LOCAL_APIC_ICR_DEST_MODE_PHYS;
+
+    // Send INIT IPI
+    icr.delivery_mode = LOCAL_APIC_ICR_DELIVERY_MODE_INIT;
+
+    low = *(uint32_t*)(&icr);
+    high = *(uint32_t*)((uintptr_t)&icr + sizeof(uint32_t));
+
+    write_lapic_register(LOCAL_APIC_ICR_HIGH, high);
+    write_lapic_register(LOCAL_APIC_ICR_LOW, low);
+
+    for (volatile int i = 0; i < 100000; i++);
+
+    icr.delivery_mode = LOCAL_APIC_ICR_DELIVERY_MODE_STARTUP;
+    low = *(uint32_t*)(&icr);
+
+    // Send Startup IPI
+    write_lapic_register(LOCAL_APIC_ICR_LOW, low);
+}
+
+/**
+ * Activate application processors. 
+**/
+void activate_aps()
+{
+
+    // walk through list
+    list_node_t *list_head;
+    list_node_t *intr_ctr_struct_node;
+    processor_local_apic_t *lapic;
+
+    // Get address of ap startup routine.
+    uintptr_t ap_entry = (uintptr_t)_current_machine_info->memory_space_info[3].base_address;
+
+    list_head = &(intr_ctr_structs + ProcessorLocalAPIC)->head;
+    intr_ctr_struct_node = list_head->flink;
+
+    for (; intr_ctr_struct_node != 0; intr_ctr_struct_node = intr_ctr_struct_node->flink)
+    {
+        lapic = struct_base(processor_local_apic_t, node, intr_ctr_struct_node);
+        // The bsp's apic id is always 0. we can ignore it.
+        if (lapic->apic_id == 0)
+            continue;
+
+        send_ipi(lapic->apic_id, (uint8_t)(ap_entry >> PAGE_SHIFT));
+    }
+
+}
+
+
 void intr_init()
 {
 
@@ -294,5 +351,10 @@ void intr_init()
 
     _cpu_install_isr(&bsp, 0x21, keyboard_isr_wrapper, IDT_DESC_TYPE_INTERRUPT_GATE, 0);
 
+
+    /**
+     * Activate application processors. 
+     **/
+    activate_aps(); 
 
 }

@@ -122,5 +122,6 @@ void krnl_init()
 
 void krnl_exit()
 {
+    sleep(3600);
     krnl_panic(NULL);
 }

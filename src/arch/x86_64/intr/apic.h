@@ -51,6 +51,157 @@
 // Spurious Interrupt Vector Register (Read/Write)
 #define LOCAL_APIC_SPURIOUS_INTERRUPT_VEC_REG       0xF0
 
+
+
+/**
+ * Interrupt Command Register
+ *
+ * @brief The interrupt command register (ICR) is a 64-bit local APIC register
+ * that allows software running on the processor to specify and send
+ * interprocessor interrupts (IPIs) to other processors in the system.
+ *
+ * @memberof Interrupt Command Register
+ * @property{bit 11}    Destination Mode        Selects either physical (0) or logical (1) destination mode
+ *
+ **/
+
+
+/**
+ * @brief Accpeting System and IPI Interrupts
+ * 
+ * If the local APIC accepting the interrupt determines that the message type for the interrupt request
+ * indicates SMI, NMI, INIT, STARTUP or ExtINT, it sends the interrupt directly to the CPU core for 
+ * handling. If the message type is fixed or lowest priority, the accepting local APIC places the interrupt 
+ * into an open slot in either the IRR or ISR registers. If there is no free slot, the interrupt is rejected and 
+ * sent back to the sender with a retry request.
+ * 
+ **/
+#define LOCAL_APIC_ICR_LOW                          0x300
+#define LOCAL_APIC_ICR_HIGH                         0x310
+
+/**
+ * Delivers the interrupt specified in the vector field to the target processor or 
+ * processors
+ **/
+#define LOCAL_APIC_ICR_DELIVERY_MODE_FIXED          0x0
+
+/**
+ * Same as fixed mode, except that the interrupt is delivered to the processor 
+ * executing at the lowest priority among the set of processors specified in 
+ * the destination field. The ability for a processor to send a lowest priority 
+ * IPI is model specific and should be avoided by BIOS and operating system 
+ * software.
+ **/
+#define LOCAL_APIC_ICR_DELIVERY_MODE_LOW_PRI        0x1
+
+/**
+ * Delivers an SMI interrupt to the target processor or processors. The vector 
+ * field must be programmed to 00H for future compatibility.
+ **/
+#define LOCAL_APIC_ICR_DELIVERY_MODE_SMI            0x2
+
+/**
+ * Delivers an NMI interrupt to the target processor or processors. The vector 
+ * information is ignored. 
+ **/
+#define LOCAL_APIC_ICR_DELIVERY_MODE_NMI            0x4
+
+/**
+ * Delivers an INIT request to the target processor or processors, which 
+ * causes them to perform an INIT. As a result of this IPI message, all the 
+ * target processors perform an INIT. The vector field must be programmed to 
+ * 00H for future compatibility.
+ **/
+#define LOCAL_APIC_ICR_DELIVERY_MODE_INIT           0x5
+/**
+ * 
+ **/
+#define LOCAL_APIC_ICR_DELIVERY_MODE_INIT_DA        0x5
+
+/**
+ * The IPI delivers a start-up request (SIPI) to the target local APIC(s) specified 
+ * in Destination field, causing the CPU core to start processing the BIOS boot-strap routine 
+ * whose address is specified by the Vector field. 
+ **/
+#define LOCAL_APIC_ICR_DELIVERY_MODE_STARTUP        0x6
+
+/**
+ * @note This mode is only used for AMD.
+ * The IPI delivers an external interrupt to the target local APIC 
+ * specified in Destination field. The interrupt can be delivered even if the APIC is disabled.
+ **/
+#define LOCAL_APIC_ICR_DELIVERY_MODE_EXT_INT        0x7
+
+/** 
+ * In physical destination mode, the destination processor is specified by its local APIC ID
+ **/
+#define LOCAL_APIC_ICR_DEST_MODE_PHYS               0x0
+
+/** 
+ * In logical destination mode, IPI destination is specified using an 8-bit message destination address (MDA), which 
+ * is entered in the destination field of the ICR. 
+ **/
+#define LOCAL_APIC_ICR_DEST_MODE_LOGI               0x1
+
+typedef struct _lapic_icr
+{
+    // The vector number of the interrupt being sent.
+    uint64_t vector : 8;
+
+    // Specifies the type of IPI to be sent. This field is also know as the IPI message type field.
+    uint64_t delivery_mode : 3;
+
+    /**
+    * Destination Mode
+    * @brief Selects either physical or logical destination mode.
+    * @note The number of local APICs that can be addressed on the system bus may be restricted by hardware.
+    **/
+    uint64_t dest_mode : 1;
+
+    // Indicates the IPI delivery status: idle or send pending.
+    uint64_t delivery_status : 1;
+
+    uint64_t reserved0 : 1;
+
+    // For the INIT level de-assert delivery mode this flag must be set to 0; for all other delivery 
+    // modes it must be set to 1.
+    uint64_t level : 1;
+
+    // Selects the trigger mode when using the INIT level de-assert delivery mode: edge (0) or level 
+    // (1). It is ignored for all other delivery modes. 
+    uint64_t trigger_mode : 1;
+
+    // The RRS field indicates the current read status of a 
+    // Remote Read from another local APIC.
+    uint64_t remote_read_status : 2;    // This field is only used for AMD family processors.
+
+    // Indicates whether a shorthand notation is used to specify the destination of the interrupt and, 
+    // if so, which shorthand is used.
+    uint64_t dest_shorthand : 2;
+
+    uint64_t reserved2 : 36;
+
+    /**
+     * @ref Intel Software Programmer Manual
+     * Specifies the target processor or processors. This field is only used when the destination 
+     * shorthand field is set to 00B. If the destination mode is set to physical, then bits 56 through 59 
+     * contain the APIC ID of the target processor for Pentium and P6 family processors and bits 56 
+     * through 63 contain the APIC ID of the target processor the for Pentium 4 and Intel Xeon 
+     * processors. If the destination mode is set to logical, the interpretation of the 8-bit destination 
+     * field depends on the settings of the DFR and LDR registers of the local APICs in all the processors in the system
+    **/
+
+    /**
+     * @ref AMD Architecture Programmer Manual 
+     * The field indicates the target local APIC when the destination mode=0 (physical), and the destination logical 
+     * ID (as indicated by LDR and DFR) when the destination mode=1 (logical).
+    **/
+    uint64_t dest_field : 8;
+
+} __attribute__((packed))  lapic_icr_t;
+
+
+
 // LVT Timer Register(Read/Write)
 #define LOCAL_APIC_LVT_TIMER_REG                    0x320
 
@@ -66,43 +217,6 @@
 
 #define LOCAL_APIC_LVT_TIMER_PERIODIC               (1 << 17)
 #define LOCAL_APIC_LVT_INT_MASKED                   (1 << 16)
-
-
-/**
- * Interrupt Command Register
- *
- * @brief The interrupt command register (ICR) is a 64-bit local APIC register
- * that allows software running on the processor to specify and send
- * interprocessor interrupts (IPIs) to other processors in the system.
- *
- * @memberof Interrupt Command Register
- * @property{bit 11}    Destination Mode        Selects either physical (0) or logical (1) destination mode
- *
- */
-
-/**
- * Destination Mode
- * @brief Selects either physical or logical destination mode.
- */
-
-/**
- * @brief Introduction to Physical destination mode.
- * 
- * In physical destination mode, the destination processor is specified by its local APIC ID
- * 
- * @note The number of local APICs that can be addressed on the system bus may be restricted by hardware.
- */
-
-/**
- * @brief Accpeting System and IPI Interrupts
- * 
- * If the local APIC accepting the interrupt determines that the message type for the interrupt request
- * indicates SMI, NMI, INIT, STARTUP or ExtINT, it sends the interrupt directly to the CPU core for 
- * handling. If the message type is fixed or lowest priority, the accepting local APIC places the interrupt 
- * into an open slot in either the IRR or ISR registers. If there is no free slot, the interrupt is rejected and 
- * sent back to the sender with a retry request.
- * 
- */
 
 
 typedef struct _intr_ctr_struct_head

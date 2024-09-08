@@ -6,7 +6,11 @@
 #include "types.h"
 
 #define MACHINE_INFO_STRUCT_SIZE                            0x10000
-#define STARTUP_ROUTINE_SIZE				    0x1000
+#define CCLDR_ROUTINE_SIZE				                    0x1000
+
+#define STARTUP_ROUTINE_SIZE				                0x1000
+#define STARTUP_ROUTINE_RESERVED_SIZE_FOR_GDT               0x200
+
 // Byte-Alignment
 #define MM1MB                                               0x100000
 #define MM16MB                                              0x1000000

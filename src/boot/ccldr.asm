@@ -1,8 +1,11 @@
-[bits 64]
-
 kernel_pml4_offset equ 0x1E0
 kernel_space_virtual_base_addr equ 0xFFFFF00000000000
 magic_number equ 0x6964616B73
+
+startup_routine_size equ 0x1000
+ccldr_routine_size equ 0x1000
+gdt_size equ 0x200
+gdt_offset_in_startup_routine_space equ 0xE00
 
 seg_selector_code equ (1 << 3)
 seg_selector_data equ (2 << 3)
@@ -35,9 +38,115 @@ seg_selector_data equ (2 << 3)
 
 
 section .text
-global start
+global bsp_init
+global ap_init
 
-start:
+[bits 16]
+ap_init:
+
+    call 0
+    ; rdi stores ap_init address.
+    pop di
+
+    cli
+
+    ; turn on A20
+    in al, 0x92
+    or al, 0b10
+    out 0x92, al
+
+    ; get gdt_base
+    add di, gdt_offset_in_startup_routine_space
+    mov bx, di
+
+    ; fill the gdtr
+    add bx, 0x22
+    mov word[bx], di
+
+    ; load gdt
+    sub bx, 2
+    lgdt[bx]
+
+    ; open PM-mode
+    mov eax, cr0
+    or eax, 1
+    mov cr0, eax
+
+    jmp dword seg_selector_code:protect_mode
+
+[bits 32]
+protect_mode:
+    mov ax, seg_selector_data
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    mov ss, ax
+
+    mov eax, cr4
+    ; enable physical-address extensions(PAE)
+    or eax, 0x20
+    ; use 4-level paging
+    and eax, 0xFFFFEFFF
+    mov cr4, eax
+
+    xor ebx, ebx
+    mov bx, di
+    add bx, 0x180
+
+    mov sp, bx
+
+    ; set temporary stack top at startup_routine address + 0x200
+    add sp, 0x80
+
+    ; get pml4 address
+    mov eax, dword[ebx]
+    ; backup 
+    mov ebx, eax
+
+    mov cr3, eax
+
+    ; enable IA-32e long mode
+    mov ecx, 0xc0000080
+    rdmsr
+    or eax, 0x0101
+    wrmsr
+
+    mov eax, cr0
+    or eax, 0x80000000
+    mov cr0, eax
+
+    jmp dword seg_selector_code:long_mode
+
+[bits 64]
+
+long_mode:
+
+    ; Set up segment registers
+    mov ax, seg_selector_data  ; Data segment selector
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    mov ss, ax
+
+    mov cr3, rbx
+
+    ; Far return to reload CS
+    push seg_selector_code  ; Code segment selector
+    mov rax, 0xfffff00000001000
+    push rax
+    ; goto kernel
+    retfq
+
+
+
+
+; fill rest of current page with 0
+times startup_routine_size - ($ - $$) db 0
+
+[bits 64]
+bsp_init:
 
     nop
     nop
@@ -73,7 +182,7 @@ start:
 
 
     ; Set temporary kernel stack pointer
-    ; rsp -> ccldr base + ccldr size
+    ; rsp -> ccldr base + machine info structure size
     mov rsp, rbp
     mov rax, magic_number
     push rax
@@ -247,16 +356,16 @@ start:
     and rcx, 0xfff
     mov rax, qword[rbp - 0x10]
     or rax, rcx
+
+    ; copy cr3 into startup-routine data seg
+    mov rbx, qword[r8 + 0x30]
+    add rbx, 0x180 + gdt_offset_in_startup_routine_space
+    mov qword[rbx], rax
+
     mov rbx, rax
+
     mov cr3, rax
 
-    ; enable IA-32e long mode
-    ; We are in 64-bit when UEFI transfers CPU control to ccldr.
-    ; So we don't need to enable manually.
-    ; mov ecx, 0xc0000080
-    ; rdmsr
-    ; or eax, 0x0101
-    ; wrmsr
 
     cli
     mov rdi, r8
@@ -264,7 +373,7 @@ start:
     ; get ccldr_base
     mov r8, qword[rdi+0x10]
     ; locate gdt base addr
-    add r8, 0x11000
+    add r8, 0x12000
     mov r9, r8
     ; locate gdtr::base
     add r9, 0x22
@@ -306,13 +415,13 @@ start:
 ;   returned 0
 func_fill_pte:
 
-    fill_pte:
+    .fill_pte:
         mov rax, rsi
         or rax, 3
         mov [rdi], rax
         add rsi, 0x1000
         add rdi, 0x8
-        loop fill_pte
+        loop .fill_pte
     xor rax, rax
     ret
 
@@ -348,9 +457,9 @@ func_calculate_num_of_ptes:
     mov rdx, 0x7FFFFFFFFF
     and rax, rdx
     cmp rax, 0
-    je LPML4
+    je .LPML4
     inc rdi
-LPML4:
+.LPML4:
     mov qword[rsi], rdi
 
     mov rdi, rbx
@@ -358,9 +467,9 @@ LPML4:
     shr rdi, 30
     and rax, 0x3fffffff
     cmp rax, 0
-    je LPDPT
+    je .LPDPT
     inc rdi
-LPDPT:
+.LPDPT:
     mov qword[rsi+0x8], rdi
 
     mov rdi, rbx
@@ -368,9 +477,9 @@ LPDPT:
     shr rdi, 21
     and rax, 0x1FFFFF
     cmp rax, 0
-    je LPD
+    je .LPD
     inc rdi
-LPD:
+.LPD:
     mov qword[rsi+0x10], rdi
 
     mov rdi, rbx
@@ -378,9 +487,9 @@ LPD:
     shr rdi, 12
     and rax, 0xFFF
     cmp rax, 0
-    je LPT
+    je .LPT
     inc rdi
-LPT:
+.LPT:
     mov qword[rsi+0x18], rdi
 
     mov rsp, rbp
@@ -425,9 +534,9 @@ func_calculate_num_of_ptes_with_base_addr:
     mov rsi, 0x7fffffffff
     and rax, rsi
     cmp rax, 0
-    je num_of_pml4es_calculation_completed
+    je .num_of_pml4es_calculation_completed
     inc rdi
-num_of_pml4es_calculation_completed:
+.num_of_pml4es_calculation_completed:
     mov qword[rdx], rdi     ; store num_of_pml4es
 
 
@@ -442,10 +551,10 @@ num_of_pml4es_calculation_completed:
     shr rdi, 30
     and rax, 0x3fffffff
     cmp rax, 0
-    je num_of_pdptes_calculation_completed
+    je .num_of_pdptes_calculation_completed
     inc rdi
 
-num_of_pdptes_calculation_completed:
+.num_of_pdptes_calculation_completed:
     mov qword[rdx+0x8], rdi
 
     ; if ((offset + (*p_num_of_pdptes)) > (0x1FF * (*p_num_of_pml4es))) {
@@ -455,11 +564,11 @@ num_of_pdptes_calculation_completed:
     mov r9, qword[rdx]
     shl r9, 9
     cmp r8, r9
-    jna done_for_num_of_pml4e
+    jna .done_for_num_of_pml4e
     mov rdi, qword[rdx]
     inc rdi
     mov qword[rdx], rdi
-done_for_num_of_pml4e:
+.done_for_num_of_pml4e:
 
 
 
@@ -472,21 +581,21 @@ done_for_num_of_pml4e:
     shr rdi, 21
     and rax, 0x1FFFFF
     cmp rax, 0
-    je num_of_pdes_calculation_completed
+    je .num_of_pdes_calculation_completed
     inc rdi
 
-num_of_pdes_calculation_completed:
+.num_of_pdes_calculation_completed:
     mov qword[rdx+0x10], rdi
 
     add r8, rdi
     mov r9, qword[rdx + 0x8]
     shl r9, 9
     cmp r8, r9
-    jna done_for_num_of_pdptes
+    jna .done_for_num_of_pdptes
     mov rdi, qword[rdx + 0x8]
     inc rdi
     mov qword[rdx + 0x8], rdi
-done_for_num_of_pdptes:
+.done_for_num_of_pdptes:
 
     mov r8, rcx
     shr r8, 12
@@ -497,21 +606,21 @@ done_for_num_of_pdptes:
     shr rdi, 12
     and rax, 0xFFF
     cmp rax, 0
-    je num_of_ptes_calculation_completed
+    je .num_of_ptes_calculation_completed
     inc rdi
 
-num_of_ptes_calculation_completed:
+.num_of_ptes_calculation_completed:
     mov qword[rdx+0x18], rdi
 
     add r8, rdi
     mov r9, qword[rdx + 0x10]
     shl r9, 9
     cmp r8, r9
-    jna done_for_num_of_pdes
+    jna .done_for_num_of_pdes
     mov rdi, qword[rdx + 0x10]
     inc rdi
     mov qword[rdx + 0x10], rdi
-done_for_num_of_pdes:
+.done_for_num_of_pdes:
 
 
     mov rsp, rbp
@@ -520,8 +629,26 @@ done_for_num_of_pdes:
     pop rbx
     ret
 
-; fill rest of data page with 0
-times 0x1000 - ($ - $$) db 0
+
+memcpy:
+    ; Arguments:
+    ; rdi - destination
+    ; rsi - source
+    ; rdx - number of bytes to copy
+
+    ; Save the number of bytes to copy
+    mov rcx, rdx
+
+    ; Copy bytes from source to destination
+    rep movsb
+
+    ; Return the destination pointer
+    mov rax, rdi
+    ret
+
+
+; fill rest of current page with 0
+times (startup_routine_size + ccldr_routine_size) - ($ - $$) db 0
 
 
 

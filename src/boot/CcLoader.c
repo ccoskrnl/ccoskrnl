@@ -330,7 +330,7 @@ UefiMain(
   memcpy((void*)CcldrBase, (void*)MachineInfo, MACHINE_INFO_STRUCT_SIZE);
 
   MachineInfo = (LOADER_MACHINE_INFORMATION*)CcldrBase;
-  CcldrBase += MACHINE_INFO_STRUCT_SIZE;
+  CcldrBase += (MACHINE_INFO_STRUCT_SIZE);
 
   Status = gBS->FreePages(InfoAddress, MACHINE_INFO_STRUCT_SIZE >> EFI_PAGE_SHIFT);
   if (EFI_ERROR(Status))
@@ -351,12 +351,20 @@ UefiMain(
     Print(L"[ERROR]: Allocate memory for start-up routine failed...\n\r");
     goto ExitUefi;
   }
-  
-
-
 
   ReadFileToBufferAt(KRNL_PATH, KrnlImageBase, &KernelBufferSize);
   ReadFileToBufferAt(CCLDR_PATH, CcldrBase, &CcldrBufferSize);
+
+  // Copy GDT into StartUpRoutineAddress. In this way, aps can directly load the gdt.
+  memcpy((void*)(StartUpRoutineAddress + 0xE00), (void*)((UINTN)MachineInfo + 
+    (MACHINE_INFO_STRUCT_SIZE + STARTUP_ROUTINE_SIZE + CCLDR_ROUTINE_SIZE)), 
+    STARTUP_ROUTINE_RESERVED_SIZE_FOR_GDT);
+
+  memcpy(
+    (void*)(StartUpRoutineAddress),
+    (void*)((UINTN)MachineInfo + MACHINE_INFO_STRUCT_SIZE),
+    STARTUP_ROUTINE_SIZE - STARTUP_ROUTINE_RESERVED_SIZE_FOR_GDT
+  );
 
   MachineInfo->MemorySpaceInformation[0].BaseAddress = KrnlImageBase;
   MachineInfo->MemorySpaceInformation[0].Size = KernelSpaceSize;
@@ -410,11 +418,11 @@ UefiMain(
 
 #endif
 
+  void (*ccldr_start)(LOADER_MACHINE_INFORMATION *MachineInfo) = (void *)(CcldrBase + STARTUP_ROUTINE_SIZE);
+
   /* ========================== Exit Services ================================ */
   gBS->GetMemoryMap(&MemMapSize, MemMap, &MapKey, &DescriptorSize, &DesVersion);
   gBS->ExitBootServices(ImageHandle, MapKey);
-
-  void (*ccldr_start)(LOADER_MACHINE_INFORMATION *MachineInfo) = (void *)(CcldrBase);
 
   ccldr_start(MachineInfo);
 
