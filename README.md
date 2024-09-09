@@ -1,69 +1,84 @@
-# Cheng Cheng's Operating System Kernel
+# ccoskrnl
 
-## 概述
+ccos is a hobby 64-bit operating system. I'm writing it on x86_64, because I like sadness and misery. I do not possess extensive expertise, and I am not a expert in OS designing so it may contains numerous bugs. Actually, many of the design concepts I have implemented are inspired by Windows NT such as ccldr(OS Loader for ccos) and dynamic memory manager and so on. WRK(Windows Research Kernel) is an extremely excellent project suitable for those who wish to delve deeper in OS designing. 
 
-ccos 是一个基于x86_64架构开发的64位操作系统，尽可能地提供现代设备的驱动(我不保证能实现出来:)。ccos 项目的创立和开发主要来自我个人对操作系统的兴趣。内核的大部分设计思路都来源于Windows NT内核。
-
-***
-![Sample](./conf/sample.png)
+## Features
 ***
 
-## 目录
+**UEFI**
 
-- [Cheng Cheng's Operating System Kernel](#cheng-chengs-operating-system-kernel)
-  - [概述](#概述)
-  - [目录](#目录)
-  - [安装](#安装)
-  - [特性](#特性)
-  - [进度](#进度)
-  - [贡献](#贡献)
-  - [联系](#联系)
+ccos bases UEFI to bootstrap ccoskrnl. UEFI greatly facilitates OS Loader developing. Developer can directly call the interfaces provided by UEFI. There is one thing to note here, that ccos needs ccldr to load ccoskrnl. It is a bit like "a second stage boot loader". But in fact, BOOTX64.efi merely searches for a suitable size of physical memory and loads ccoskrnl image into the space. The ccldr need to map kernel space into high address of virtual address space and to set GDT(Global Descriptor Table, a significant structure for x86_64 architecture.)
 
-## 安装
+**Multi Processors(Developing)**
 
-安装以及调试运行的教程已在Wiki给出。
+Multi processors support is an enormous challenge for me. I do not guarantee a good implementation of multi-processors system.
 
-## 特性
+**APIC**
 
-**UEFI引导**
-
-UEFI，也称为统一可延伸固件接口，是一种公开可用的规范，它定义了操作系统和平台固件之间的软件接口。 UEFI 取代了原来存在于所有 IBM 电脑兼容个人电脑中的传统基本输入输出系统（BIOS）固件接口，大多数 UEFI 固件实现都提供对传统 BIOS 服务的支持。使用UEFI接口开发操作系统的加载器将会大大减少操作系统开发者的工作量。相比于传统引导的操作系统加载器开发，UEFI无疑是一种更好的选择。在UEFI期间，引导器主要负责收集当前设备的各种信息以及ACPI表传递给内核。
-
-**APIC支持 (开发中)**
-
-Intel 公司开发的高级可编程中断控制器(APIC)提供了以下功能：
-
-- 处理大量中断，将每个中断路由到特定的 CPU 集合。
-- 支持 CPU 间的通信，无需多个设备来共享单个中断行。
-
-操作系统中断使用APIC统一管理，并且尽可能地提供对APIC硬件的支持。
+APIC(Advanced Programmable Interrupt Controller) is a critical component in modern computer system. It provides the possibility for multi-processors system and supports multilevel interrupt priority on the hardware level. Unfortunately, APIC is complicated. Since to fully understand APIC needs sound knowledge of computer system, I only implement the basic driver of APIC.
 
 **TrueType**
 
-TrueType是由美国苹果公司和微软公司共同开发的一种电脑轮廓字体（曲线描边字）类型标准。操作系统使用思源黑体(Adobe Source Han Sans SC VF)，作为默认字体。操作系统解析TTF，并直接在屏幕上绘制出字形的轮廓(没有实现填充算法，小字号字体显示时空隙相对不明显，并不影响字体的辨识，故暂时并没有实现)。
+Yes, ccos displays characters on screen through rendering TrueType Fonts(Default font in ccos is Adobe Source Han Sans SC VF.). It's not worth to output characters using TrueType rendering. For early OS developing, using bitmap fonts is more recommended method of characters output. 
+
+Probably the greatest thing about storing characters as outlines is that only one outline per character is needed to produce all the sizes of that character OS will ever need. A single outline can be scaled to an enormous range of different sizes, some of which are illustrated below. This enables the same character to be displayed on monitors of different resolutions, and to be printed out at a large number of different sizes. To scale a character outline is a simple mathematical operation, as indeed are other transformations such as rotation and reflections.
+
+The structure of TrueType is complex, I just write a font rasterizer and not fill. Actually, I have not achieved font rasterizer, because I didn't implement hinting of TrueType. Hinting is at the heart of TrueType. Its inventors, mindful of the diversity of opinion on the "correct" way to hint type, decided there was no single hinting paradigm that they would impose upon type developers. Instead, they linked a relatively simple rasterizer to a new interpreted programming language. For font readability, however, this is enough.
+
+**Wide Char**
+
+ccos offers two character type, "char" and "wch_t"(wide char, 4-bytes), for storing all characters. Regardless of the character type, ccos always converts wch_t first, then outputs a wide string. In fact, TrueType parser in ccos only uses "Unicode 2.0 and onwards semantics", which platform ID = 0 and Encoding ID = 3 in cmap(cmap — Character to Glyph Index Mapping Table, a struture in TrueType.). Therefore, it exclusively supports Unicode Basic Multilingual Plane characters (U+0000 to U+FFFF).
+
+**Memory Manager**
+
+The designing ideas of memory management is inspired by Window NT, which contains PFN database, Lookside, Page-Directory self mapping scheme, lamination memory pool management and so on, but not all.
+
+**Graphics Output with multi-windows**
+
+ccos supports multi-windows, which means it can output text in different window on screen. It's uesful to debug multi-processors through open a text-output window to each processor. Even if not have mouse driver, user also can use keyboard to select which window need to enter characters.
 
 
-**Windows NT内存管理器**
+![Sample](./conf/sample.png)
 
-操作系统的内存管理来自Windows NT的内存管理器设计，这其中包括页目录自映射方案，分层的内存池管理，并使用Lookaside机制提供对更精细颗粒度的内存管理。
+## TO-DO
+***
 
-## 进度
+- [ ] Keyboard Driver
+- [ ] Activate application processors.
+- [ ] Dynamic memory manager with memory leaks detection.
 
-- [ ] 自旋锁实现
-- [ ] Application Processors 唤醒
-- [ ] 键盘驱动
-- [ ] HPET 驱动支持
-- [ ] APIC 支持
-- [ ] 优化内存管理器，实现Tag机制，提供对内存泄露的检测。
+## Installation
+***
 
+For installation, please refer to the [ccoskrnl build](https://github.com/ccoskrnl/ccoskrnl/wiki/Installation)
 
-## 贡献
+## Contributing
+***
 
-感谢 @Estrella 大佬提供的完整的数学库(`reflibs/libm.a`)，在开发过程中他为我提供了很多宝贵的建议和一些技术的讲解。
+The math library(reflibs/libm.a) was provided by @Estrella
 
-## 联系
+## License
+***
 
-如有疑问或反馈，请通过以下方式联系我：
+No license.
 
-- Email: 2010705797@qq.com
-- Github: ccoskrnl
+## Contact
+***
+
+ChengCheng - [@github](https://github.com/ccoskrnl) - 2010705797@qq.com
+ccoskrnl: https://github.com/ccoskrnl/ccoskrnl
+
+## Acknowledgments
+***
+
+- [**Intel® 64 and IA-32 architectures software developer's manuals**](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html)
+
+- [**AMD64 Architecture Programmer’s Manual Volume 2: System Programming**](https://www.amd.com/content/dam/amd/en/documents/processor-tech-docs/programmer-references/24593.pdf)
+
+- [**Windows内核设计与实现**](https://book.douban.com/subject/4719159/)
+
+- [**Computer Systems: A Programmer’s Perspective 3rd**](https://www.pearson.com/en-us/subject-catalog/p/computer-systems-a-programmers-perspective/P200000003479/9780138105396)
+
+- [**The C Programming Language**](https://en.wikipedia.org/wiki/The_C_Programming_Language)
+
+- ...
