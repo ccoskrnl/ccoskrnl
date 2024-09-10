@@ -3,7 +3,6 @@
 ccos is a hobby 64-bit operating system. I'm writing it on x86_64, because I like sadness and misery. I do not possess extensive expertise, and I am not a expert in OS designing so it may contains numerous bugs. Actually, many of the design concepts I have implemented are inspired by Windows NT such as ccldr(OS Loader for ccos) and dynamic memory manager and so on. WRK(Windows Research Kernel) is an extremely excellent project suitable for those who wish to delve deeper in OS designing. 
 
 ## Features
-***
 
 **UEFI**
 
@@ -37,39 +36,32 @@ The designing ideas of memory management is inspired by Window NT, which contain
 
 ccos supports multi-windows, which means it can output text in different window on screen. It's uesful to debug multi-processors through open a text-output window to each processor. Even if not have mouse driver, user also can use keyboard to select which window need to enter characters.
 
-
-![Sample](./conf/sample.png)
+![Sample](./demonstration/sample.png)
 
 ## TO-DO
-***
 
 - [ ] Keyboard Driver
 - [ ] Activate application processors.
 - [ ] Dynamic memory manager with memory leaks detection.
 
 ## Installation
-***
 
 For installation, please refer to the [ccoskrnl build](https://github.com/ccoskrnl/ccoskrnl/wiki/Installation)
 
 ## Contributing
-***
 
 The math library(reflibs/libm.a) was provided by @Estrella
 
 ## License
-***
 
 No license.
 
 ## Contact
-***
 
 ChengCheng - [@github](https://github.com/ccoskrnl) - 2010705797@qq.com
 ccoskrnl: https://github.com/ccoskrnl/ccoskrnl
 
 ## Acknowledgments
-***
 
 - [**Intel® 64 and IA-32 architectures software developer's manuals**](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html)
 
@@ -80,5 +72,11 @@ ccoskrnl: https://github.com/ccoskrnl/ccoskrnl
 - [**Computer Systems: A Programmer’s Perspective 3rd**](https://www.pearson.com/en-us/subject-catalog/p/computer-systems-a-programmers-perspective/P200000003479/9780138105396)
 
 - [**The C Programming Language**](https://en.wikipedia.org/wiki/The_C_Programming_Language)
+
+- [**OSDev Wiki**](https://wiki.osdev.org/)
+
+- [**ACPI Specification**](https://uefi.org/htmlspecs/ACPI_Spec_6_4_html/Frontmatter/Overview/Overview.html)
+
+- [**UEFI Specification**](https://uefi.org/specs/UEFI/2.10/01_Introduction.html)
 
 - ...
