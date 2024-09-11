@@ -5,7 +5,6 @@ include ../../conf/target.conf
 BUILD_DIR = ../../build/go
 SRC_DIRS = . font output window
 
-# 获取所有的 .c 源文件
 SRCS = $(foreach dir, $(SRC_DIRS), $(wildcard $(dir)/*.c))
 OBJS = $(patsubst %.c,$(BUILD_DIR)/%.o,$(SRCS))
 

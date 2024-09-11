@@ -43,12 +43,12 @@ global ap_init
 
 [bits 16]
 ap_init:
+    cli
+    int3
 
     call 0
     ; rdi stores ap_init address.
     pop di
-
-    cli
 
     ; turn on A20
     in al, 0x92

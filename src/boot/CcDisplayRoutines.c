@@ -99,9 +99,9 @@ ParsingSuccessful:
 }
 
 #ifndef _DEBUG
-#define LOADING_ICO_PATH 											L"icon\\loading.ico"
+#define LOADING_ICO_PATH 											L"EFI\\ChengChengOS\\icon\\loading.ico"
 #define LOADING_OFFSET												30
-#define LOGO_ICO_PATH 												L"icon\\logo.ico"
+#define LOGO_ICO_PATH 												L"EFI\\ChengChengOS\\icon\\logo.ico"
 
 
 EFI_STATUS DisplayImage(

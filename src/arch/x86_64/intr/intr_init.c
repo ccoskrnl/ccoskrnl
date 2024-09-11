@@ -40,6 +40,9 @@ hpet_table_t *hpet_table;
  **/
 intr_ctr_struct_head_t intr_ctr_structs[MAX_MADT_INTURRUPT_CONTROLLER_STRUCTURE_TYPES];
 
+extern lapic_ver_t lapic_ver;
+
+
 
 static void parse_madt(_in_ struct _MADT *madt_ptr, _in_ _out_ intr_ctr_struct_head_t* intr_ctr_structs)
 {
@@ -243,30 +246,126 @@ void enable_apic()
 
 }
 
-void send_ipi(uint8_t apic_id, uint8_t vector)
+// The start address of system page table entry pool.
+extern uint64_t _mm_sys_pte_pool_start;
+// The physical start address of system page table entry pool.
+extern uint64_t _mm_sys_pte_pool_phys_start;
+
+extern uint64_t _mm_get_sys_pte_next_page();
+
+void mapping_startup_routine(uint64_t startup_addr)
+{
+    uint64_t new_page;
+    uint64_t vpage = startup_addr >> PAGE_SHIFT;
+    mmpte_hardware_t *startup_pml4_entry;
+    mmpte_hardware_t *startup_pdpt;
+    mmpte_hardware_t *startup_pd;
+    mmpte_hardware_t *startup_pt;
+
+    new_page = _mm_get_sys_pte_next_page();
+    startup_pdpt = (mmpte_hardware_t*)(new_page + _mm_sys_pte_pool_start);
+
+    startup_pml4_entry = (mmpte_hardware_t*)(_mm_pt_pml4_start);
+    startup_pml4_entry->present = 1;
+    startup_pml4_entry->rw = 1;
+    startup_pml4_entry->address = ((uint64_t)(new_page + _mm_sys_pte_pool_phys_start)) >> PAGE_SHIFT;
+
+    new_page = _mm_get_sys_pte_next_page();
+    startup_pd = (mmpte_hardware_t*)(new_page + _mm_sys_pte_pool_start);
+
+    startup_pdpt[0].present = 1;
+    startup_pdpt[0].rw = 1;
+    startup_pdpt[0].address = ((uint64_t)(new_page + _mm_sys_pte_pool_phys_start)) >> PAGE_SHIFT;
+
+    new_page = _mm_get_sys_pte_next_page();
+    startup_pt = (mmpte_hardware_t*)(new_page + _mm_sys_pte_pool_start);
+
+    startup_pd[0].present = 1;
+    startup_pd[0].rw = 1;
+    startup_pd[0].address = ((uint64_t)(new_page + _mm_sys_pte_pool_phys_start)) >> PAGE_SHIFT;
+
+    startup_pt[vpage].present = 1;
+    startup_pt[vpage].rw = 1;
+    startup_pt[vpage].address = vpage;
+
+    _mm_flush_tlb(startup_addr);
+    
+}
+
+
+/**
+ * Application Processor Startup universal algorithm from MPspec B.4.
+ **/
+
+void send_sipi(uint8_t apic_id, uint8_t vector)
 {
     lapic_icr_t icr = { 0 };
     uint32_t low, high;
-    icr.vector = vector;
+    uint8_t retry = 3;
+
     icr.dest_field = apic_id;
     icr.dest_mode = LOCAL_APIC_ICR_DEST_MODE_PHYS;
-
     // Send INIT IPI
     icr.delivery_mode = LOCAL_APIC_ICR_DELIVERY_MODE_INIT;
+    // For the INIT level de-assert delivery mode this flag must be set to 0;
+    icr.level = 0;
 
+    // The trigger mode is edge-triggered, and the Vector field must =00h
+    icr.trigger_mode = LOCAL_APIC_ICR_TRIGGER_MODE_EDGE;
+
+
+    // write to lapic_reg
     low = *(uint32_t*)(&icr);
     high = *(uint32_t*)((uintptr_t)&icr + sizeof(uint32_t));
 
     write_lapic_register(LOCAL_APIC_ICR_HIGH, high);
     write_lapic_register(LOCAL_APIC_ICR_LOW, low);
 
-    for (volatile int i = 0; i < 100000; i++);
+    // delay
+    // 10 millisecond
+    pit_prepare_sleep(10000);
+    pit_perform_sleep();
 
+    while (retry--) {
+
+        if (_lapic_check_delivery_status())
+        {
+            break;
+        }
+
+        write_lapic_register(LOCAL_APIC_ICR_LOW, low);
+
+        // delay
+        // 10 millisecond
+        pit_prepare_sleep(10000);
+        pit_perform_sleep();
+    }
+    retry = 3;
+
+    // set startup routine and sipi
+    icr.vector = vector;
+    icr.level = 1;
     icr.delivery_mode = LOCAL_APIC_ICR_DELIVERY_MODE_STARTUP;
     low = *(uint32_t*)(&icr);
 
-    // Send Startup IPI
-    write_lapic_register(LOCAL_APIC_ICR_LOW, low);
+    if (!_lapic_is_82489DX(lapic_ver.version)) 
+    {
+        // Send Startup IPI
+        write_lapic_register(LOCAL_APIC_ICR_LOW, low);
+
+        // 1000 us
+        pit_prepare_sleep(1);
+        pit_perform_sleep();
+
+        write_lapic_register(LOCAL_APIC_ICR_LOW, low);
+
+        // 1000 us
+        pit_prepare_sleep(1);
+        pit_perform_sleep();
+    
+    }
+
+
 }
 
 /**
@@ -290,10 +389,10 @@ void activate_aps()
     {
         lapic = struct_base(processor_local_apic_t, node, intr_ctr_struct_node);
         // The bsp's apic id is always 0. we can ignore it.
-        if (lapic->apic_id == 0)
+        if (lapic->apic_id == bsp.lapic_id)
             continue;
 
-        send_ipi(lapic->apic_id, (uint8_t)(ap_entry >> PAGE_SHIFT));
+        send_sipi(lapic->apic_id, (uint8_t)(ap_entry >> PAGE_SHIFT));
     }
 
 }
@@ -339,6 +438,7 @@ void intr_init()
     /**
      * Enable Keyboard Interrupt.
      **/
+
     ioapic_rte_t kbd_rte = { 0 }; 
     kbd_rte.intr_vector = 0x21;
     kbd_rte.dest_field = 0;
@@ -346,8 +446,8 @@ void intr_init()
     uint32_t low = *(uint32_t*)&kbd_rte;
     uint32_t high = *(uint32_t*)((uint64_t)&kbd_rte + 4);
 
-    write_ioapic_register(0x12, low);
-    write_ioapic_register(0x13, high);
+    write_ioapic_register(ioapics[0], IOAPIC_RET_ENTRY_OFFSET(IRQ_KEYBOARD), low);
+    write_ioapic_register(ioapics[0], IOAPIC_RET_ENTRY_OFFSET(IRQ_KEYBOARD) + 1, high);
 
     _cpu_install_isr(&bsp, 0x21, keyboard_isr_wrapper, IDT_DESC_TYPE_INTERRUPT_GATE, 0);
 
@@ -355,6 +455,7 @@ void intr_init()
     /**
      * Activate application processors. 
      **/
+    mapping_startup_routine(_current_machine_info->memory_space_info[3].base_address);
     activate_aps(); 
 
 }

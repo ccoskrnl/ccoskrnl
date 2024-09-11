@@ -1,4 +1,5 @@
 #include "cpu.h"
+#include "cpu_features.h"
 
 void __set_idtr(struct _pseudo_desc *idtr) {
     asm volatile ("lidt (%0)" : : "r"(idtr));
@@ -124,6 +125,15 @@ void cpuid_ex(uint32_t leaf, uint32_t fn, uint32_t *eax, uint32_t *ebx, uint32_t
         : "a"(leaf), "c"(fn)
     );
 }
+
+uint32_t _cpuid_get_apic_id()
+{
+    uint32_t eax, ebx, ecx, edx;
+    cpuid(CPUID_LEFT_FEATURE_IDENTIFIERS, &eax, &ebx, &ecx, &edx);
+    return ebx >> 24;
+}
+
+
 
 /**
  * Get the CPU cycle count. Read Time-Stamp Counter

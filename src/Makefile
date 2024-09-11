@@ -1,6 +1,6 @@
 REFLIBS_DIR = ../reflibs
 BUILD_DIR =../build
-ESP_DIR =../esp
+ESP_DIR =../esp/EFI/ChengChengOS
 ARCH!=../conf/uname.sh
 
 include ../conf/target.conf
@@ -43,7 +43,7 @@ $(SUBDIRS):
 	$(MAKE) -C $@
 
 run: $(TARGET) $(EFI)
-	@rm -vf $(BUILD_DIR)/esp/NvVars
+	@rm -vf ../esp/NvVars
 	$(QEMU) $(QEMU_OPTIONS)
 
 
@@ -51,6 +51,6 @@ clean:
 	@for dir in $(SUBDIRS); do \
 		$(MAKE) -C $$dir clean; \
 	done
-	@rm -vf $(TARGET) $(ESP_DIR)/NvVars $(ESP_DIR)/ccoskrnl
+	@rm -vf $(TARGET) ../esp/NvVars $(ESP_DIR)/ccoskrnl
 
 .PHONY: clean run all $(SUBDIRS) $(TARGET)

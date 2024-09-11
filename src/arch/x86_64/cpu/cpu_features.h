@@ -98,6 +98,7 @@ void cpuid(uint32_t leaf, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t 
 
 void cpuid_ex(uint32_t leaf, uint32_t fn, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx);
 
+uint32_t _cpuid_get_apic_id();
 
 
 

@@ -150,6 +150,7 @@ void preparing_for_bsp(boolean is_first)
         {
             _cpu_install_isr(&bsp, i, _intr_handler_entry_table[i], IDT_DESC_TYPE_INTERRUPT_GATE, 0); 
         }
+        bsp.lapic_id = _cpuid_get_apic_id();
 
     }
     

@@ -4,11 +4,56 @@
 #include "../../../include/types.h"
 #include "../../../include/libk/list.h"
 
+
+typedef struct _intr_ctr_struct_head
+{
+    uint64_t total;
+    list_node_t head;
+
+} intr_ctr_struct_head_t;
+
+
+
+
+/* ======================== Local APIC  ======================== */
+
 // The offset of Local APIC Version Register(Read/Write) from Local APIC address
 #define LOCAL_APIC_ID_REG                           0x20
 
+uint32_t _lapic_get_apic_id();
+
+
 // Local APIC Version Register (Read Only)
 #define LOCAL_APIC_VERSION_REG                      0x30
+
+
+typedef struct _lapic_version
+{
+    /**
+     * The version numbers of the local APIC:
+     *     0XH 82489DX discrete APIC.
+     *     10H - 15H Integrated APIC.
+     *     Other values reserved
+    **/
+    uint8_t version;
+
+    // Shows the number of LVT entries minus 1.
+    uint8_t maxlvt;
+
+    // Indicates whether software can inhibit the broadcast of EOI message by setting bit 12 of the 
+    // Spurious Interrupt Vector Register; 
+    boolean eoi_broatcast;
+
+} lapic_ver_t;
+
+
+boolean _lapic_is_82489DX(uint8_t version);
+
+extern lapic_ver_t lapic_ver;
+
+
+
+
 
 // Task Priority Register (Read/Write)
 #define LOCAL_APIC_TASK_PRIORITY_REG                0x80
@@ -132,6 +177,16 @@
  **/
 #define LOCAL_APIC_ICR_DELIVERY_MODE_EXT_INT        0x7
 
+/**
+ * Selects the trigger mode when using the INIT level de-assert delivery mode: edge (0) or level 
+ * (1). It is ignored for all other delivery modes. (This flag has no meaning in Pentium 4 and Intel 
+ * Xeon processors, and will always be issued as a 0.) 
+ **/
+#define LOCAL_APIC_ICR_TRIGGER_MODE_EDGE            0
+#define LOCAL_APIC_ICR_TRIGGER_MODE_LEVEL           1
+
+
+
 /** 
  * In physical destination mode, the destination processor is specified by its local APIC ID
  **/
@@ -142,6 +197,9 @@
  * is entered in the destination field of the ICR. 
  **/
 #define LOCAL_APIC_ICR_DEST_MODE_LOGI               0x1
+
+
+
 
 typedef struct _lapic_icr
 {
@@ -200,6 +258,12 @@ typedef struct _lapic_icr
 
 } __attribute__((packed))  lapic_icr_t;
 
+// Check Delivery Status
+boolean _lapic_check_delivery_status();
+
+
+
+
 
 
 // LVT Timer Register(Read/Write)
@@ -219,12 +283,76 @@ typedef struct _lapic_icr
 #define LOCAL_APIC_LVT_INT_MASKED                   (1 << 16)
 
 
-typedef struct _intr_ctr_struct_head
-{
-    uint64_t total;
-    list_node_t head;
+/**
+ * This function writes a value to a specified APIC register.
+ *
+ * @param[in]           reg             Which register to write.
+ * @param[in]           value           The value will be written to specific register.
+ *
+ * @retval              none
+ */
+void write_lapic_register(uint32_t reg, uint32_t value);
 
-} intr_ctr_struct_head_t;
+/**
+ * This function reads a value from a specified APIC register.
+ *
+ * @param[in]           reg             Which register to read.
+ *
+ * @retval                              The value of specific register.
+ */
+uint32_t read_lapic_register(uint32_t reg);
+
+
+/**
+ * @brief Local APIC Address for single processor system.
+
+ * @note CPU core in a modern multiprocessor system typically has its own LAPIC. 
+ * The LAPIC is responsible for handling interrupts that are specific to the CPU 
+ * core it is associated with.
+
+ */
+extern volatile uint64_t local_apic_addr;
+
+/**
+ * The routine to notice the servicing of the current interrupt is complete.
+ **/
+void send_eoi();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ======================== I/O APIC  ======================== */
+
+
+// The maximun number of I/O APIC addresses.
+#define IOAPIC_ADDRESSES_MAX                        0x10
+
+// IOAPICID—IOAPIC IDENTIFICATION REGISTER
+#define IOAPIC_ID_REG                               0x0
+
+// IOAPICVER—IOAPIC VERSION REGISTER
+#define IOAPIC_VER_REG                              0x1
 
 /**
  *
@@ -294,83 +422,42 @@ typedef struct _ioapic_rte
 /**
  * To calculate the offset in I/OAPIC address based on specific IRQ
  **/
-#define OFFSET_OF_RTE(IRQ)                          (10 + (IRQ) << 1)
+#define IOAPIC_RET_ENTRY_OFFSET(IRQ)                          (0x10 + ((IRQ) << 1))
 
-
-/**
- * This function writes a value to a specified APIC register.
- *
- * @param[in]           reg             Which register to write.
- * @param[in]           value           The value will be written to specific register.
- *
- * @retval              none
- */
-void write_lapic_register(uint32_t reg, uint32_t value);
-
-/**
- * This function reads a value from a specified APIC register.
- *
- * @param[in]           reg             Which register to read.
- *
- * @retval                              The value of specific register.
- */
-uint32_t read_lapic_register(uint32_t reg);
 
 
 /**
  * This function writes a value to a specified I/O APIC register.
  *
+ * @param[in]           ioapic_addr     I/O APIC Address.
  * @param[in]           reg             Which register to write.
  * @param[in]           value           The value will be written to specific register.
  *
  * @retval              none
  */
-void write_ioapic_register(uint32_t reg, uint32_t value);
+void write_ioapic_register(volatile uint32_t* ioapic_addr, uint32_t reg, uint32_t value);
 
 /**
  * This function reads a value from a specified I/O APIC register.
  *
+ * @param[in]           ioapic_addr     I/O APIC Address.
  * @param[in]           reg             Which register to read.
  *
  * @retval                              The value of specific register.
  */
-uint32_t read_ioapic_register(uint32_t reg);
-
-
-void map_lapic_and_ioapic(
-    _in_ uint64_t lapic_phys_addr, 
-    _in_ intr_ctr_struct_head_t* ioapic_intr_ctr_structure
-);
-
-
-/**
- * @brief Local APIC Address for single processor system.
-
- * @note CPU core in a modern multiprocessor system typically has its own LAPIC. 
- * The LAPIC is responsible for handling interrupts that are specific to the CPU 
- * core it is associated with.
-
- */
-extern volatile uint64_t local_apic_addr;
+uint32_t read_ioapic_register(volatile uint32_t* ioapic_addr, uint32_t reg);
 
 /**
  * @brief I/O APIC address for single processor system.
 
  * @note IOAPIC is responsible for handling interrupts from peripheral devices and 
  * routing them to the appropriate CPU cores. A system can have multiple IOAPICs, 
- * especially in configurations with multiple peripheral buses. 
+ * especially in configurations with multiple peripheral buses. Each additional 
+ * I/O APIC can manage another set of interrupt lines, allowing your system to 
+ * support more devices.
 
  */  
-extern volatile uint64_t io_apic_addr;
-
-/**
- * The routine to notice the servicing of the current interrupt is complete.
- **/
-void send_eoi();
-
-
-
-extern uint32_t apic_version;
+extern volatile uint32_t *volatile ioapics[IOAPIC_ADDRESSES_MAX];
 
 typedef struct _ioapic_version
 {
@@ -386,6 +473,32 @@ typedef struct _ioapic_version
 
 } ioapic_version_t;
 
-extern ioapic_version_t ioapic_version;
+
+void get_ioapic_version(volatile uint32_t* ioapic, ioapic_version_t* ioapic_version);
+
+
+
+
+
+
+
+
+/**
+ * This routine to map local apics and ioapics.
+ * 
+ * @param[in]           lapic_phys_address              The physical address of local apic. we assume
+ *                                                      the current machine only has one local apic address.
+ * @param[in]           ioapic_intr_ctr_structure       A list(intr_ctr_struct_head_t) to record all ioapics.
+ *
+ * @retval
+ **/
+void map_lapic_and_ioapic(
+    _in_ uint64_t lapic_phys_addr, 
+    _in_ intr_ctr_struct_head_t* ioapic_intr_ctr_structure
+);
+
+
+
+
 
 #endif

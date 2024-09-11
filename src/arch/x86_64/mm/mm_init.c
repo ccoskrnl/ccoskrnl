@@ -223,7 +223,7 @@ Returned Value:
     None.
 
 */
-static void flush_tlb(uint64_t vaddr)
+void _mm_flush_tlb(uint64_t vaddr)
 {
     /*  By specifying "memory" as a clobber, you tell the compiler that
         the inline assembly code modifies memory in some way, so it can
@@ -1022,7 +1022,7 @@ static void map_rom_zone()
         pt[i].present = 1;
         pt[i].rw = 1;
         pt[i].address = pfn_index;
-        flush_tlb(_mm_pfn_db_start[pfn_index].original_pte.pte.LongPtr);
+        _mm_flush_tlb(_mm_pfn_db_start[pfn_index].original_pte.pte.LongPtr);
         pfn_index = _mm_pfn_db_start[pfn_index].u1.flink;
     }
 

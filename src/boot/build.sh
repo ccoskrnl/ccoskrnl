@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 set -e
 CCOSKRNL=${HOME}/projects/ccoskrnl
-BUILD_DIR=${HOME}/projects/ccoskrnl/esp
+BUILD_DIR=${HOME}/projects/ccoskrnl/esp/EFI/ChengChengOS
 EDK2_DIR=${HOME}/src/edk2
 EDK2_CCLDR_DIR=${EDK2_DIR}/MdeModulePkg/Application/CcLoader
 

@@ -4,3 +4,4 @@ src/arch/x86_64/mm/backup.md
 docs/ccoskrnl.wiki
 .clangd
 src/.gdb_history
+models

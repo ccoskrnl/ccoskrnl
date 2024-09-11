@@ -9,13 +9,13 @@
 #include "include/ReadFile.h"
 
 #define PAGE_ALIGNED(x)               (((UINTN)x + (EFI_PAGE_SIZE - 1)) & ~(EFI_PAGE_SIZE - 1))
-#define KRNL_PATH                     L"ccoskrnl"
-#define CCLDR_PATH                    L"ccldr"
-#define BG_PATH                       L"rec\\bg\\background"
-#define BG_PNG_PATH                   L"rec\\bg\\background.png"
+#define KRNL_PATH                     L"EFI\\ChengChengOS\\ccoskrnl"
+#define CCLDR_PATH                    L"EFI\\ChengChengOS\\ccldr"
+#define BG_PATH                       L"EFI\\ChengChengOS\\rec\\bg\\background"
+#define BG_PNG_PATH                   L"EFI\\ChengChengOS\\rec\\bg\\background.png"
 
-#define AgeFonts001_TTF_PATH          L"rec\\AgeFonts001.ttf"
-#define SourceHanSansSCVF_TTF_PATH    L"rec\\SourceHanSansSCVF.ttf"
+#define AgeFonts001_TTF_PATH          L"EFI\\ChengChengOS\\rec\\AgeFonts001.ttf"
+#define SourceHanSansSCVF_TTF_PATH    L"EFI\\ChengChengOS\\rec\\SourceHanSansSCVF.ttf"
 
 
 // Protocols

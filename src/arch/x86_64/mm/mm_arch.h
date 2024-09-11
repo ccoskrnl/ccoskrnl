@@ -113,7 +113,7 @@ typedef struct _mm_pte {
 
 
 /*  PML4T Address */
-extern uint64_t _mm_pt_pml4t_start;
+extern uint64_t _mm_pt_pml4_start;
 /*  Page Directory Page Table Address */
 extern uint64_t _mm_pt_pdpt_pool_start;
 /*  Page Directory Pool Address */
@@ -124,6 +124,8 @@ extern uint64_t _mm_pt_pt_pool_start;
 #define __get_pte_by_virt_addr(address)         \
     (mmpte*)((((uint64_t)address & 0xFFFFFFFFFFFFUL) >> 9 ) + _mm_pt_pt_pool_start)
 
+
+void _mm_flush_tlb(uint64_t vaddr);
 
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
