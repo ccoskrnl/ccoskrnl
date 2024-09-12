@@ -355,15 +355,17 @@ UefiMain(
   ReadFileToBufferAt(KRNL_PATH, KrnlImageBase, &KernelBufferSize);
   ReadFileToBufferAt(CCLDR_PATH, CcldrBase, &CcldrBufferSize);
 
-  // Copy GDT into StartUpRoutineAddress. In this way, aps can directly load the gdt.
-  memcpy((void*)(StartUpRoutineAddress + 0xE00), (void*)((UINTN)MachineInfo + 
-    (MACHINE_INFO_STRUCT_SIZE + STARTUP_ROUTINE_SIZE + CCLDR_ROUTINE_SIZE)), 
-    STARTUP_ROUTINE_RESERVED_SIZE_FOR_GDT);
-
   memcpy(
     (void*)(StartUpRoutineAddress),
     (void*)((UINTN)MachineInfo + MACHINE_INFO_STRUCT_SIZE),
-    STARTUP_ROUTINE_SIZE - STARTUP_ROUTINE_RESERVED_SIZE_FOR_GDT
+    STARTUP_ROUTINE_SIZE
+  );
+
+  // Copy GDT into StartUpRoutineAddress. In this way, aps can directly load the gdt.
+  memcpy(
+    (void*)(StartUpRoutineAddress + STARTUP_STACK_TOP + STARTUP_PM_GDT_SIZE), 
+    (void*)((UINTN)MachineInfo + (MACHINE_INFO_STRUCT_SIZE + STARTUP_ROUTINE_SIZE + CCLDR_ROUTINE_SIZE)), // locate long-mode gdt
+    STARTUP_LM_GDT_SIZE
   );
 
   MachineInfo->MemorySpaceInformation[0].BaseAddress = KrnlImageBase;

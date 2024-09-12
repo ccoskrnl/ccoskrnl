@@ -30,6 +30,10 @@ uint128_t lock_cmpxchg16b(uint128_t volatile *destination, uint128_t exchange, u
  **/
 void sleep(uint32_t seconds);
 
+
+void _lib_udelay_init();
+void udelay(uint64_t microseconds);
+
 /**
  * Reference from intr/apic.c
  * The routine to notice the servicing of the current interrupt is complete.

@@ -8,8 +8,40 @@
 #define MACHINE_INFO_STRUCT_SIZE                            0x10000
 #define CCLDR_ROUTINE_SIZE				                    0x1000
 
-#define STARTUP_ROUTINE_SIZE				                0x1000
-#define STARTUP_ROUTINE_RESERVED_SIZE_FOR_GDT               0x200
+/*  The size of start-up routine in bytes  */
+#define STARTUP_ROUTINE_SIZE 					0x1000
+#define STARTUP_STACK_TOP                       0xE00
+#define STARTUP_PM_GDT_SIZE                     0x40
+#define STARTUP_LM_GDT_SIZE                     0x40
+#define STARTUP_DATA_SIZE                       0x180
+/*
+ * ┌─────────────────┐◄─────── Start-up routine address
+ * │                 │                                 
+ * │                 │                                 
+ * │                 │                                 
+ * │       code      │                                 
+ * │                 │                                 
+ * │                 │ 0xE00                           
+ * │                 │                                 
+ * │                 │                                 
+ * │                 │                                 
+ * │                 │                                 
+ * │        ▲        │                                 
+ * │        │        │                                 
+ * ├────────┴────────┤◄──────── Temporary stack pointer
+ * │      PM GDT     │ 0x40                            
+ * ├─────────────────┤                                 
+ * │   LongMode GDT  │ 0x40                            
+ * ├─────────────────┤◄────────  Data                  
+ * │                 │                                 
+ * │                 │                                 
+ * │                 │                                 
+ * │                 │                                 
+ * │                 │                                 
+ * └─────────────────┘                                 
+ */
+
+
 
 // Byte-Alignment
 #define MM1MB                                               0x100000

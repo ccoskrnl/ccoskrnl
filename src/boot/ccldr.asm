@@ -2,10 +2,13 @@ kernel_pml4_offset equ 0x1E0
 kernel_space_virtual_base_addr equ 0xFFFFF00000000000
 magic_number equ 0x6964616B73
 
-startup_routine_size equ 0x1000
 ccldr_routine_size equ 0x1000
-gdt_size equ 0x200
-gdt_offset_in_startup_routine_space equ 0xE00
+
+startup_routine_size equ 0x1000
+ap_tmp_stack_top equ 0xE00
+ap_pm_gdt_size equ 0x40
+ap_lm_gdt_size equ 0x40
+ap_data_size equ 0x180
 
 seg_selector_code equ (1 << 3)
 seg_selector_data equ (2 << 3)
@@ -41,41 +44,118 @@ section .text
 global bsp_init
 global ap_init
 
+; ┌─────────────────┐◄─────── Start-up routine address
+; │                 │                                 
+; │                 │                                 
+; │                 │                                 
+; │       code      │                                 
+; │                 │                                 
+; │                 │ 0xE00                           
+; │                 │                                 
+; │                 │                                 
+; │                 │                                 
+; │                 │                                 
+; │        ▲        │                                 
+; │        │        │                                 
+; ├────────┴────────┤◄──────── Temporary stack pointer
+; │      PM GDT     │ 0x40                            
+; ├─────────────────┤                                 
+; │   LongMode GDT  │ 0x40                            
+; ├─────────────────┤◄────────  Data                  
+; │                 │                                 
+; │                 │                                 
+; │                 │                                 
+; │                 │                                 
+; │                 │                                 
+; └─────────────────┘                                 
+
 [bits 16]
 ap_init:
+
+    ; Waits on the BIOS initialization Lock Semaphore. When control of the semaphore is attained, initialization 
+    ; continues
+
+    ; Loads the microcode update into the processor.
+
+    ; Initializes the MTRRs (using the same mapping that was used for the BSP).
+
+    ; Enables the cache
+
+
+
+    ; Switches to protected mode
+    xor ax, ax
+    mov ds, ax
+    mov ss, ax
+
+
     cli
-    int3
 
-    call 0
-    ; rdi stores ap_init address.
-    pop di
+    ; di stores ap_init address.
+    mov edi, 0x1000
 
+    ; get gdt_base
+    add di, ap_tmp_stack_top
+
+    ; set temporary stack pointer.
+    mov sp, di
+
+    ; call enable_a20
     ; turn on A20
     in al, 0x92
     or al, 0b10
     out 0x92, al
 
-    ; get gdt_base
-    add di, gdt_offset_in_startup_routine_space
-    mov bx, di
 
-    ; fill the gdtr
-    add bx, 0x22
-    mov word[bx], di
+    ; locate gdt
+    mov ebx, edi
 
+
+    ; locate gdtr and fill the gdt_base member
+    add ebx, 0x22
+    mov word[ebx], di
     ; load gdt
-    sub bx, 2
-    lgdt[bx]
+    sub ebx, 2
+    lgdt[ebx]
+
+
+    ; locate ap-lm-gdt
+    add bx, ap_pm_gdt_size - 0x20
+    add di, ap_pm_gdt_size
+
+    cli
 
     ; open PM-mode
+    mov eax, 0
+
     mov eax, cr0
-    or eax, 1
+    or al, 1
     mov cr0, eax
 
-    jmp dword seg_selector_code:protect_mode
+    jmp dword seg_selector_code:protect_mode+0x1000
+
+enable_a20:
+    in al, 0x64            ; Read status register
+    test al, 2             ; Check if input buffer is full
+    jnz enable_a20         ; Wait until input buffer is empty
+
+    mov al, 0xD1           ; Command to write to output port
+    out 0x64, al
+
+    in al, 0x64            ; Read status register
+    test al, 2             ; Check if input buffer is full
+    jnz $-2                ; Wait until input buffer is empty
+
+    mov al, 0xDF           ; Enable A20 line
+    out 0x60, al
+
+    ret
 
 [bits 32]
 protect_mode:
+
+    int3
+
     mov ax, seg_selector_data
     mov ds, ax
     mov es, ax
@@ -90,20 +170,24 @@ protect_mode:
     and eax, 0xFFFFEFFF
     mov cr4, eax
 
-    xor ebx, ebx
-    mov bx, di
-    add bx, 0x180
+    ; locate gdtr and fill the gdt_base member (for long-mode)
+    add ebx, 0x22
+    mov dword[ebx], edi
+    lgdt[ebx]
 
-    mov sp, bx
+    ; locate data
+    add edi, ap_lm_gdt_size
+    mov ebx, edi
 
-    ; set temporary stack top at startup_routine address + 0x200
-    add sp, 0x80
+    ; startup routine base address
+    ; sub di, ap_lm_gdt_size + ap_pm_gdt_size + ap_tmp_stack_top
 
     ; get pml4 address
     mov eax, dword[ebx]
-    ; backup 
+    ; backup to ebx
     mov ebx, eax
 
+    ; set cr3
     mov cr3, eax
 
     ; enable IA-32e long mode
@@ -112,11 +196,13 @@ protect_mode:
     or eax, 0x0101
     wrmsr
 
+    ; enable Paging
     mov eax, cr0
     or eax, 0x80000000
     mov cr0, eax
 
-    jmp dword seg_selector_code:long_mode
+
+    jmp dword seg_selector_code:long_mode+0x1000
 
 [bits 64]
 
@@ -143,7 +229,58 @@ long_mode:
 
 
 ; fill rest of current page with 0
-times startup_routine_size - ($ - $$) db 0
+times ap_tmp_stack_top - ($ - $$) db 0
+
+gdt_ap_start:
+    dq 0
+gdt_ap_krnl_code:
+    dw 0xFFFF               ; segment limit 15:00
+    dw 0x0                  ; base address 15:00
+    db 0                    ; base 23:16
+
+    ;   Present: 1
+    ;   DPL: 00
+    ;   S: 1 (represent code or data)
+    ;   Type: Execute/Read(1010)
+    db 0b_1_00_1_1_0_1_1
+    ; G: 1 (when flag is set, the segment limit is interpreted in 4-KByte units.)
+    ; D/B: (The flag should always be set to 1 for 32-bit code and data segments)
+    ; L: 1 (64-bit code segment)
+    ; AVL: 0 (available for use by system software)
+    ; SegLimit 19:16: 0xF
+    db 0b_1_1_0_0_0000 | (0xF)
+    db 0                    ; base 31:24
+gdt_ap_krnl_data:
+    dw 0xFFFF               ; segment limit 15:00
+    dw 0x0                  ; base address 15:00
+    db 0                    ; base 23:16
+
+    ;   Present: 1
+    ;   DPL: 00
+    ;   S: 1 (represent code or data)
+    ;   Type: Read/Write(0010)
+    db 0b_1_00_1_0_0_1_1
+
+    ; G: 1 (when flag is set, the segment limit is interpreted in 4-KByte units.)
+    ; D/B: (The flag should always be set to 1 for 32-bit code and data segments)
+    ; L: 1 (64-bit code segment)
+    ; AVL: 0 (available for use by system software)
+    ; SegLimit 19:16: 0xF
+    db 0b_1_1_0_0_0000 | (0xF)
+    db 0                    ; base 31:24
+
+gdt_ap_end:
+    dq 00
+
+gdt_ap_descriptor:
+    ;  the GDT limit should always be one less than an integral multiple of eight (that is, 8N � 1).
+    dw ((gdt_ap_end - gdt_ap_start) - 1)
+    dd gdt_ap_start + 0x1000
+
+
+; fill rest of current page with 0
+times (startup_routine_size) - ($ - $$) db 0
+
 
 [bits 64]
 bsp_init:
@@ -357,13 +494,9 @@ bsp_init:
     mov rax, qword[rbp - 0x10]
     or rax, rcx
 
-    ; copy cr3 into startup-routine data seg
-    mov rbx, qword[r8 + 0x30]
-    add rbx, 0x180 + gdt_offset_in_startup_routine_space
-    mov qword[rbx], rax
-
+    ; backup cr3 value to rbx
     mov rbx, rax
-
+    ; set cr3
     mov cr3, rax
 
 

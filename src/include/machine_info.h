@@ -6,10 +6,54 @@
 #include "go/go.h"
 
 /*  The size of LOADER_MACHINE_INFORMATION structure in bytes  */
-#define MACHINE_INFO_SIZE 					0x10000
-
+#define MACHINE_INFO_SIZE 					    0x10000
+#define CCLDR_ROUTINE_SIZE                      0x1000
 /*  The size of start-up routine in bytes  */
 #define STARTUP_ROUTINE_SIZE 					0x1000
+#define STARTUP_STACK_TOP                       0xE00
+#define STARTUP_PM_GDT_SIZE                     0x40
+#define STARTUP_LM_GDT_SIZE                     0x40
+#define STARTUP_DATA_SIZE                       0x180
+
+/*
+ * ┌─────────────────┐◄─────── Start-up routine address
+ * │                 │                                 
+ * │                 │                                 
+ * │                 │                                 
+ * │       code      │                                 
+ * │                 │                                 
+ * │                 │ 0xE00                           
+ * │                 │                                 
+ * │                 │                                 
+ * │                 │                                 
+ * │                 │                                 
+ * │        ▲        │                                 
+ * │        │        │                                 
+ * ├────────┴────────┤◄──────── Temporary stack pointer
+ * │      PM GDT     │ 0x40                            
+ * ├─────────────────┤                                 
+ * │   LongMode GDT  │ 0x40                            
+ * ├─────────────────┤◄────────  Data                  
+ * │                 │                                 
+ * │                 │                                 
+ * │                 │                                 
+ * │                 │                                 
+ * │                 │                                 
+ * └─────────────────┘                                 
+ */
+
+
+struct _startup_routine_data
+{
+    uint64_t cr3;
+    uint64_t cr0;
+    uint64_t cr4;
+    uint64_t xcr0;
+    uint64_t number_of_running_cores;
+    uint64_t reserved;
+};
+
+
 
 //******************************************************
 // EFI_MEMORY_TYPE

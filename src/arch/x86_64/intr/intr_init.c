@@ -14,6 +14,7 @@
 #include "hpet.h"
 #include "pit.h"
 #include "isr/intr_isr.h"
+#include "../lib/lib.h"
 
 // #define INTR_DEBUG
 
@@ -289,6 +290,22 @@ void mapping_startup_routine(uint64_t startup_addr)
     startup_pt[vpage].address = vpage;
 
     _mm_flush_tlb(startup_addr);
+
+    struct _startup_routine_data* startup_data = (struct _startup_routine_data*)
+        (startup_addr + STARTUP_STACK_TOP + STARTUP_PM_GDT_SIZE + STARTUP_LM_GDT_SIZE);
+
+    uint64_t cr3, cr0, cr4, xcr0;
+    __get_cr3(cr3); 
+    __get_cr0(cr0);
+    __get_cr0(cr3);
+    xcr0 = read_xcr0();
+
+    startup_data->cr3 = cr3;
+    startup_data->cr0 = cr0;
+    startup_data->cr4 = cr4;
+    startup_data->xcr0 = xcr0;
+
+    startup_data->number_of_running_cores = 1;
     
 }
 
@@ -352,16 +369,10 @@ void send_sipi(uint8_t apic_id, uint8_t vector)
     {
         // Send Startup IPI
         write_lapic_register(LOCAL_APIC_ICR_LOW, low);
-
         // 1000 us
-        pit_prepare_sleep(1);
-        pit_perform_sleep();
+        udelay(1000);
 
         write_lapic_register(LOCAL_APIC_ICR_LOW, low);
-
-        // 1000 us
-        pit_prepare_sleep(1);
-        pit_perform_sleep();
     
     }
 
@@ -456,6 +467,6 @@ void intr_init()
      * Activate application processors. 
      **/
     mapping_startup_routine(_current_machine_info->memory_space_info[3].base_address);
-    activate_aps(); 
+    // activate_aps(); 
 
 }
