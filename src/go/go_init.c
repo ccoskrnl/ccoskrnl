@@ -141,69 +141,12 @@ void op_init()
     win->Register(
         win,
         _font_family_SourceHanSansSCVF,
-        18,
+        14,
         0
     );
     
     win->ShowWindow(win);
-
     _go_cpu_output_window[0] = win; 
-
-    status = new_a_window(
-        0x646565,
-        WindowText,
-        NULL,
-        _go_def_screen,
-        _go_weclome_texts[1],
-        def_wnd,
-        20+900,
-        20+700,
-        800,
-        400,
-        (void**)&win
-    );
-
-    if (ST_ERROR(status)) {
-        krnl_panic(NULL);
-    }
-
-    win->Register(
-        win,
-        _font_family_SourceHanSansSCVF,
-        18,
-        0
-    );
-    
-    win->ShowWindow(win);
-    _go_cpu_output_window[1] = win;
-
-    status = new_a_window(
-        0x646565,
-        WindowText,
-        NULL,
-        _go_def_screen,
-        _go_weclome_texts[2],
-        def_wnd,
-        20+900,
-        20,
-        800,
-        400,
-        (void**)&win
-    );
-
-    if (ST_ERROR(status)) {
-        krnl_panic(NULL);
-    }
-
-    win->Register(
-        win,
-        _font_family_SourceHanSansSCVF,
-        18,
-        0
-    );
-    
-    win->ShowWindow(win);
-    _go_cpu_output_window[2] = win;
 
     _go_has_been_initialize = true;
 }

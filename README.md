@@ -1,16 +1,18 @@
 # ccoskrnl
 
-ccos is a hobby 64-bit operating system. I'm writing it on x86_64, because I like sadness and misery. I do not possess extensive expertise, and I am not a expert in OS design so it may contains numerous bugs. Actually, many of the design concepts I have implemented are inspired by Windows NT such as ccldr(OS Loader for ccos) and dynamic memory manager and so on. WRK(Windows Research Kernel) is an extremely excellent project suitable for those who wish to delve deeper in OS design. 
+ccos is a hobby 64-bit operating system. I'm writing it on x86, because I like sadness and misery. I do not possess extensive expertise, and I am not a expert in OS design so it may contains numerous bugs. Actually, many of the design concepts I have implemented are inspired by Windows NT such as ccldr(OS Loader for ccos) and dynamic memory manager and so on. WRK(Windows Research Kernel) is an extremely excellent project suitable for those who wish to delve deeper in OS design. 
 
 ## Features
 
 **UEFI**
 
-ccos bases UEFI to bootstrap ccoskrnl. UEFI greatly facilitates OS Loader developing. Developer can directly call the interfaces provided by UEFI. There is one thing to note here, that ccos needs ccldr to load ccoskrnl. It is a bit like "a second stage boot loader". But in fact, BOOTX64.efi merely searches for a suitable size of physical memory and loads ccoskrnl image into the space. The ccldr need to map kernel space into high address of virtual address space and to set GDT(Global Descriptor Table, a significant structure for x86_64 architecture.)
+ccos bases UEFI to bootstrap ccoskrnl. UEFI greatly facilitates OS Loader developing. Developer can directly call the interfaces provided by UEFI. There is one thing to note here, that ccos needs ccldr to load ccoskrnl. It is a bit like "a second stage boot loader". But in fact, BOOTX64.efi merely searches for a suitable size of physical memory and loads ccoskrnl image into the space. The ccldr need to map kernel space into high address of virtual address space and to set GDT(Global Descriptor Table, a significant structure for x86 architecture.)
 
-**Multi Processors(Developing)**
+**Multi-Processors(Terminated)**
 
-Multi processors support is an enormous challenge for me. I do not guarantee a good implementation of multi-processors system.
+Multi-processors support is an enormous challenge for me. I do not guarantee a good implementation of multi-processors system.
+
+I'm a beginner for x86_64. These have a lot of features and mechanisms that I don't know. For example, I speed much time on application processors initialization, but failed. I try to read linux source, but it's complexity make me sadness. To enter Protected-Mode, I'm almost going crazy. Sometimes succeeding and sometimes not. Eventually, I terminate the development of this feature. Maybe I will soon to continue to develop multi-processors support, but who know.
 
 **APIC**
 
@@ -41,7 +43,6 @@ ccos supports multi-windows, which means it can output text in different window 
 ## TO-DO
 
 - [ ] Keyboard Driver
-- [ ] Activate application processors.
 - [ ] Dynamic memory manager with memory leaks detection.
 
 ## Installation
@@ -58,7 +59,7 @@ No license.
 
 ## Contact
 
-ChengCheng - [@github](https://github.com/ccoskrnl) - 2010705797@qq.com
+ChengCheng: 2010705797@qq.com
 ccoskrnl: https://github.com/ccoskrnl/ccoskrnl
 
 ## Acknowledgments

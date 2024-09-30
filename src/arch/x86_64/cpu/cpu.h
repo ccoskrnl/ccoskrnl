@@ -1,7 +1,9 @@
-#ifndef __X86_64_CPU_H__
-#define __X86_64_CPU_H__
+#ifndef __X86_CPU_H__
+#define __X86_CPU_H__
 
 #include "../../../include/types.h"
+#include "../../../include/libk/list.h"
+#include "mtrr.h"
 
 
 
@@ -93,7 +95,7 @@ void __load_tr(uint16_t selector);
 
 /*================ Control Registers Definition ================*/
 
-// Structure for cr0_t Control Register in x86_64
+// Structure for cr0_t Control Register in x86
 typedef struct _cr0 {
     uint64_t pe : 1;   // Protected Mode Enable
     uint64_t mp : 1;   // Monitor Coprocessor
@@ -112,7 +114,7 @@ typedef struct _cr0 {
     uint64_t reserved3 : 32; // Reserved bits
 } __attribute__ ((packed)) cr0_t;
 
-// Structure for cr3_t - Control Register 3 in x86_64
+// Structure for cr3_t - Control Register 3 in x86
 typedef struct _cr3 {
     uint64_t ignored1 : 3;       // Ignored bits
     uint64_t pwt : 1;            // Page-level Write-Through
@@ -122,7 +124,7 @@ typedef struct _cr3 {
     uint64_t reserved : 12;      // Reserved bits
 } __attribute__ ((packed)) cr3_t;
 
-// Structure for cr4_t Control Register in x86_64
+// Structure for cr4_t Control Register in x86
 typedef struct _cr4 {
     uint64_t vme : 1;      // Virtual-8086 Mode Extensions
     uint64_t pvi : 1;      // Protected-Mode Virtual Interrupts
@@ -234,6 +236,8 @@ void __read_idtr(struct _pseudo_desc *idtr);
 
 /*================ CPU Core Descriptor Definition ================*/
 
+#define CPU_CORE_TAG_BSP                                                    0x505342
+
 typedef struct _cpu_core_desc
 {
 
@@ -245,7 +249,12 @@ typedef struct _cpu_core_desc
     uint32_t lapic_id;
     uint32_t processor_id;
 
+    uint64_t tag;
+    list_node_t node;
+
 } cpu_core_desc_t;
+
+extern list_node_t cpu_cores_list;
 
 void _cpu_install_isr(cpu_core_desc_t *cpu, uint8_t vector, void* routine, uint8_t type, uint8_t ist_index);
 

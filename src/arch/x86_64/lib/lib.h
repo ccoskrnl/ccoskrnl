@@ -1,5 +1,5 @@
-#ifndef __x86_64_LIB_H__
-#define __x86_64_LIB_H__
+#ifndef __x86_LIB_H__
+#define __x86_LIB_H__
 
 #include "../../../include/types.h"
 

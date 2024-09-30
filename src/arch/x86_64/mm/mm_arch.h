@@ -6,8 +6,8 @@
 
 
 
-#ifndef __X86_64_MM_ARCH_H__
-#define __X86_64_MM_ARCH_H__
+#ifndef __X86_MM_ARCH_H__
+#define __X86_MM_ARCH_H__
 
 #include "../../../include/types.h"
 #include "../../../include/libk/list.h"

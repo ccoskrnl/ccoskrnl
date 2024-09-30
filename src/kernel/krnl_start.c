@@ -8,13 +8,14 @@
 
 #include "../include/libk/stdlib.h"
 
+
 extern void preparing_for_bsp(boolean is_first);
-extern void detecting_cpu();
 extern void mm_init();
 
 extern void op_init();
 extern void acpi_init();
 extern void intr_init();
+extern void active_aps(void);
 
 extern wch_t* tengwangge;
 extern wch_t* chushibiao;
@@ -36,8 +37,13 @@ void krnl_exit();
  * 
  * @retval          never be returned.
 */
-void krnl_start(LOADER_MACHINE_INFORMATION* ptr)
+void krnl_start(LOADER_MACHINE_INFORMATION* ptr, uint64_t is_ap)
 {
+    if (is_ap != 0) {
+        while (true) {
+            ;
+        }
+    }
     _current_machine_info = ptr;
 
     // Set variables about Stack of kernel initialization thread
@@ -57,9 +63,6 @@ void krnl_start(LOADER_MACHINE_INFORMATION* ptr)
     // From now on, the earlier data stored in previous stack becomes unavailable. The variable 
     // _current_machine_info needs to be updated through mm_init(). 
     set_krnl_stack(_mm_stack_top_of_initialization_thread);
-
-    // Detect cpu features and set some global variables about cpu info.
-    detecting_cpu();
 
     // prepare to execute initialization code.
     preparing_for_bsp(true);
@@ -106,14 +109,17 @@ void krnl_init()
     acpi_init();
 
     // Interrupt module initialization. 
-    // when the routine finishes, it will set the interrupt flag.
-    putws(0, L"\t\tInterrupt module initializing...\n");
+    put_check(0, -1, L"Interrupt module initializing...\n");
     intr_init();
+    put_check(0, true, L"Interrupt module has initialized.\n");
 
+    // active_aps();
+
+    put_check(0, true, L"System diagnostic completed. All systems nominal.\n");
+
+    // Set interrupt flag, os can handle interrupts or exceptions.
     __asm__ ("sti"); 
 
-    put_check(0, true, L"Interrupt module has initialized.\n");
-    put_check(0, true, L"System diagnostic completed. All systems nominal.\n");
     put_check(0, false, L"Power Off.\n");
 
     krnl_exit();

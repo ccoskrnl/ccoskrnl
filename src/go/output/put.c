@@ -63,6 +63,11 @@ static go_blt_pixel_t get_color(_in_ PREDEFINED_COLOR color_val)
             color.Green = 238;
             color.Blue = 118;
             break;
+        case DARK_GOLDEN_ROD2:
+            color.Red = 238;
+            color.Green = 173;
+            color.Blue = 14;
+            break;
         default:
             color.Blue = 255;
             color.Green = 255;
@@ -162,13 +167,17 @@ void putc(int window_index, wch_t wch)
 }
 
 /*  Debug Print */
-void put_check(int window_index, boolean cond, const wch_t *ws)
+void put_check(int window_index, int status, const wch_t *ws)
 {
     putc(window_index, '[');
-    if (cond) 
-        putwsc(window_index, L"Successful", SPRINT_GREEN2);
+
+    if (status == true) 
+        putwsc(window_index, L"+", SPRINT_GREEN2);
+    else if (status == false)
+        putwsc(window_index, L"x", FIRE_BRICK2);
     else
-        putwsc(window_index, L"  Failed  ", FIRE_BRICK2);
+        putwsc(window_index, L"~", DARK_GOLDEN_ROD2);
+
     putws(window_index, L"]  ");
     putws(window_index, ws);
 }

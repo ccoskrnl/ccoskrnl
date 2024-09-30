@@ -1,4 +1,4 @@
-# arch/x86_64/Makefile
+# arch/x86/Makefile
 ARCH!=../../../conf/uname.sh
 
 include ../../../conf/target.conf

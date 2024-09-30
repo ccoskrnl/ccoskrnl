@@ -11,6 +11,7 @@
 #define PAGE_ALIGNED(x)               (((UINTN)x + (EFI_PAGE_SIZE - 1)) & ~(EFI_PAGE_SIZE - 1))
 #define KRNL_PATH                     L"EFI\\ChengChengOS\\ccoskrnl"
 #define CCLDR_PATH                    L"EFI\\ChengChengOS\\ccldr"
+#define AP_PATH                       L"EFI\\ChengChengOS\\ap"
 #define BG_PATH                       L"EFI\\ChengChengOS\\rec\\bg\\background"
 #define BG_PNG_PATH                   L"EFI\\ChengChengOS\\rec\\bg\\background.png"
 
@@ -238,6 +239,7 @@ UefiMain(
   UINT32 DesVersion = 0;
 
   // Start-up routine
+  UINTN StartUpRoutineBufferSize = 0;
   UINTN StartUpRoutineAddress = 0x1000;
 
 
@@ -341,11 +343,6 @@ UefiMain(
 
   // Allocate one page to store start-up routine code for application processors initialization.
   Status = gBS->AllocatePages(AllocateAddress, EfiLoaderData, STARTUP_ROUTINE_SIZE >> EFI_PAGE_SHIFT, &StartUpRoutineAddress); 
-  while (EFI_ERROR(Status) && StartUpRoutineAddress <= 0x100000)
-  {
-    StartUpRoutineAddress += EFI_PAGE_SIZE;
-    Status = gBS->AllocatePages(AllocateAddress, EfiLoaderData, STARTUP_ROUTINE_SIZE >> EFI_PAGE_SHIFT, &StartUpRoutineAddress); 
-  }
   if (EFI_ERROR(Status))
   {
     Print(L"[ERROR]: Allocate memory for start-up routine failed...\n\r");
@@ -354,19 +351,8 @@ UefiMain(
 
   ReadFileToBufferAt(KRNL_PATH, KrnlImageBase, &KernelBufferSize);
   ReadFileToBufferAt(CCLDR_PATH, CcldrBase, &CcldrBufferSize);
+  ReadFileToBufferAt(AP_PATH, StartUpRoutineAddress, &StartUpRoutineBufferSize);
 
-  memcpy(
-    (void*)(StartUpRoutineAddress),
-    (void*)((UINTN)MachineInfo + MACHINE_INFO_STRUCT_SIZE),
-    STARTUP_ROUTINE_SIZE
-  );
-
-  // Copy GDT into StartUpRoutineAddress. In this way, aps can directly load the gdt.
-  memcpy(
-    (void*)(StartUpRoutineAddress + STARTUP_STACK_TOP + STARTUP_PM_GDT_SIZE), 
-    (void*)((UINTN)MachineInfo + (MACHINE_INFO_STRUCT_SIZE + STARTUP_ROUTINE_SIZE + CCLDR_ROUTINE_SIZE)), // locate long-mode gdt
-    STARTUP_LM_GDT_SIZE
-  );
 
   MachineInfo->MemorySpaceInformation[0].BaseAddress = KrnlImageBase;
   MachineInfo->MemorySpaceInformation[0].Size = KernelSpaceSize;
@@ -375,7 +361,7 @@ UefiMain(
   MachineInfo->MemorySpaceInformation[2].BaseAddress = KrnlImageBase;
   MachineInfo->MemorySpaceInformation[2].Size = KernelBufferSize;
   MachineInfo->MemorySpaceInformation[3].BaseAddress = StartUpRoutineAddress;
-  MachineInfo->MemorySpaceInformation[3].Size = STARTUP_ROUTINE_SIZE;
+  MachineInfo->MemorySpaceInformation[3].Size = StartUpRoutineBufferSize;
 
   MachineInfo->SumOfSizeOfFilesInPages = (PAGE_ALIGNED(KernelBufferSize) >> EFI_PAGE_SHIFT);
 
@@ -420,7 +406,7 @@ UefiMain(
 
 #endif
 
-  void (*ccldr_start)(LOADER_MACHINE_INFORMATION *MachineInfo) = (void *)(CcldrBase + STARTUP_ROUTINE_SIZE);
+  void (*ccldr_start)(LOADER_MACHINE_INFORMATION *MachineInfo) = (void *)(CcldrBase);
 
   /* ========================== Exit Services ================================ */
   gBS->GetMemoryMap(&MemMapSize, MemMap, &MapKey, &DescriptorSize, &DesVersion);

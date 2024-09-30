@@ -4,12 +4,6 @@ magic_number equ 0x6964616B73
 
 ccldr_routine_size equ 0x1000
 
-startup_routine_size equ 0x1000
-ap_tmp_stack_top equ 0xE00
-ap_pm_gdt_size equ 0x40
-ap_lm_gdt_size equ 0x40
-ap_data_size equ 0x180
-
 seg_selector_code equ (1 << 3)
 seg_selector_data equ (2 << 3)
 
@@ -42,244 +36,6 @@ seg_selector_data equ (2 << 3)
 
 section .text
 global bsp_init
-global ap_init
-
-; ┌─────────────────┐◄─────── Start-up routine address
-; │                 │                                 
-; │                 │                                 
-; │                 │                                 
-; │       code      │                                 
-; │                 │                                 
-; │                 │ 0xE00                           
-; │                 │                                 
-; │                 │                                 
-; │                 │                                 
-; │                 │                                 
-; │        ▲        │                                 
-; │        │        │                                 
-; ├────────┴────────┤◄──────── Temporary stack pointer
-; │      PM GDT     │ 0x40                            
-; ├─────────────────┤                                 
-; │   LongMode GDT  │ 0x40                            
-; ├─────────────────┤◄────────  Data                  
-; │                 │                                 
-; │                 │                                 
-; │                 │                                 
-; │                 │                                 
-; │                 │                                 
-; └─────────────────┘                                 
-
-[bits 16]
-ap_init:
-
-    ; Waits on the BIOS initialization Lock Semaphore. When control of the semaphore is attained, initialization 
-    ; continues
-
-    ; Loads the microcode update into the processor.
-
-    ; Initializes the MTRRs (using the same mapping that was used for the BSP).
-
-    ; Enables the cache
-
-
-
-    ; Switches to protected mode
-    xor ax, ax
-    mov ds, ax
-    mov ss, ax
-
-
-    cli
-
-    ; di stores ap_init address.
-    mov edi, 0x1000
-
-    ; get gdt_base
-    add di, ap_tmp_stack_top
-
-    ; set temporary stack pointer.
-    mov sp, di
-
-    ; call enable_a20
-    ; turn on A20
-    in al, 0x92
-    or al, 0b10
-    out 0x92, al
-
-
-    ; locate gdt
-    mov ebx, edi
-
-
-    ; locate gdtr and fill the gdt_base member
-    add ebx, 0x22
-    mov word[ebx], di
-    ; load gdt
-    sub ebx, 2
-    lgdt[ebx]
-
-
-    ; locate ap-lm-gdt
-    add bx, ap_pm_gdt_size - 0x20
-    add di, ap_pm_gdt_size
-
-    cli
-
-    ; open PM-mode
-    mov eax, 0
-
-    mov eax, cr0
-    or al, 1
-    mov cr0, eax
-
-    jmp dword seg_selector_code:protect_mode+0x1000
-
-enable_a20:
-    in al, 0x64            ; Read status register
-    test al, 2             ; Check if input buffer is full
-    jnz enable_a20         ; Wait until input buffer is empty
-
-    mov al, 0xD1           ; Command to write to output port
-    out 0x64, al
-
-    in al, 0x64            ; Read status register
-    test al, 2             ; Check if input buffer is full
-    jnz $-2                ; Wait until input buffer is empty
-
-    mov al, 0xDF           ; Enable A20 line
-    out 0x60, al
-
-    ret
-
-[bits 32]
-protect_mode:
-
-    int3
-
-    mov ax, seg_selector_data
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
-    mov ss, ax
-
-    mov eax, cr4
-    ; enable physical-address extensions(PAE)
-    or eax, 0x20
-    ; use 4-level paging
-    and eax, 0xFFFFEFFF
-    mov cr4, eax
-
-    ; locate gdtr and fill the gdt_base member (for long-mode)
-    add ebx, 0x22
-    mov dword[ebx], edi
-    lgdt[ebx]
-
-    ; locate data
-    add edi, ap_lm_gdt_size
-    mov ebx, edi
-
-    ; startup routine base address
-    ; sub di, ap_lm_gdt_size + ap_pm_gdt_size + ap_tmp_stack_top
-
-    ; get pml4 address
-    mov eax, dword[ebx]
-    ; backup to ebx
-    mov ebx, eax
-
-    ; set cr3
-    mov cr3, eax
-
-    ; enable IA-32e long mode
-    mov ecx, 0xc0000080
-    rdmsr
-    or eax, 0x0101
-    wrmsr
-
-    ; enable Paging
-    mov eax, cr0
-    or eax, 0x80000000
-    mov cr0, eax
-
-
-    jmp dword seg_selector_code:long_mode+0x1000
-
-[bits 64]
-
-long_mode:
-
-    ; Set up segment registers
-    mov ax, seg_selector_data  ; Data segment selector
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
-    mov ss, ax
-
-    mov cr3, rbx
-
-    ; Far return to reload CS
-    push seg_selector_code  ; Code segment selector
-    mov rax, 0xfffff00000001000
-    push rax
-    ; goto kernel
-    retfq
-
-
-
-
-; fill rest of current page with 0
-times ap_tmp_stack_top - ($ - $$) db 0
-
-gdt_ap_start:
-    dq 0
-gdt_ap_krnl_code:
-    dw 0xFFFF               ; segment limit 15:00
-    dw 0x0                  ; base address 15:00
-    db 0                    ; base 23:16
-
-    ;   Present: 1
-    ;   DPL: 00
-    ;   S: 1 (represent code or data)
-    ;   Type: Execute/Read(1010)
-    db 0b_1_00_1_1_0_1_1
-    ; G: 1 (when flag is set, the segment limit is interpreted in 4-KByte units.)
-    ; D/B: (The flag should always be set to 1 for 32-bit code and data segments)
-    ; L: 1 (64-bit code segment)
-    ; AVL: 0 (available for use by system software)
-    ; SegLimit 19:16: 0xF
-    db 0b_1_1_0_0_0000 | (0xF)
-    db 0                    ; base 31:24
-gdt_ap_krnl_data:
-    dw 0xFFFF               ; segment limit 15:00
-    dw 0x0                  ; base address 15:00
-    db 0                    ; base 23:16
-
-    ;   Present: 1
-    ;   DPL: 00
-    ;   S: 1 (represent code or data)
-    ;   Type: Read/Write(0010)
-    db 0b_1_00_1_0_0_1_1
-
-    ; G: 1 (when flag is set, the segment limit is interpreted in 4-KByte units.)
-    ; D/B: (The flag should always be set to 1 for 32-bit code and data segments)
-    ; L: 1 (64-bit code segment)
-    ; AVL: 0 (available for use by system software)
-    ; SegLimit 19:16: 0xF
-    db 0b_1_1_0_0_0000 | (0xF)
-    db 0                    ; base 31:24
-
-gdt_ap_end:
-    dq 00
-
-gdt_ap_descriptor:
-    ;  the GDT limit should always be one less than an integral multiple of eight (that is, 8N � 1).
-    dw ((gdt_ap_end - gdt_ap_start) - 1)
-    dd gdt_ap_start + 0x1000
-
-
-; fill rest of current page with 0
-times (startup_routine_size) - ($ - $$) db 0
 
 
 [bits 64]
@@ -308,28 +64,28 @@ bsp_init:
     xor rbx, rbx
     xor rbp, rbp
 
-    ; r8 stores pointer that points to machine_info struct
+    ; The r8 stores pointer that points to machine_info struct.
     mov r8, rdi
 
-    ; get ccldr base addr
+    ; Get ccldr base addr.
     mov r9, qword [r8 + 0x10]
-    ; get ccldr size
+    ; Get ccldr size.
     mov rbp, r9
     add rbp, 0x10000
 
 
-    ; Set temporary kernel stack pointer
-    ; rsp -> ccldr base + machine info structure size
+    ; Set temporary kernel stack pointer.
+    ; rsp -> ccldr base + machine info structure size.
     mov rsp, rbp
     mov rax, magic_number
     push rax
 
     ; Determine how to construct ccldr page table based on it's base address
-    ; calculate pml4_base
+    ; Calculate pml4_base
     add r9, 0x18000         ; pml4_base = ccldr_base + 0x100000 + 0x4000
     push r9                 ; pml4_base stored at [rbp - 0x10]
 
-    ; calculate ccldr number of ptes
+    ; Calculate ccldr number of ptes
     push 0                  ; number of ptes of ccldr at [rbp - 0x18]
     push 0                  ; number of pdes of ccldr at [rbp - 0x20]
     push 0                  ; number of pdptes of ccldr at [rbp - 0x28]
@@ -339,7 +95,7 @@ bsp_init:
     mov rdx, rsp
     call func_calculate_num_of_ptes_with_base_addr;
 
-    ; calculate krnl number of ptes
+    ; Calculate krnl number of ptes
     push 0                  ; number of ptes of krnl at [rbp - 0x38]
     push 0                  ; number of pdes of krnl at [rbp - 0x40]
     push 0                  ; number of pdptes of krnl at [rbp - 0x48]
@@ -348,36 +104,36 @@ bsp_init:
     mov rsi, rsp
     call func_calculate_num_of_ptes;
 
-    ; calculate ccldr_pdpt_base
+    ; Calculate ccldr_pdpt_base
     mov rdx, qword[rbp - 0x10] ; get pml4_base
     add rdx, 0x1000             ; ccldr_pdpt_base = pml4_base + 0x1000
     push rdx                ; ccldr_pdpt_base at [rbp - 0x58]
 
-    ; calculate krnl_pdpt_base
+    ; Calculate krnl_pdpt_base
     mov rcx, qword [rbp - 0x30] ; get num_of_pml4es_of_ccldr
     shl rcx, 12
     add rdx, rcx            ; krnl_pdpt_base = (num_of_pml4es_of_ccldr) * 0x1000 + ccldr_pdpt_base
     push rdx                ; krnl_pdpt_base at [rbp - 0x60]
 
-    ; calculate ccldr_pd_base
+    ; Calculate ccldr_pd_base
     mov rcx, qword [rbp - 0x50] ; get num_of_pml4es_of_krnl
     shl rcx, 12
     add rdx, rcx            ; ccldr_pd_base = (num_of_pml4es_of_krnl) * 0x1000 + krnl_pdpt_base
     push rdx                ; ccldr_pd_base at [rbp - 0x68]
 
-    ; calculate krnl_pd_base
+    ; Calculate krnl_pd_base
     mov rcx, qword [rbp - 0x28] ; get num_of_pdptes_of_ccldr
     shl rcx, 12
     add rdx, rcx            ; krnl_pd_base = (num_of_pdptes_of_ccldr) * 0x1000 + ccldr_pd_base
     push rdx                ; krnl_pd_base at [rbp - 0x70]
 
-    ; calculate ccldr_pt_base
+    ; Calculate ccldr_pt_base
     mov rcx, qword [rbp - 0x40] ; get num_of_pdptes_of_krnl
     shl rcx, 12
     add rdx, rcx            ; ccldr_pt_base = (num_of_pdptes_of_krnl) * 0x1000 + krnl_pd_base
     push rdx                ; ccldr_pt_base at [rbp - 0x78]
 
-    ; calculate krnl_pt_base
+    ; Calculate krnl_pt_base
     mov rcx, qword [rbp - 0x20] ; get num_of_pdes_of_ccldr
     shl rcx, 12
     add rdx, rcx
@@ -386,9 +142,9 @@ bsp_init:
 
     ; Set PML4
 
-    ; for ccldr
-    ; locate offset of ccldr pdpt from beginning of pml4
-    ; get ccldr base addr
+    ; For ccldr
+    ; Locate offset of ccldr pdpt from beginning of pml4
+    ; Get ccldr base addr
     mov rbx, qword [r8 + 0x10]
     shr rbx, 39
     and rbx, 0x1FF
@@ -403,7 +159,7 @@ bsp_init:
     call func_fill_pte
 
 
-    ; for krnl
+    ; For krnl
     mov rdi, kernel_pml4_offset          ; PML4[kernel_pml4_offset * 0x8] -> krnl_pdpt_base
     shl rdi, 3
     mov rbx, qword [rbp - 0x10]
@@ -419,8 +175,7 @@ bsp_init:
     ; Set PDPT
 
     ; Set Ccldr PDPT
-
-    ; calculate offset_of_ccldr from beginning of pdpt
+    ; Calculate offset_of_ccldr from beginning of pdpt
     mov rbx, qword [r8 + 0x10]
     shr rbx, 30
     and rbx, 0x1FF
@@ -442,8 +197,7 @@ bsp_init:
     ; Set PD
 
     ; Set Ccldr PD
-
-    ; calculate offset_of_ccldr from beginning of pd
+    ; Calculate offset_of_ccldr from beginning of pd
     mov rbx, qword [r8 + 0x10]
     shr rbx, 21
     and rbx, 0x1FF
@@ -465,9 +219,8 @@ bsp_init:
 
     ; Set PT
 
-    ; set ccldr pt
-
-    ; calculate offset of ccldr from beginning of pt
+    ; Set ccldr pt
+    ; Calculate offset of ccldr from beginning of pt
     mov rbx, qword [r8 + 0x10]
     shr rbx, 12
     and rbx, 0x1ff
@@ -481,8 +234,7 @@ bsp_init:
     mov rcx, qword [rbp - 0x18] ; get number of ptes of ccldr
     call func_fill_pte
 
-    ; set krnl pt
-
+    ; Set krnl pt
     mov rdi, qword [rbp - 0x80] ; get krnl_pt_base
     mov rsi, qword [r8]         ; get krnl_base
     mov rcx, qword [rbp - 0x38] ; get number of ptes of krnl
@@ -494,28 +246,29 @@ bsp_init:
     mov rax, qword[rbp - 0x10]
     or rax, rcx
 
-    ; backup cr3 value to rbx
+    ; Backup cr3 value into rbx
     mov rbx, rax
-    ; set cr3
+    ; Set cr3
     mov cr3, rax
 
 
     cli
     mov rdi, r8
 
-    ; get ccldr_base
+    ; Get ccldr_base
     mov r8, qword[rdi+0x10]
-    ; locate gdt base addr
-    add r8, 0x12000
+    ; Locate gdt base addr
+    add r8, 0x11000
     mov r9, r8
-    ; locate gdtr::base
+    ; Locate gdtr::base
     add r9, 0x22
-    ; set gdtr::base
+    ; Set gdtr::base
     mov qword[r9],r8
-    ; set gdtr
+    ; Set gdtr
     sub r9, 2
     lgdt[r9]
 
+    xor rsi, rsi
 
     ; Set up segment registers
     mov ax, seg_selector_data  ; Data segment selector
@@ -531,7 +284,7 @@ bsp_init:
     push seg_selector_code  ; Code segment selector
     mov rax, 0xfffff00000001000
     push rax
-    ; goto kernel
+    ; Goto krnl_start
     retfq
 
 
@@ -763,25 +516,8 @@ func_calculate_num_of_ptes_with_base_addr:
     ret
 
 
-memcpy:
-    ; Arguments:
-    ; rdi - destination
-    ; rsi - source
-    ; rdx - number of bytes to copy
-
-    ; Save the number of bytes to copy
-    mov rcx, rdx
-
-    ; Copy bytes from source to destination
-    rep movsb
-
-    ; Return the destination pointer
-    mov rax, rdi
-    ret
-
-
 ; fill rest of current page with 0
-times (startup_routine_size + ccldr_routine_size) - ($ - $$) db 0
+times (ccldr_routine_size) - ($ - $$) db 0
 
 
 

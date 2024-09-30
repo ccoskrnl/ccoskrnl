@@ -1,5 +1,5 @@
-#ifndef __X86_64_MM_PFN_H__
-#define __X86_64_MM_PFN_H__
+#ifndef __X86_MM_PFN_H__
+#define __X86_MM_PFN_H__
 
 #include "mm_arch.h"
 

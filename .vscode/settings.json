@@ -17,7 +17,7 @@
         "machine_info.h": "c",
         "cpu.h": "c",
         "mm.h": "c",
-        "x86_64.h": "c",
+        "x86.h": "c",
         "stdlib.h": "c",
         "string.h": "c",
         "io.h": "c",

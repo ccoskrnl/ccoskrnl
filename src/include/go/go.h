@@ -11,7 +11,8 @@ typedef enum _PREDEFINED_COLOR
     BLUE = 2,
     CYAN3,
     FIRE_BRICK2,
-    SPRINT_GREEN2
+    SPRINT_GREEN2,
+    DARK_GOLDEN_ROD2,
 
 } PREDEFINED_COLOR;
 
@@ -22,7 +23,7 @@ void putwcc(int window_index, wch_t wch, go_blt_pixel_t color);
 void putc(int window_index, wch_t wch);
 
 /*  Debug Print */
-void put_check(int window_index, boolean cond, const wch_t *ws);
+void put_check(int window_index, int status, const wch_t *ws);
 /*  Put a wstring with specific predefined color */
 void putwsc(int window_index, const wch_t *ws, PREDEFINED_COLOR color);
 /*  Put a wstring */

@@ -1,5 +1,5 @@
-#ifndef __X86_64_CPU_FEATURES_H__
-#define __X86_64_CPU_FEATURES_H__
+#ifndef __X86_CPU_FEATURES_H__
+#define __X86_CPU_FEATURES_H__
 
 #include "../../../include/types.h"
 
@@ -46,16 +46,39 @@
 
 // Base address of Local APIC
 #define IA32_APIC_BASE_MSR                                                  0x1B
+
+// 79H 121 IA32_BIOS_UPDT_TRIG 
+// (BIOS_UPDT_TRIG)
+// BIOS Update Trigger (W)
+// Executing a WRMSR instruction to this MSR 
+// causes a microcode update to be loaded 
+// into the processor. See Section 10.11.6, 
+// “Microcode Update Loader.”
+// A processor may prevent writing to this 
+// MSR when loading guest states on VM 
+// entries or saving guest states on VM exits.
+
+
+// The P6 family and later processors provide capabilities to 
+// verify the authenticity of a particular update and to iden-
+// tify the current update revision. 
+#define IA32_BIOS_SIGN_ID                                                   0x8B
+
+
 // TSC Frequency Clock Counter (R/Write to clear)
 #define IA32_MPERF                                                          0xE7
+
 // Actual Performance Clock Counter (R/Write to clear)
 #define IA32_APERF                                                          0xE8
+
 // This field indicates the intended scaleable bus clock speed 
 // for processors based on Intel Core microarchitecture.
 #define MSR_FSB_FREQ                                                        0xCD
 
 // TSC Ratio MSR
 #define MSR_TSC_RADIO                                                       0xC0000104
+
+
 
 // MSR for Core current operating frequency in MHz.
 // #define MSR_P_STATE_0_FREQ                                                  0xC0010064
@@ -124,28 +147,48 @@ extern char cpu_vendor_id[16];
 extern char cpu_brand_string[49];  // 48 characters + null terminator
 
 
-extern boolean support_rdrand;
+typedef enum 
+{
+    X86_FEATURE_RDRAND,
+
 // AVX2. Supports Intel® Advanced Vector Extensions 2 (Intel® AVX2) if 1.
-extern boolean support_avx2;
+    X86_FEATURE_AVX2,
+
 // AVX instruction support
-extern boolean support_avx;
+    X86_FEATURE_AVX,
+
 // XSAVE (and related) instructions are enabled.
-extern boolean support_osxsave;
+    X86_FEATURE_OSXSAVE,
+
 // XSAVE (and related) instructions are supported by hardware. .
-extern boolean support_xsave;
+    X86_FEATURE_XSAVE,
+
 // AES instruction support.
-extern boolean support_aes;
+    X86_FEATURE_AES,
+
 // SSE4.2 instruction support.
-extern boolean support_sse42;
+    X86_FEATURE_SSE42,
+
 // SSE4.1 instruction support. 
-extern boolean support_sse41;
+    X86_FEATURE_SSE41,
+
 // CMPXCHG16B instruction
-extern boolean support_cmpxchg16b;
+    X86_FEATURE_CMPXCHG16B,
 // FMA instruction support.
-extern boolean support_fma;
+    X86_FEATURE_FMA,
+
 // supplemental SSE3 instruction support.
-extern boolean support_ssse3;
+    X86_FEATURE_SSSE3,
+
 // SSE3 instruction support.
-extern boolean support_sse3;
+    X86_FEATURE_SSE3,
+
+// MTRR
+    X86_FEATURE_MTRR
+} X86_FEATURE;
+
+
+void cpu_feature_detect();
+boolean cpu_feature_support(X86_FEATURE feature);
 
 #endif

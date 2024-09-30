@@ -4,6 +4,7 @@
 #include "types.h"
 #include "hal/acpi.h"
 #include "go/go.h"
+#include "arch/cpu_features.h"
 
 /*  The size of LOADER_MACHINE_INFORMATION structure in bytes  */
 #define MACHINE_INFO_SIZE 					    0x10000
@@ -46,11 +47,12 @@
 struct _startup_routine_data
 {
     uint64_t cr3;
-    uint64_t cr0;
-    uint64_t cr4;
-    uint64_t xcr0;
     uint64_t number_of_running_cores;
-    uint64_t reserved;
+    IA32_mtrr_cap_t mtrr_cap;
+    IA32_mtrr_def_type_t mtrr_def_type;
+
+    // The number of mtrrs is determined by mtrr_cap.vcnt
+    uint64_t mtrrs[];
 };
 
 

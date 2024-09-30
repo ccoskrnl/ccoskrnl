@@ -1029,6 +1029,62 @@ static void map_rom_zone()
 
 }
 
+/*  
+
+Routine Description:
+
+    The routine maps application processors startup routine into corresponding virtual address
+space. The bootstrap processor will save datas that application processors needed in the space.
+The address of the memory space is located by UEFI allocated(The default address is located at 
+0x1000).
+
+Parameters:
+
+    None.
+
+Returned Value:
+
+    None.
+
+*/
+void mapping_startup_routine(uint64_t startup_addr)
+{
+    uint64_t new_page;
+    uint64_t vpage = startup_addr >> PAGE_SHIFT;
+    mmpte_hardware_t *startup_pml4_entry;
+    mmpte_hardware_t *startup_pdpt;
+    mmpte_hardware_t *startup_pd;
+    mmpte_hardware_t *startup_pt;
+    uint64_t value;
+
+    new_page = _mm_get_sys_pte_next_page();
+    startup_pdpt = (mmpte_hardware_t*)(new_page + _mm_sys_pte_pool_start);
+
+    startup_pml4_entry = (mmpte_hardware_t*)(_mm_pt_pml4_start);
+    startup_pml4_entry->present = 1;
+    startup_pml4_entry->rw = 1;
+    startup_pml4_entry->address = ((uint64_t)(new_page + _mm_sys_pte_pool_phys_start)) >> PAGE_SHIFT;
+
+    new_page = _mm_get_sys_pte_next_page();
+    startup_pd = (mmpte_hardware_t*)(new_page + _mm_sys_pte_pool_start);
+
+    startup_pdpt[0].present = 1;
+    startup_pdpt[0].rw = 1;
+    startup_pdpt[0].address = ((uint64_t)(new_page + _mm_sys_pte_pool_phys_start)) >> PAGE_SHIFT;
+
+    new_page = _mm_get_sys_pte_next_page();
+    startup_pt = (mmpte_hardware_t*)(new_page + _mm_sys_pte_pool_start);
+
+    startup_pd[0].present = 1;
+    startup_pd[0].rw = 1;
+    startup_pd[0].address = ((uint64_t)(new_page + _mm_sys_pte_pool_phys_start)) >> PAGE_SHIFT;
+
+    startup_pt[vpage].present = 1;
+    startup_pt[vpage].rw = 1;
+    startup_pt[vpage].address = vpage;
+
+    _mm_flush_tlb(startup_addr);
+}
 
 
 uint64_t fixup_acpi_table_addr(uint64_t phys_addr)
@@ -1339,5 +1395,7 @@ void mm_init()
 
     // Map ROM Zone
     map_rom_zone();
+
+    mapping_startup_routine(_current_machine_info->memory_space_info[3].base_address);
 
 }
