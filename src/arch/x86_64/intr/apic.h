@@ -97,6 +97,7 @@ extern lapic_ver_t lapic_ver;
 #define LOCAL_APIC_SPURIOUS_INTERRUPT_VEC_REG       0xF0
 
 
+#define LOCAL_APIC_ERROR_STATUS_REG                 0x280
 
 /**
  * Interrupt Command Register
@@ -177,6 +178,13 @@ extern lapic_ver_t lapic_ver;
  **/
 #define LOCAL_APIC_ICR_DELIVERY_MODE_EXT_INT        0x7
 
+/* 
+ * For the INIT level de-assert delivery mode this flag must be set to 0; for all other delivery 
+ * modes it must be set to 1. (This flag has no meaning in Pentium 4 and Intel Xeon processors, 
+ * and will always be issued as a 1.)
+*/
+#define LOCAL_APIC_ICR_LEVEL_DEASSERT               0
+#define LOCAL_APIC_ICR_LEVEL_ASSERT                 1
 /**
  * Selects the trigger mode when using the INIT level de-assert delivery mode: edge (0) or level 
  * (1). It is ignored for all other delivery modes. (This flag has no meaning in Pentium 4 and Intel 

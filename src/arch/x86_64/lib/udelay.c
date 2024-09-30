@@ -2,8 +2,9 @@
 #include "../cpu/cpu_features.h"
 #include "../../../include/types.h"
 
-void udelay(uint64_t microseconds)
+void udelay(int64_t microseconds)
 {
-    pit_prepare_sleep(microseconds);
-    pit_perform_sleep();
+    while (microseconds-- > 0) {
+        asm("nop");
+    }
 }

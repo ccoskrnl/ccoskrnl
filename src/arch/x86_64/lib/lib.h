@@ -32,7 +32,7 @@ void sleep(uint32_t seconds);
 
 
 void _lib_udelay_init();
-void udelay(uint64_t microseconds);
+void udelay(int64_t microseconds);
 
 /**
  * Reference from intr/apic.c

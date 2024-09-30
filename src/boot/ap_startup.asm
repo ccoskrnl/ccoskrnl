@@ -163,6 +163,7 @@ protect_mode_code:
     mov ebx, 0x1900
     lgdt[ebx]
 
+    ; Get CR3, which is stored at 0x1A00.
     mov ebx, 0x1A00
     mov edi, dword[ebx]
     mov eax, edi

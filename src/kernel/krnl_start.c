@@ -113,7 +113,7 @@ void krnl_init()
     intr_init();
     put_check(0, true, L"Interrupt module has initialized.\n");
 
-    // active_aps();
+    active_aps();
 
     put_check(0, true, L"System diagnostic completed. All systems nominal.\n");
 
