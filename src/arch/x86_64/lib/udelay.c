@@ -4,7 +4,9 @@
 
 void udelay(int64_t microseconds)
 {
-    while (microseconds-- > 0) {
+    int64_t us = microseconds * 1000;
+    // int64_t us = microseconds;
+    while (us-- > 0) {
         asm("nop");
     }
 }

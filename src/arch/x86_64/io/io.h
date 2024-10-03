@@ -4,6 +4,9 @@
 
 #include "../../../include/types.h"
 
+#define CMOS_PORT    0x70
+#define CMOS_RETURN  0x71
+
 // static __inline unsigned char
 // inb (unsigned short int __port)
 // {

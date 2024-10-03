@@ -6,6 +6,7 @@
 #include "./cpu/mtrr.h"
 #include "./intr/apic.h"
 #include "./lib/lib.h"
+#include "./io/io.h"
 #include "cpu/cpu.h"
 
 // Bootstrap Processor descriptor
@@ -95,11 +96,11 @@ static void send_init_sequence(int lapic_id)
         write_lapic_register(LOCAL_APIC_ICR_LOW, low);
 
         // delay
-        udelay(100000);
+        udelay(100);
     }
     retry = 3;
 
-    udelay(100000);
+    udelay(100);
     icr.level = LOCAL_APIC_ICR_LEVEL_DEASSERT;
     low = *(uint32_t*)(&icr);
 
@@ -116,7 +117,7 @@ static void send_init_sequence(int lapic_id)
         write_lapic_register(LOCAL_APIC_ICR_LOW, low);
 
         // delay
-        udelay(100000);
+        udelay(100);
     }
     retry = 3;
 
@@ -131,6 +132,9 @@ void boot_processor(int lapic_id, ptr_t startip)
     uint32_t low, high;
     int retry = 3;
     int send_status, accpet_status;
+
+    outb(CMOS_PORT, 0xF);  // offset 0xF is shutdown code
+    outb(CMOS_PORT+1, 0x0A);
 
     send_init_sequence(lapic_id);
 
@@ -165,7 +169,7 @@ void boot_processor(int lapic_id, ptr_t startip)
              * receive a exception or fault. Then the machine will restart. This question
              * have been bothering me for two weeks.  
              */
-            udelay(1000);
+            udelay(1);
 
             while (retry--) 
             {
@@ -175,14 +179,14 @@ void boot_processor(int lapic_id, ptr_t startip)
                     break;
 
                 // delay
-                udelay(100);
+                udelay(10);
             }
             retry = 3;
 
             /*
              * Give the other processor some time to accept the IPI.
              */
-            udelay(1000);
+            udelay(10);
 
             if (lapic_ver.maxlvt > 3)
             {
@@ -194,6 +198,13 @@ void boot_processor(int lapic_id, ptr_t startip)
                 break;
         }
     }
+
+    // volatile uint32_t* id = (volatile uint32_t*)0x1FF8;
+    // while (*id == 0) 
+    // {
+    //     ;
+    // }
+    // put_check(0, true, L"AP has already reached that point.\n");
 }
 
 void active_aps(void)

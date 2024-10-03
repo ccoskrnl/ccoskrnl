@@ -17,7 +17,8 @@ ap_entry_point:
     cli
     wbinvd
 
-    mov ax, cs
+    ; mov ax, cs
+    xor ax, ax
     mov ds, ax
     mov es, ax
     mov ss, ax
@@ -194,6 +195,10 @@ long_mode:
     mov fs, ax
     mov gs, ax
     mov ss, ax
+
+
+    int3
+
 
     mov cr3, rdi
 
