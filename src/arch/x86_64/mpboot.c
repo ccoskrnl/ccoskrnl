@@ -17,6 +17,8 @@ extern cpu_core_desc_t bsp;
 
 extern void op_init_for_ap(int lapic_id);
 
+static uint64_t* volatile lock_var;
+
 /*
 
 Routine Description:
@@ -97,6 +99,10 @@ void save_cpu_info_at_shared_data_area(ptr_t startip)
     *cpu_info++ = cr3;
     // cpu_info[1] = number of running processors;
     *cpu_info++ = 1;
+
+    lock_var = (uint64_t* volatile)(startip + 0xA10);
+    // cpu_info[2] = lock var;
+    *cpu_info++ = 0;
 
     if (cpu_feature_support(X86_FEATURE_MTRR))
     {
@@ -266,6 +272,11 @@ void boot_processor(int lapic_id, ptr_t startip)
 void ap_entry()
 {
     uint64_t lapic_id = _lapic_get_apic_id();
+
+    // Release the spinlock to allow other aps can be initialized.
+    *lock_var = 0;
+
+
     // cpu_core_desc_t *core_desc = ap_setting(lapic_id);
 
     // Set interrupt flag, os can handle interrupts or exceptions.

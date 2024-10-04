@@ -41,7 +41,7 @@
 ; Actually, we can't assume the UEFI will allocate 8Kib memory at 0x1000. We need to fix the
 ; entrypoint and the references of pointer if necessary(Exactly, we need in most case).
 
-lock_var_offset equ 0x980
+lock_var_offset equ 0xA10
 temporary_stack_top_offset equ 0x800
 long_mode_gdt_offset equ 0x900
 data_section_offset equ 0xA00
