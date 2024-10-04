@@ -343,10 +343,15 @@ UefiMain(
 
   // Allocate one page to store start-up routine code for application processors initialization.
   Status = gBS->AllocatePages(AllocateAddress, EfiLoaderData, STARTUP_ROUTINE_SIZE >> EFI_PAGE_SHIFT, &StartUpRoutineAddress); 
-  if (EFI_ERROR(Status))
+  while (EFI_ERROR(Status))
   {
-    Print(L"[ERROR]: Allocate memory for start-up routine failed...\n\r");
-    goto ExitUefi;
+    StartUpRoutineAddress += EFI_PAGE_SIZE;
+    if (StartUpRoutineAddress >= MM1MB)
+    {
+      Print(L"[ERROR]: Allocate memory for start-up routine failed...\n\r");
+      goto ExitUefi;
+    }
+    Status = gBS->AllocatePages(AllocateAddress, EfiLoaderData, STARTUP_ROUTINE_SIZE >> EFI_PAGE_SHIFT, &StartUpRoutineAddress); 
   }
 
   ReadFileToBufferAt(KRNL_PATH, KrnlImageBase, &KernelBufferSize);
@@ -362,6 +367,31 @@ UefiMain(
   MachineInfo->MemorySpaceInformation[2].Size = KernelBufferSize;
   MachineInfo->MemorySpaceInformation[3].BaseAddress = StartUpRoutineAddress;
   MachineInfo->MemorySpaceInformation[3].Size = StartUpRoutineBufferSize;
+
+
+  /*
+   * These is one thing to note here that we need to construct a temporary 4-level page-table for ap startup routine.
+   * The key point corresponds the value of cr3 of bsp large than 4-GB. So, we might need to switch long-mode before
+   * load bsp's cr3 into ap. Luckily, the temporary page-table won't become very complicated since the ap startup
+   * routine is only located in 0x0000 ~ MM1MB.
+   *
+   * Here, we will build a temporary page-table and place the temporary page-table, which follows ap startup routine.
+   * The mapped memory space by the page-table can hold the whole ap startup routine space.
+   */
+#ifndef REMOVE_TMP_PT
+  
+  UINTN* Pml4 = (UINTN*)(StartUpRoutineAddress + 0x1000);
+  UINTN* PDPT = (UINTN*)(StartUpRoutineAddress + 0x2000);
+  UINTN* PD = (UINTN*)(StartUpRoutineAddress + 0x3000);
+  UINTN* PT = (UINTN*)(StartUpRoutineAddress + 0x4000);
+
+  Pml4[0] = (UINTN)PDPT | 0x3;
+  PDPT[0] = (UINTN)PD | 0x3;
+  PD[0] = (UINTN)PT | 0x3;
+  for (int i = 0; i < (STARTUP_ROUTINE_SIZE >> EFI_PAGE_SHIFT); i++)
+    PT[(StartUpRoutineAddress >> EFI_PAGE_SHIFT) + i] = (StartUpRoutineAddress + (i << EFI_PAGE_SHIFT)) | 0x3;
+
+#endif
 
   MachineInfo->SumOfSizeOfFilesInPages = (PAGE_ALIGNED(KernelBufferSize) >> EFI_PAGE_SHIFT);
 

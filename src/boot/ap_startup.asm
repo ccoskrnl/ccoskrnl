@@ -1,5 +1,51 @@
 [org 0x1000]
 
+; ┌───────────────────┐◄────── entry_addr         
+; │                   │                           
+; │                   │                           
+; │                   │                           
+; │                   │                           
+; │                   │                           
+; │                   │                           
+; │   Startup Routine │                           
+; │        Code       │                           
+; │                   │                           
+; │                   │                           
+; │                   │                           
+; │                   │                           
+; │                   │                           
+; │                   │                           
+; ├───────────────────┤◄────── entry_addr + 0x800 
+; │    MTRRs state    │                           
+; ├───────────────────┤◄────── entry_addr + 0x900 
+; │   Long-Mode GDT   │                           
+; ├───────────────────┤◄────── entry_addr + 0xA00 
+; │                   │                           
+; │                   │                           
+; │                   │                           
+; │                   │                           
+; │       Shared      │                           
+; │        Data       │                           
+; │        Area       │                           
+; │                   │                           
+; │                   │                           
+; │                   │                           
+; │                   │                           
+; ├───────────────────┤◄────── entry_addr + 0x1000
+; │                   │                           
+; │     Temporary     │                           
+; │     Page-Table    │                           
+; │                   │                           
+; └───────────────────┘                           
+
+; Actually, we can't assume the UEFI will allocate 8Kib memory at 0x1000. We need to fix the
+; entrypoint and the references of pointer if necessary(Exactly, we need in most case).
+
+lock_var_offset equ 0x980
+temporary_stack_top_offset equ 0x800
+long_mode_gdt_offset equ 0x900
+data_section_offset equ 0xA00
+
 ; Waits on the BIOS initialization Lock Semaphore. When control of the semaphore is attained, initialization 
 ; continues
 
@@ -17,20 +63,47 @@ ap_entry_point:
     cli
     wbinvd
 
-    ; mov ax, cs
     xor ax, ax
     mov ds, ax
     mov es, ax
     mov ss, ax
 
+    ; Signature
+    nop
+    nop
+    nop
+    nop
+
+    ; Acquire spinlock to ensure the startup routine code is executed by only
+    ; one processor.
+
+    ; The ebx holds the base address of ap_startup routine. we might need to
+    ; fix the value before execute the following initialization.
+    mov ebx, 0x1000
+
+    ; Locates the lock variable.
+    add ebx, lock_var_offset
+.acquire_lock:
+    mov eax, 1
+    xchg eax, [ebx]
+    test eax, eax
+    jnz .acquire_lock
+
 
     ; Sets temporary stack pointer.
-    mov sp, 0x1800
-    mov bx, 0x1800
+    sub ebx, lock_var_offset
+    mov esp, ebx
+    add esp, temporary_stack_top_offset
 
-    ; Loads IDTR and GDTR
-    lgdt[gdtr_32]
-    lidt[idtr_32]
+    ; Load GDTR
+    mov eax, 0x99000
+    db 0x66
+    lgdt[eax]
+    
+    ; Load IDTR
+    mov eax, 0x99000
+    db 0x66
+    lidt[eax]
 
 ;   BIOS initialization routine should maintain the conherency of memory region type. 
 ;   Otherwise, we need to save the mtrrs of bsp and load into ap's mtrrs. In here, 
@@ -140,13 +213,14 @@ ap_entry_point:
     or eax, 1
     mov cr0, eax
 
+    ; We need to fix the target code address for the jump instruction
+    ; (Jump far, absolute, address given in operand).
+
     ; Clear prefetch queue
-    ; TODO CPU received signal SIGTRAP, Trace/breakpoint trap.
-    ; 0x000000000000fff0 in ?? ()
-    jmp dword 0x08:protect_mode_code
+    jmp dword 0x08:protect_mode_entry
 
 [bits 32]
-protect_mode_code:    
+protect_mode_entry:    
 
     mov ax, 0x10
     mov ds, ax
@@ -161,15 +235,17 @@ protect_mode_code:
     mov cr4, eax
 
     ; Load Long-Mode GDT
-    mov ebx, 0x1900
-    lgdt[ebx]
+    mov eax, ebx
+    add eax, long_mode_gdt_offset
+    lgdt[eax]
 
-    ; Get CR3, which is stored at 0x1A00.
-    mov ebx, 0x1A00
-    mov edi, dword[ebx]
-    mov eax, edi
+    ; Set temporary cr3
+    mov edx, ebx
+    add edx, 0x1000
+    mov eax, cr3
+    and eax, 0xfff
+    or eax, edx
 
-    ; Set CR3
     mov cr3, eax
 
     ; Enable IA-32e Mode
@@ -178,15 +254,17 @@ protect_mode_code:
     or eax, 0x0101
     wrmsr
 
-    ; enable Paging
+    ; Enable Paging
     mov eax, cr0
-    or eax, 0x80000000
+    bts eax, 31
     mov cr0, eax
-    
-    jmp long_mode
+
+    ; We need to fix the target code address for the jump instruction
+    ; (Jump far, absolute, address given in operand).
+    jmp 0x8:long_mode_entry
 
 [bits 64]
-long_mode:
+long_mode_entry:
 
     ; Set up segment registers
     mov ax, 0x10  ; Data segment selector
@@ -196,14 +274,15 @@ long_mode:
     mov gs, ax
     mov ss, ax
 
+    mov rdx, rbx
+    add rdx, data_section_offset
 
-    int3
+    ; Update the number of running cores.
+    lock inc qword[rdx+0x8]
 
-
-    mov cr3, rdi
-
-    ; is_ap
-    mov rsi, 1
+    ; Load Bsp'cr3 into ap.
+    mov rax, qword[rdx]
+    mov cr3, rax
 
     ; Far return to reload CS
     push 0x8  ; Code segment selector
@@ -236,13 +315,4 @@ gdt_end_32:
 idtr_32:
     dw 0
     dq 0
-    ; dw (idt_end_32 - idt_base_32) - 1
-    ; dq idt_base_32
     dw 0, 0, 0
-        
-idt_base_32:
-    dq 0, 0, 0, 0, 0, 0, 0, 0
-    dq 0, 0, 0, 0, 0, 0, 0, 0
-    dq 0, 0, 0, 0, 0, 0, 0, 0
-    dq 0, 0, 0, 0, 0, 0, 0, 0
-idt_end_32:

@@ -20,7 +20,9 @@ tss_t tss0 = { 0 };
 
 // The Bootstrap Processor Core descriptor.
 cpu_core_desc_t bsp = { 0 };
-list_node_t cpu_cores_list;
+
+list_node_t cpu_cores_list = { 0 };
+cpu_core_desc_t *cpu_cores[MAX_CPU_CORES] = { 0 };
 
 /**
  * @brief  
@@ -122,16 +124,67 @@ void preparing_for_bsp(boolean is_first)
             _cpu_install_isr(&bsp, i, _intr_handler_entry_table[i], IDT_DESC_TYPE_INTERRUPT_GATE, 0); 
         }
         bsp.lapic_id = _cpuid_get_apic_id();
+        cpu_cores[bsp.lapic_id] = &bsp;
+
         bsp.tag = CPU_CORE_TAG_BSP;
         cpu_cores_list.blink = &bsp.node;
         cpu_cores_list.flink = &bsp.node;
         
-        mtrr_bsp_init();
+        mtrr_init();
 
     }
     
 
     
+}
+
+cpu_core_desc_t* ap_setting(uint64_t lapic_id)
+{
+    cpu_core_desc_t *cpu = cpu_cores[lapic_id];
+    cpu->tag = CPU_CORE_AP_TAG(lapic_id);
+
+    cpu->gdt = gdt;
+    cpu->gdtr.limit = (sizeof(seg_desc_t) * SEG_DESC_MAXIMUM) - 1;
+    cpu->gdtr.base = (uint64_t)(cpu->gdt);
+
+    cpu->idt = idt;
+    cpu->idtr.limit = (sizeof(idt_desc_t) * IDT_DESC_MAXIMUM) - 1;
+    cpu->idtr.base = (uint64_t)(cpu->idt);
+
+    __set_gdtr(&cpu->gdtr);
+    __set_idtr(&cpu->idtr);
+    _cpu_reload_seg_regs(SEG_SEL_KRNL_CODE, SEG_SEL_KRNL_DATA);
+
+    if (cpu_feature_support(X86_FEATURE_XSAVE))
+    {
+        // Set cr4_t
+        uint64_t cr4 = 0;
+        __get_cr4(cr4);
+        // Enable XSAVE and AVX in cr4_t
+        cr4 |= (1 << 18);
+        __write_cr4(cr4);
+
+        // Set AVX state and SSE state
+        if (cpu_feature_support(X86_FEATURE_AVX))
+        {
+            uint64_t xcr0 = read_xcr0();
+
+            // Note that bit 0 of XCR0 (corresponding to x87 state) must be set to 1; 
+            // the instruction will cause a #GP(0) if an attempt is made to clear this 
+            // bit. In addition, the instruction causes a #GP(0) if an attempt is made 
+            // to set XCR0[2] (AVX state) while clearing XCR0[1] (SSE state); it is 
+            // necessary to set both bits to use AVX instructions; 
+            xcr0 |= ((1 << 2) | (1 << 1));
+            write_xcr0(xcr0);
+        }
+        
+    }
+
+
+    // TSS descriptor is at index 3 in the GDT
+    __load_tr(3 << 3);
+    
+    return cpu;
 }
 
 

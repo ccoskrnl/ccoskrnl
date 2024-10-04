@@ -2,6 +2,9 @@
 #include "../../include/libk/stdlib.h"
 #include "../../include/machine_info.h"
 
+#include "../../include/go/window.h"
+#include "../../include/go/go.h"
+
 #include "./cpu/cpu_features.h"
 #include "./cpu/mtrr.h"
 #include "./intr/apic.h"
@@ -12,7 +15,66 @@
 // Bootstrap Processor descriptor
 extern cpu_core_desc_t bsp;
 
-void save_cpu_info_at_startup(ptr_t startip)
+extern void op_init_for_ap(int lapic_id);
+
+/*
+
+Routine Description:
+
+    The routine fixes the all instructions that rely on relocation. We can't assume
+that the UEFI-boot always placed our startup routine at stationary address. In 
+default case, we use 0x1000 as the entrypoint address of our startup routine. 
+Different machine might have different memory layouts. Since the address
+0x1000 may was reserved for the other machine, so we need to fix manually these
+address references.
+
+Parameters:
+
+    startip - The entrypoint of application processors.
+
+    ap_entry - Then entrypoint of application processors after they have been
+initializated.
+
+Return Value:
+
+    None.
+
+*/
+void fixup_reloc_of_entry(ptr_t startip, ptr_t ap_entry)
+{
+    uint32_t ebx = startip;
+    uint32_t* mov_ebx_ip = (uint32_t*)(0x11 + startip);
+    *mov_ebx_ip = ebx;
+
+    // fixup gdtr
+    uint32_t gdt_addr = (0x100 + startip);
+    uint32_t* gdtr_base = (uint32_t*)(0xf2 + startip);
+    *gdtr_base = gdt_addr;
+
+    // fixup lgdt
+    uint32_t gdtr_addr = (0xf0 + startip);
+    // mov eax, gdtr_addr
+    uint32_t* lgdt = (uint32_t*)(0x3e + startip);
+    *lgdt = gdtr_addr;
+
+    // fixup idtr
+    uint32_t idtr_addr = (0x120 + startip);
+    uint32_t* lidt = (uint32_t*)(0x49 + startip);
+    *lidt = idtr_addr;
+
+    uint32_t pm_entry = 0x64 + startip; 
+    uint32_t* jmp2pm = (uint32_t*)(0x5e + startip);
+    *jmp2pm = pm_entry;
+
+    uint32_t lm_entry = 0xb8 + startip;
+    uint32_t* jmp2lm = (uint32_t*)(0xb2 + startip);
+    *jmp2lm = lm_entry;
+
+    uint64_t* jmp2entry = (uint64_t*)(0xdf + startip);
+    *jmp2entry = ap_entry;
+}
+
+void save_cpu_info_at_shared_data_area(ptr_t startip)
 {
     uint64_t *mtrrs = (uint64_t*)(startip + 0x800);
     pseudo_desc_t *lm_gdt = (pseudo_desc_t*)(startip + 0x900);
@@ -199,18 +261,29 @@ void boot_processor(int lapic_id, ptr_t startip)
         }
     }
 
-    // volatile uint32_t* id = (volatile uint32_t*)0x1FF8;
-    // while (*id == 0) 
-    // {
-    //     ;
-    // }
-    // put_check(0, true, L"AP has already reached that point.\n");
+}
+
+void ap_entry()
+{
+    uint64_t lapic_id = _lapic_get_apic_id();
+    // cpu_core_desc_t *core_desc = ap_setting(lapic_id);
+
+    // Set interrupt flag, os can handle interrupts or exceptions.
+    // __asm__ ("sti"); 
+
+    // op_init_for_ap(lapic_id);
+
+    while (true) {
+        asm("nop");
+    }
+    
 }
 
 void active_aps(void)
 {
 
-    save_cpu_info_at_startup(_current_machine_info->memory_space_info[3].base_address);
+    save_cpu_info_at_shared_data_area(_current_machine_info->memory_space_info[3].base_address);
+    fixup_reloc_of_entry(_current_machine_info->memory_space_info[3].base_address, (ptr_t)ap_entry);
 
     list_node_t *core_node = cpu_cores_list.flink;
     while (core_node != NULL) {

@@ -5,6 +5,7 @@
 #include "../include/libk/stdlib.h"
 #include "../include/libk/string.h"
 #include "../include/libk/rbtree.h"
+#include "../include/libk/lock.h"
 #include "../include/types.h"
 
 /**
@@ -506,6 +507,8 @@ void _go_install_a_screen(
     if (ST_ERROR(status)) {
         krnl_panic(NULL);
     }
+
+    spinlock_init(&screen->spinlock);
 
     screen->Blt = blt;
     screen->SwapTwoBuffers = swap_framebuffer;

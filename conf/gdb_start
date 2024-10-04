@@ -5,3 +5,4 @@ add-symbol-file ../esp/EFI/ChengChengOS/ccoskrnl 0xfffff00000001000
 set listsize 16
 
 hbreak kernel/krnl_start.c:krnl_exit
+hbreak arch/x86_64/mpboot.c:ap_entry

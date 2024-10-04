@@ -140,7 +140,7 @@ typedef struct _window_text
 
 } window_text_t;
 
-extern window_text_t *_go_cpu_output_window[4];
-extern wch_t *_go_weclome_texts[4];
+extern window_text_t *_go_cpu_output_window[32];
+extern wch_t *_go_weclome_texts[32];
 
 #endif

@@ -525,6 +525,7 @@ section .data
 gdt_start:
     dq 0
 gdt_krnl_code:
+    ; dq 0x00209A0000000000             ; 64-bit code descriptor (exec/read).
     dw 0xFFFF               ; segment limit 15:00
     dw 0x0                  ; base address 15:00
     db 0                    ; base 23:16
@@ -542,6 +543,7 @@ gdt_krnl_code:
     db 0b_1_0_1_0_0000 | (0xF)
     db 0                    ; base 31:24
 gdt_krnl_data:
+    ; dq 0x0000920000000000             ; 64-bit data descriptor (read/write).
     dw 0xFFFF               ; segment limit 15:00
     dw 0x0                  ; base address 15:00
     db 0                    ; base 23:16

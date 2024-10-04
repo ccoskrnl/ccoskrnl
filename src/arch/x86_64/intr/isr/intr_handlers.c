@@ -55,15 +55,15 @@ void _intr_pm_handler (
     _go_cpu_output_window[0]->ClearWindow((window_t*)_go_cpu_output_window[0]);
     _go_cpu_output_window[0]->ShowWindow(_go_cpu_output_window[0]);
 
-    put_check(0, false, pm_msg[(error_code >> 32) & 0xFF]);
-    putsxs(0, "Interrupt Vector Number: ", (error_code >> 32) & 0xFF, "\n");
+    put_check(output_bsp, false, pm_msg[(error_code >> 32) & 0xFF]);
+    putsxs(output_bsp, "Interrupt Vector Number: ", (error_code >> 32) & 0xFF, "\n");
 
     if ((error_code & 0xFFFFFFFF) != MagicNumber)
-        putsxs(0, "Exception Code: ", error_code & 0xFFFFFFFF, "\n");
+        putsxs(output_bsp, "Exception Code: ", error_code & 0xFFFFFFFF, "\n");
 
-    putsxs(0, "RIP: ", RIP, "\n");
-    putsxs(0, "CS: ", CS, "\n");
-    putsxs(0, "EFLAGS: ", EFLAGS, "\n");
-    putsxs(0, "RSP: ", RSP, "\n");
-    putsxs(0, "SS: ", SS, "\n");
+    putsxs(output_bsp, "RIP: ", RIP, "\n");
+    putsxs(output_bsp, "CS: ", CS, "\n");
+    putsxs(output_bsp, "EFLAGS: ", EFLAGS, "\n");
+    putsxs(output_bsp, "RSP: ", RSP, "\n");
+    putsxs(output_bsp, "SS: ", SS, "\n");
 }

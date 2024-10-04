@@ -3,7 +3,7 @@ ARCH!=../../conf/uname.sh
 include ../../conf/target.conf
 
 BUILD_DIR = ../../build/libk
-SRC_DIRS = . stdlib string bitmap list ctype rbtree
+SRC_DIRS = . stdlib string bitmap list ctype rbtree lock
 
 SRCS = $(foreach dir, $(SRC_DIRS), $(wildcard $(dir)/*.c))
 OBJS = $(patsubst %.c,$(BUILD_DIR)/%.o,$(SRCS))
@@ -48,6 +48,11 @@ $(BUILD_DIR)/%.o: stdlib/%.c
 	@$(CC) $(CFLAGS) -c -o $@ $<
 
 $(BUILD_DIR)/%.o: ctype/%.c
+	$(shell mkdir -p $(dir $@))
+	@echo "	Compiling $<"
+	@$(CC) $(CFLAGS) -c -o $@ $<
+
+$(BUILD_DIR)/%.o: lock/%.c
 	$(shell mkdir -p $(dir $@))
 	@echo "	Compiling $<"
 	@$(CC) $(CFLAGS) -c -o $@ $<

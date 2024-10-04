@@ -26,6 +26,7 @@ uint64_t swap_endian_64(uint64_t value);
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // ++++ The implementation of the following functions is provided by arch/lib. ++++
 
+void* calloc(size_t size);
 void* malloc(size_t size);
 void free(void* addr);
 

@@ -6,6 +6,7 @@
 #include "./window_text.h"
 #include "../../include/libk/math.h"
 #include "../../include/libk/stdlib.h"
+#include "../../include/arch/lib.h"
 
 
 static void clear_window(
@@ -180,7 +181,8 @@ static status_t show_window(
     uint16_t win_width = this->framebuffer.width;
     uint16_t win_height = this->framebuffer.height;
 
-    // TODO: acquire screen lock
+    boolean saved_if = intr_disable();
+    spinlock_acquire(&screen->spinlock);
 
     // backup framebuffer into backbuffer
     screen->SwapTwoBuffers(screen, BACKBUFFER_INDEX, FRAMEBUFFER_INDEX);
@@ -253,7 +255,9 @@ static status_t show_window(
 
 
     screen->SwapTwoBuffers(screen, FRAMEBUFFER_INDEX, BACKBUFFER_INDEX);
-    // TODO: release screen lock
+
+    spinlock_release(&screen->spinlock);
+    set_intr_state(saved_if);
 
     return status;;
 }

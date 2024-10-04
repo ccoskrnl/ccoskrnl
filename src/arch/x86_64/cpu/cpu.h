@@ -236,7 +236,10 @@ void __read_idtr(struct _pseudo_desc *idtr);
 
 /*================ CPU Core Descriptor Definition ================*/
 
-#define CPU_CORE_TAG_BSP                                                    0x505342
+#define MAX_CPU_CORES                                                       128
+
+#define CPU_CORE_TAG_BSP                                                    0x425350
+#define CPU_CORE_AP_TAG(lapic_id)                                           (0x415000 | (uint8_t)lapic_id)
 
 typedef struct _cpu_core_desc
 {
@@ -255,7 +258,9 @@ typedef struct _cpu_core_desc
 } cpu_core_desc_t;
 
 extern list_node_t cpu_cores_list;
+extern cpu_core_desc_t *cpu_cores[MAX_CPU_CORES];
 
+cpu_core_desc_t* ap_setting(uint64_t lapic_id);
 void _cpu_install_isr(cpu_core_desc_t *cpu, uint8_t vector, void* routine, uint8_t type, uint8_t ist_index);
 
 

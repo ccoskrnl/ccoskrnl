@@ -34,6 +34,12 @@ void sleep(uint32_t seconds);
 void _lib_udelay_init();
 void udelay(int64_t microseconds);
 
+boolean get_intr_state();
+
+boolean intr_disable();
+
+void set_intr_state(boolean state);
+
 /**
  * Reference from intr/apic.c
  * The routine to notice the servicing of the current interrupt is complete.

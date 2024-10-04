@@ -150,6 +150,6 @@ extern const int nr_fix16k;
 extern const int nr_fix4k;
 extern mtrr_state_t mtrr_state;
 
-void mtrr_bsp_init(void);
+void mtrr_init(void);
 
 #endif

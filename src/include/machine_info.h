@@ -9,51 +9,52 @@
 /*  The size of LOADER_MACHINE_INFORMATION structure in bytes  */
 #define MACHINE_INFO_SIZE 					    0x10000
 #define CCLDR_ROUTINE_SIZE                      0x1000
+
+
 /*  The size of start-up routine in bytes  */
-#define STARTUP_ROUTINE_SIZE 					0x1000
-#define STARTUP_STACK_TOP                       0xE00
-#define STARTUP_PM_GDT_SIZE                     0x40
-#define STARTUP_LM_GDT_SIZE                     0x40
-#define STARTUP_DATA_SIZE                       0x180
+#define STARTUP_ROUTINE_SIZE 					0x8000
+#define AP_STARTUP_ROUTINE_DEF_ADDR             0x1000
+
 
 /*
- * ┌─────────────────┐◄─────── Start-up routine address
- * │                 │                                 
- * │                 │                                 
- * │                 │                                 
- * │       code      │                                 
- * │                 │                                 
- * │                 │ 0xE00                           
- * │                 │                                 
- * │                 │                                 
- * │                 │                                 
- * │                 │                                 
- * │        ▲        │                                 
- * │        │        │                                 
- * ├────────┴────────┤◄──────── Temporary stack pointer
- * │      PM GDT     │ 0x40                            
- * ├─────────────────┤                                 
- * │   LongMode GDT  │ 0x40                            
- * ├─────────────────┤◄────────  Data                  
- * │                 │                                 
- * │                 │                                 
- * │                 │                                 
- * │                 │                                 
- * │                 │                                 
- * └─────────────────┘                                 
+ * ┌───────────────────┐◄────── entry_addr         
+ * │                   │                           
+ * │                   │                           
+ * │                   │                           
+ * │                   │                           
+ * │                   │                           
+ * │                   │                           
+ * │   Startup Routine │                           
+ * │        Code       │                           
+ * │                   │                           
+ * │                   │                           
+ * │                   │                           
+ * │                   │                           
+ * │                   │                           
+ * │                   │                           
+ * ├───────────────────┤◄────── entry_addr + 0x800 
+ * │    MTRRs state    │                           
+ * ├───────────────────┤◄────── entry_addr + 0x900 
+ * │   Long-Mode GDT   │                           
+ * ├───────────────────┤◄────── entry_addr + 0xA00 
+ * │                   │                           
+ * │                   │                           
+ * │                   │                           
+ * │                   │                           
+ * │       Shared      │                           
+ * │        Data       │                           
+ * │        Area       │                           
+ * │                   │                           
+ * │                   │                           
+ * │                   │                           
+ * │                   │                           
+ * ├───────────────────┤◄────── entry_addr + 0x1000
+ * │                   │                           
+ * │     Temporary     │                           
+ * │     Page-Table    │                           
+ * │                   │                           
+ * └───────────────────┘                           
  */
-
-
-struct _startup_routine_data
-{
-    uint64_t cr3;
-    uint64_t number_of_running_cores;
-    IA32_mtrr_cap_t mtrr_cap;
-    IA32_mtrr_def_type_t mtrr_def_type;
-
-    // The number of mtrrs is determined by mtrr_cap.vcnt
-    uint64_t mtrrs[];
-};
 
 
 

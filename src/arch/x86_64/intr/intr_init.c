@@ -84,12 +84,15 @@ static void parse_madt(_in_ struct _MADT *madt_ptr, _in_ _out_ intr_ctr_struct_h
             if (lapic->apic_id != bsp.lapic_id)
             {
                 cpu_core_desc_t* core = 
-                    (cpu_core_desc_t*)malloc(sizeof(cpu_core_desc_t));
+                    (cpu_core_desc_t*)calloc(sizeof(cpu_core_desc_t));
                 core->lapic_id = lapic->apic_id;
                 core->lapic_id = lapic->acpi_processor_id;
+
                 _list_push(
                     &cpu_cores_list,
                     &core->node);
+
+                cpu_cores[lapic->apic_id] = core;
             }
             else
             {
@@ -166,14 +169,14 @@ static void parse_madt(_in_ struct _MADT *madt_ptr, _in_ _out_ intr_ctr_struct_h
     list_node_t *intr_ctr_struct_node;
     if ((intr_ctr_structs + ProcessorLocalAPIC)->total != 0)
     {
-        puts(0, "Processor Local APIC: \n");
+        puts(output_bsp, "Processor Local APIC: \n");
         head = &(intr_ctr_structs + ProcessorLocalAPIC)->head;
         processor_local_apic_t *lapic = struct_base(processor_local_apic_t, node, head->flink);
         intr_ctr_struct_node = head->flink;
 
         for (; intr_ctr_struct_node != 0; intr_ctr_struct_node = intr_ctr_struct_node->flink)
         {
-            putsds(0, "Local APIC ID: ", lapic->apic_id, "\n");
+            putsds(output_bsp, "Local APIC ID: ", lapic->apic_id, "\n");
             lapic = struct_base(processor_local_apic_t, node, lapic->node.flink);
         }
     }
@@ -181,56 +184,56 @@ static void parse_madt(_in_ struct _MADT *madt_ptr, _in_ _out_ intr_ctr_struct_h
 
     if ((intr_ctr_structs + IOAPIC)->total != 0)
     {
-        puts(0, "I/O APIC: \n");
+        puts(output_bsp, "I/O APIC: \n");
         head = &(intr_ctr_structs + IOAPIC)->head;
         intr_ctr_struct_node = head->flink;
         for (size_t i = 0; i < (intr_ctr_structs + IOAPIC)->total; i++, intr_ctr_struct_node = intr_ctr_struct_node->flink)
         {
             io_apic_t *ioapic = struct_base(io_apic_t, node, intr_ctr_struct_node);
-            putsds(0, "IO APIC ID: ", ioapic->io_apic_id, "\n");
-            putsxs(0, "IO APIC Address: ", ioapic->ioapic_addr, "\n");
-            putsxs(0, "Global System Interrupt Base: ", ioapic->global_sys_interrupt_base, "\n");
+            putsds(output_bsp, "IO APIC ID: ", ioapic->io_apic_id, "\n");
+            putsxs(output_bsp, "IO APIC Address: ", ioapic->ioapic_addr, "\n");
+            putsxs(output_bsp, "Global System Interrupt Base: ", ioapic->global_sys_interrupt_base, "\n");
         }
     }
 
     if ((intr_ctr_structs + InterruptSourceOverride)->total != 0)
     {
-        puts(0, "Interrupt Source Override: \n");
+        puts(output_bsp, "Interrupt Source Override: \n");
         head = &(intr_ctr_structs+InterruptSourceOverride)->head;
         intr_ctr_struct_node = head->flink;
         for (size_t i = 0; i < (intr_ctr_structs + InterruptSourceOverride)->total; i++, intr_ctr_struct_node = intr_ctr_struct_node->flink)
         {
             iso_t *iso = struct_base(iso_t, node, intr_ctr_struct_node);
-            putsds(0, "Bus: ", iso->bus, "\n");
-            putsds(0, "Bus-relative interrupt source(IRQ): ", iso->source, "\n");
-            putsds(0, "Global System Interrupt: ", iso->global_sys_interrupt, "\n");
-            putsxs(0, "Flags: ", iso->flags, "\n");
+            putsds(output_bsp, "Bus: ", iso->bus, "\n");
+            putsds(output_bsp, "Bus-relative interrupt source(IRQ): ", iso->source, "\n");
+            putsds(output_bsp, "Global System Interrupt: ", iso->global_sys_interrupt, "\n");
+            putsxs(output_bsp, "Flags: ", iso->flags, "\n");
         }
     }
 
     if ((intr_ctr_structs + NonMaskableInterruptSource)->total != 0)
     {
-        puts(0, "Non-maskable Interrupt Source: \n");
+        puts(output_bsp, "Non-maskable Interrupt Source: \n");
         head = &(intr_ctr_structs+NonMaskableInterruptSource)->head;
         intr_ctr_struct_node = head->flink;
         for (size_t i = 0; i < (intr_ctr_structs + NonMaskableInterruptSource)->total; i++, intr_ctr_struct_node = intr_ctr_struct_node->flink)
         {
             nmi_t *nmi = struct_base(nmi_t, node, intr_ctr_struct_node);
-            putsds(0, "Processor ID: ", nmi->acpi_processor_id, "\n");
-            putsxs(0, "Flags: ", nmi->flags, "\n");
-            putsds(0, "Local LINTn pin number: ", nmi->lint, "\n");
+            putsds(output_bsp, "Processor ID: ", nmi->acpi_processor_id, "\n");
+            putsxs(output_bsp, "Flags: ", nmi->flags, "\n");
+            putsds(output_bsp, "Local LINTn pin number: ", nmi->lint, "\n");
         }
     }
 
     if ((intr_ctr_structs + LocalAPICAddressOverride)->total != 0)
     {
-        puts(0, "Local APIC Address Override: \n");
+        puts(output_bsp, "Local APIC Address Override: \n");
         head = &(intr_ctr_structs + LocalAPICAddressOverride)->head;
         intr_ctr_struct_node = head->flink;
         for (size_t i = 0; i < (intr_ctr_structs + LocalAPICAddressOverride)->total; i++, intr_ctr_struct_node = intr_ctr_struct_node->flink)
         {
             local_apic_addr_override_t *local_apic_addr_override = struct_base(local_apic_addr_override_t, node, intr_ctr_struct_node);
-            putsxs(0, "Local APIC Address: ", local_apic_addr_override->local_apic_addr, "\n");
+            putsxs(output_bsp, "Local APIC Address: ", local_apic_addr_override->local_apic_addr, "\n");
         }
     }
 

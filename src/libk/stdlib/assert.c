@@ -7,18 +7,18 @@ void assertion_failure(char *exp, char *file, char *base, int line)
 {
     if (_go_has_been_initialize) 
     {
-        puts(0, "\n############ assertion failure ############\n");
-        puts(0, "----> assert(");
-        puts(0, exp);
-        puts(0, ")\n");
+        puts(output_bsp, "\n############ assertion failure ############\n");
+        puts(output_bsp, "----> assert(");
+        puts(output_bsp, exp);
+        puts(output_bsp, ")\n");
 
-        puts(0, "----> file: ");
-        puts(0, file);
+        puts(output_bsp, "----> file: ");
+        puts(output_bsp, file);
         putc(0,'\n');
-        puts(0, "----> base: ");
-        puts(0, base);
+        puts(output_bsp, "----> base: ");
+        puts(output_bsp, base);
         putc(0,'\n');
-        putsds(0, "----> line: ", line, "\n");
+        putsds(output_bsp, "----> line: ", line, "\n");
     }
     krnl_panic(L"#######################################\n");
 

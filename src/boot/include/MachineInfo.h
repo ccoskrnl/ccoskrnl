@@ -9,38 +9,49 @@
 #define CCLDR_ROUTINE_SIZE				                    0x1000
 
 /*  The size of start-up routine in bytes  */
-#define STARTUP_ROUTINE_SIZE 					0x1000
-#define STARTUP_STACK_TOP                       0xE00
-#define STARTUP_PM_GDT_SIZE                     0x40
-#define STARTUP_LM_GDT_SIZE                     0x40
-#define STARTUP_DATA_SIZE                       0x180
-/*
- * ┌─────────────────┐◄─────── Start-up routine address
- * │                 │                                 
- * │                 │                                 
- * │                 │                                 
- * │       code      │                                 
- * │                 │                                 
- * │                 │ 0xE00                           
- * │                 │                                 
- * │                 │                                 
- * │                 │                                 
- * │                 │                                 
- * │        ▲        │                                 
- * │        │        │                                 
- * ├────────┴────────┤◄──────── Temporary stack pointer
- * │      PM GDT     │ 0x40                            
- * ├─────────────────┤                                 
- * │   LongMode GDT  │ 0x40                            
- * ├─────────────────┤◄────────  Data                  
- * │                 │                                 
- * │                 │                                 
- * │                 │                                 
- * │                 │                                 
- * │                 │                                 
- * └─────────────────┘                                 
- */
+#define STARTUP_ROUTINE_SIZE 					0x8000
+#define AP_STARTUP_ROUTINE_DEF_ADDR             0x1000
 
+
+/*
+ * ┌───────────────────┐◄────── entry_addr         
+ * │                   │                           
+ * │                   │                           
+ * │                   │                           
+ * │                   │                           
+ * │                   │                           
+ * │                   │                           
+ * │   Startup Routine │                           
+ * │        Code       │                           
+ * │                   │                           
+ * │                   │                           
+ * │                   │                           
+ * │                   │                           
+ * │                   │                           
+ * │                   │                           
+ * ├───────────────────┤◄────── entry_addr + 0x800 
+ * │    MTRRs state    │                           
+ * ├───────────────────┤◄────── entry_addr + 0x900 
+ * │   Long-Mode GDT   │                           
+ * ├───────────────────┤◄────── entry_addr + 0xA00 
+ * │                   │                           
+ * │                   │                           
+ * │                   │                           
+ * │                   │                           
+ * │       Shared      │                           
+ * │        Data       │                           
+ * │        Area       │                           
+ * │                   │                           
+ * │                   │                           
+ * │                   │                           
+ * │                   │                           
+ * ├───────────────────┤◄────── entry_addr + 0x1000
+ * │                   │                           
+ * │     Temporary     │                           
+ * │     Page-Table    │                           
+ * │                   │                           
+ * └───────────────────┘                           
+ */
 
 
 // Byte-Alignment

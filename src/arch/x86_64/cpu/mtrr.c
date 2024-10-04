@@ -85,7 +85,7 @@ void get_mtrr_state(void)
 
 }
 
-void mtrr_bsp_init(void)
+void mtrr_init(void)
 {
     boolean support_mtrr = cpu_feature_support(X86_FEATURE_MTRR);
     uint64_t value;

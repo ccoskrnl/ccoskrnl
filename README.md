@@ -12,8 +12,6 @@ ccos bases UEFI to bootstrap ccoskrnl. UEFI greatly facilitates OS Loader develo
 
 Multi-processors support is an enormous challenge for me. I do not guarantee a good implementation of multi-processors system.
 
-I'm a beginner for x86_64. There have a lot of features and mechanisms that I don't know. For example, I speed much time on application processors initialization, but failed. I try to read linux source, but it's complexity make me sadness. To enter Protected-Mode, I'm almost going crazy. Sometimes succeeding and sometimes not. Eventually, I terminate the development of this feature. Maybe I will soon to continue to develop multi-processors support, but who know.
-
 **APIC**
 
 APIC(Advanced Programmable Interrupt Controller) is a critical component in modern computer system. It provides the possibility for multi-processors system and supports multilevel interrupt priority on the hardware level. Unfortunately, APIC is complicated. Since to fully understand APIC needs sound knowledge of computer system, I only implement the basic driver of APIC.

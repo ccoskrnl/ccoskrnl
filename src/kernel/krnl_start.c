@@ -99,28 +99,28 @@ void krnl_init()
 
     // Output Initialization
     op_init();
-    put_check(0, true, L"Ccoskrnl loaded.\n");
-    put_check(0, true, L"Bootstrap Processor initializated.\n");
-    put_check(0, true, L"Kernel memory layout has divided.\n");
-    put_check(0, true, L"Dynamic memory allocator is ready to be used.\n");
-    put_check(0, true, L"Default font family has been parsed completely.\n");
+    put_check(output_bsp, true, L"Ccoskrnl loaded.\n");
+    put_check(output_bsp, true, L"Bootstrap Processor initializated.\n");
+    put_check(output_bsp, true, L"Kernel memory layout has divided.\n");
+    put_check(output_bsp, true, L"Dynamic memory allocator is ready to be used.\n");
+    put_check(output_bsp, true, L"Default font family has been parsed completely.\n");
 
     // Initialize OSPM
     acpi_init();
 
     // Interrupt module initialization. 
-    put_check(0, -1, L"Interrupt module initializing...\n");
+    put_check(output_bsp, -1, L"Interrupt module initializing...\n");
     intr_init();
-    put_check(0, true, L"Interrupt module has initialized.\n");
+    put_check(output_bsp, true, L"Interrupt module has initialized.\n");
 
-    active_aps();
-
-    put_check(0, true, L"System diagnostic completed. All systems nominal.\n");
+    // active_aps();
 
     // Set interrupt flag, os can handle interrupts or exceptions.
     __asm__ ("sti"); 
 
-    put_check(0, false, L"Power Off.\n");
+    put_check(output_bsp, true, L"System diagnostic completed. All systems nominal.\n");
+
+    put_check(output_bsp, false, L"Power Off.\n");
 
     krnl_exit();
     
@@ -128,6 +128,6 @@ void krnl_init()
 
 void krnl_exit()
 {
-    sleep(3600);
+    // sleep(3600);
     krnl_panic(NULL);
 }
