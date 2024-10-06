@@ -7,6 +7,7 @@
 #include "../include/arch/lib.h"
 
 #include "../include/libk/stdlib.h"
+#include "../include/libk/bitmap.h"
 
 
 extern void preparing_for_bsp(boolean is_first);
@@ -14,6 +15,7 @@ extern void mm_init();
 
 extern void op_init();
 extern void acpi_init();
+extern void pci_init();
 extern void intr_init();
 extern void active_aps(void);
 
@@ -27,8 +29,8 @@ extern uint64_t _mm_size_of_stack_of_initialization_thread_in_bytes;
 /*  Stack buttom of temporary stack of kernel initialization thread  */
 extern uint64_t _mm_stack_buttom_of_initialization_thread;
 
-void krnl_init();
-void krnl_exit();
+static void krnl_init();
+static void krnl_exit();
 
 /**
  * Preparing base kernel code execution environment for continuing to initialize.
@@ -37,13 +39,9 @@ void krnl_exit();
  * 
  * @retval          never be returned.
 */
-void krnl_start(LOADER_MACHINE_INFORMATION* ptr, uint64_t is_ap)
+void krnl_start(LOADER_MACHINE_INFORMATION* ptr)
 {
-    if (is_ap != 0) {
-        while (true) {
-            ;
-        }
-    }
+
     _current_machine_info = ptr;
 
     // Set variables about Stack of kernel initialization thread
@@ -100,24 +98,33 @@ void krnl_init()
     // Output Initialization
     op_init();
     put_check(output_bsp, true, L"Ccoskrnl loaded.\n");
-    put_check(output_bsp, true, L"Bootstrap Processor initializated.\n");
-    put_check(output_bsp, true, L"Kernel memory layout has divided.\n");
+    put_check(output_bsp, true, L"Bootstrap Processor has already been initializated.\n");
+    put_check(output_bsp, -1, L"Memory Manager perparing...\n");
     put_check(output_bsp, true, L"Dynamic memory allocator is ready to be used.\n");
     put_check(output_bsp, true, L"Default font family has been parsed completely.\n");
-
-    // Initialize OSPM
-    acpi_init();
 
     // Interrupt module initialization. 
     put_check(output_bsp, -1, L"Interrupt module initializing...\n");
     intr_init();
-    put_check(output_bsp, true, L"Interrupt module has initialized.\n");
-
-    // active_aps();
+    put_check(output_bsp, true, L"Interrupt module has already been initialized.\n");
+    put_check(output_bsp, true, L"Interrupt enabled.\n");
 
     // Set interrupt flag, os can handle interrupts or exceptions.
     __asm__ ("sti"); 
 
+    // Initialize OSPM
+    put_check(output_bsp, -1, L"OSPM initializing...\n");
+    acpi_init();
+    put_check(output_bsp, true, L"OSPM has already been initialized.\n");
+
+    // Initialize PCIe
+    put_check(output_bsp, -1, L"PCIe initializing...\n");
+    pci_init();
+    put_check(output_bsp, true, L"PCIe has already been initialized.\n");
+
+    // active_aps();
+
+    // From Stellaris.
     put_check(output_bsp, true, L"System diagnostic completed. All systems nominal.\n");
 
     put_check(output_bsp, false, L"Power Off.\n");

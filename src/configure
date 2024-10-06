@@ -1,0 +1,56 @@
+#!/bin/bash
+
+release_mode=false
+debug_mode=false
+
+# Parse command line arguments
+for arg in "$@"; do
+    case $arg in
+        --debug)
+        debug_mode=true
+        shift
+        ;;
+        *)
+        shift
+        ;;
+    esac
+    case $arg in
+        --release)
+        release_mode=true
+        shift
+        ;;
+        *)
+        shift
+        ;;
+    esac
+done
+
+disable_ccdebug() {
+    sed -i 's/^CCDEBUG = -g/#CCDEBUG = -g/' ../conf/target.conf
+}
+
+enable_ccdebug() {
+    sed -i 's/^#CCDEBUG = -g/CCDEBUG = -g/' ../conf/target.conf
+}
+
+if [ "$release_mode" = true ]; then
+    echo "Release mode enabled."
+    disable_ccdebug
+    exit
+else
+    echo "Debug mode enabled."
+    enable_ccdebug
+    exit
+fi
+
+if [ "$debug_mode" = true ]; then
+    echo "Debug mode enabled."
+    enable_ccdebug
+    exit
+else
+    echo "Release mode enabled."
+    disable_ccdebug
+    exit
+fi
+
+echo "Configuration complete."

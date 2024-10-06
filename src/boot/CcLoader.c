@@ -366,7 +366,7 @@ UefiMain(
   MachineInfo->MemorySpaceInformation[2].BaseAddress = KrnlImageBase;
   MachineInfo->MemorySpaceInformation[2].Size = KernelBufferSize;
   MachineInfo->MemorySpaceInformation[3].BaseAddress = StartUpRoutineAddress;
-  MachineInfo->MemorySpaceInformation[3].Size = StartUpRoutineBufferSize;
+  MachineInfo->MemorySpaceInformation[3].Size = STARTUP_ROUTINE_SIZE;
 
 
   /*

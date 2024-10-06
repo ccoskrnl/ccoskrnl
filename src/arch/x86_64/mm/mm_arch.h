@@ -32,6 +32,15 @@
     )
 
 
+/*
+ *  The structure is used to record virtual address and physical address
+ *  respectively.
+ */
+typedef struct _mm_addr
+{
+    uint64_t virt_addr;
+    uint64_t phys_addr;
+} mm_addr_t;
 
 
 // The macro indicates the size of page frame in bytes. At default, it's 4 KBytes.
@@ -72,6 +81,8 @@ same as PML4 entry.
 #define PML4E_OFFSET_OF_KRNL_SPACE                  0x1E0UL
 #define PML4E_OFFSET_OF_HARDWARE                    0x1F0UL
 #define PML4E_OFFSET_OF_FRAMEBUFFER                 0x1F8UL
+
+#define PT_ENTRY_SHIFT                              0x9
 
 // #define HARDWARE_ADDRESS                            
 
@@ -122,11 +133,12 @@ extern uint64_t _mm_pt_pdt_pool_start;
 extern uint64_t _mm_pt_pt_pool_start;
 
 #define __get_pte_by_virt_addr(address)         \
-    (mmpte*)((((uint64_t)address & 0xFFFFFFFFFFFFUL) >> 9 ) + _mm_pt_pt_pool_start)
+    (mmpte*)((((uint64_t)address & 0xFFFFFFFFFFFFUL) >> PT_ENTRY_SHIFT ) + _mm_pt_pt_pool_start)
 
 
 void _mm_flush_tlb(uint64_t vaddr);
 
+uint64_t mm_set_mmio(uint64_t base_addr, uint64_t num_of_pages);
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 #endif

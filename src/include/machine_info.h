@@ -184,6 +184,7 @@ typedef struct _LOADER_ACPI_INFORMATION
     struct _DSDT *dsdt;
     struct _ACPISDTHeader* madt;
     struct _ACPISDTHeader* hpet;
+    struct _ACPISDTHeader* mcfg;
 
 } LOADER_ACPI_INFORMATION;
 

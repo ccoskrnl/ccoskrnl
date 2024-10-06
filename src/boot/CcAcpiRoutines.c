@@ -75,8 +75,13 @@ VOID FindAcpiTable(IN LOADER_MACHINE_INFORMATION *MachineInfo)
       MachineInfo->AcpiInformation.Hpet = Header;
 #ifdef _DEBUG
       Print(L"HPET table found!\n\r");
-      hpet_table_t* hpet = (hpet_table_t*)Header;
-      Print(L"IA-32 HPET Address: 0x%x\n\r", hpet->BaseAddressLower32Bit.Address);
+#endif
+    }
+    if (Header->Signature == 0x4746434D)
+    {
+      MachineInfo->AcpiInformation.Mcfg = Header;
+#ifdef _DEBUG
+      Print(L"MCFG table found!\n\r");
 #endif
     }
 

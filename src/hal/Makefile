@@ -3,7 +3,7 @@ ARCH!=../../conf/uname.sh
 include ../../conf/target.conf
 
 BUILD_DIR = ../../build/hal
-SRC_DIRS = . acpi devices
+SRC_DIRS = . acpi devices pci
 
 SRCS = $(foreach dir, $(SRC_DIRS), $(wildcard $(dir)/*.c))
 OBJS = $(patsubst %.c,$(BUILD_DIR)/%.o,$(SRCS))
@@ -27,6 +27,11 @@ $(BUILD_DIR)/%.o: devices/%.c
 	@$(CC) $(CFLAGS) -c -o $@ $<
 	
 $(BUILD_DIR)/%.o: acpi/%.c
+	$(shell mkdir -p $(dir $@))
+	@echo "	Compiling $<"
+	@$(CC) $(CFLAGS) -c -o $@ $<
+	
+$(BUILD_DIR)/%.o: pci/%.c
 	$(shell mkdir -p $(dir $@))
 	@echo "	Compiling $<"
 	@$(CC) $(CFLAGS) -c -o $@ $<

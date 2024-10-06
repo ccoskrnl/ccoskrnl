@@ -285,7 +285,7 @@ void intr_init()
         &intr_ctr_structs[IOAPIC]);
 
 
-    // Because we use the processor local APIC and the I/O APIC,
+    // Since we use the processor local APIC and the I/O APIC,
     // so we must first disable the PIC.
     // This is done by masking every single interrupt.
     outb(0x21, 0xFF); // Mask all interrupts on PIC1

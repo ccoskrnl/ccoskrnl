@@ -192,7 +192,7 @@ void op_init_for_ap(int lapic_id)
     win->Register(
         win,
         _font_family_SourceHanSansSCVF,
-        14,
+        15,
         0
     );
     

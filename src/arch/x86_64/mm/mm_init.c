@@ -20,17 +20,15 @@ Memory Manager Initialization.
 #include "mm_arch.h"
 #include "mm_pfn.h"
 #include "mm_pool.h"
+#include "mm_pt_pool.h"
 
-extern void _acpi_init(
-    struct _LOADER_ACPI_INFORMATION* acpi_info,
-    uint64_t(*fixup_func_addr)(uint64_t virt));
 
 /* ================================================================================ */
 /* ================== Global Variable that Memory Manager maintained ============== */
 /* ================================================================================ */
 
 /*  The base physical address of kernel space */
-uint64_t _mm_krnl_space_physical_base_addr;
+uint64_t _mm_krnl_space_phys_base_addr;
 
 /*  The base virtual address of kernel space */
 uint64_t _mm_krnl_space_start;
@@ -195,6 +193,26 @@ uint64_t _mm_sys_pte_pool_end;
 // The physical end address of system page table entry pool.
 uint64_t _mm_sys_pte_pool_phys_end;
 
+// System PTE bitmap
+bitmap_t _pt_bitmap;
+
+
+
+// The start address of reserved memory.
+uint64_t _mm_reserved_mem_start;
+
+// The physical start address of reserved memory.
+uint64_t _mm_reserved_mem_phys_start;
+
+// The size of reserved memory.
+uint64_t _mm_reserved_mem_size;
+
+// The end address of system page table entry pool.
+uint64_t _mm_reserved_mem_end;
+
+// The physical end address of system page table entry pool.
+uint64_t _mm_reserved_mem_phys_end;
+
 
 
 // The stack top of kernel initialization thread
@@ -259,7 +277,7 @@ Returned Value:
     Eealier value of variable offset_of_first_free_sys_pte before calling the routine.
 
 */
-uint64_t _mm_get_sys_pte_next_page()
+static uint64_t _mm_get_sys_pte_next_page()
 {
     return ((offset_of_first_free_sys_pte++) << PAGE_SHIFT);
 }
@@ -292,27 +310,27 @@ static void calculate_num_of_ptes(uint64_t base, uint64_t size, uint64_t *p_num_
     uint64_t offset;
 
     // Calculate PDPTES
-    remainder = size & 0x3FFFFFFF;
+    remainder = size & ((1UL << ((PT_ENTRY_SHIFT << 1) + PAGE_SHIFT)) - 1);
     if (remainder != 0)
     {
-        *p_num_of_pdptes = (size >> 30) + 1;
+        *p_num_of_pdptes = (size >> ((PT_ENTRY_SHIFT << 1) + PAGE_SHIFT)) + 1;
     }
     else
-        *p_num_of_pdptes = size >> 30;
+        *p_num_of_pdptes = size >> ((PT_ENTRY_SHIFT << 1) + PAGE_SHIFT);
 
     // Calculate PDES
-    remainder = size & (0x1FFFFF);
+    remainder = size & ((1UL << ((PT_ENTRY_SHIFT) + PAGE_SHIFT)) - 1);
     if (remainder != 0)
     {
-        *p_num_of_pdes = (size >> 21) + 1;
+        *p_num_of_pdes = (size >> ((PT_ENTRY_SHIFT) + PAGE_SHIFT)) + 1;
     }
     else
-        *p_num_of_pdes = size >> 21;
+        *p_num_of_pdes = size >> ((PT_ENTRY_SHIFT) + PAGE_SHIFT);
     
-    offset = base >> 21;
-    offset &= 0x1FF;
+    offset = base >> ((PT_ENTRY_SHIFT) + PAGE_SHIFT);
+    offset &= ((1UL << ((PT_ENTRY_SHIFT))) - 1);
 
-    if ((offset + (*p_num_of_pdes)) > ((*p_num_of_pdptes) << 9))
+    if ((offset + (*p_num_of_pdes)) > ((*p_num_of_pdptes) << PT_ENTRY_SHIFT))
     {
         *p_num_of_pdptes += 1;
     }
@@ -320,7 +338,7 @@ static void calculate_num_of_ptes(uint64_t base, uint64_t size, uint64_t *p_num_
     
 
     // Calculate PTES
-    remainder = size & (0xFFF);
+    remainder = size & ((1UL << ((PAGE_SHIFT))) - 1);
     if (remainder != 0)
     {
         *p_num_of_ptes = (size >> PAGE_SHIFT) + 1;
@@ -330,9 +348,9 @@ static void calculate_num_of_ptes(uint64_t base, uint64_t size, uint64_t *p_num_
 
 
     offset = base >> PAGE_SHIFT;
-    offset &= 0x1FF;
+    offset &= ((1UL << ((PT_ENTRY_SHIFT))) - 1);
         
-    if ((offset + (*p_num_of_ptes)) > ((*p_num_of_pdes) << 9))
+    if ((offset + (*p_num_of_ptes)) > ((*p_num_of_pdes) << PT_ENTRY_SHIFT))
     {
         *p_num_of_pdes += 1 ;
     }
@@ -388,7 +406,7 @@ static mmpte_hardware_t *map_zone(mmpte_hardware_t *pdpte_addr, uint64_t number_
 
     /* Initialize local variables. */
     sys_pte_pool_phys_addr = _mm_sys_pte_pool_phys_start;
-    sys_pte_pool_virt_addr = (_mm_sys_pte_pool_phys_start - _mm_krnl_space_physical_base_addr) + _mm_krnl_space_start;
+    sys_pte_pool_virt_addr = (_mm_sys_pte_pool_phys_start - _mm_krnl_space_phys_base_addr) + _mm_krnl_space_start;
 
 
     // Set PDPTE
@@ -456,8 +474,9 @@ static mmpte_hardware_t *map_zone(mmpte_hardware_t *pdpte_addr, uint64_t number_
 
 Routine Description:
 
-    The routine initializes kernel virtual address space using kernel space layout
-variables setted through mm_init() routine.
+    The routine initializes kernel virtual address space based on kernel space layout
+variables be setted by mm_init() routine. The routine is used to divide kernel
+space layout and to set on further kernel space layout variables(includes _pt_bitmap).
 
 Parameters:
 
@@ -485,7 +504,7 @@ static void mem_map_init()
 
 
     // Physical address of PDPT
-    uint64_t pdpt_phys_addr;
+    uint64_t krnl_pdpt_phys_addr;
 
     // Virtual address of PDPT
     uint64_t pdpt_virt_addr;
@@ -506,7 +525,7 @@ static void mem_map_init()
     uint64_t num_of_pdes;
     uint64_t num_of_ptes;
 
-    mmpte_hardware_t *pml4t, *pdpt;
+    mmpte_hardware_t *pml4t, *krnl_pdpt;
     uint64_t random_num;
 
     // cr3_t register
@@ -518,14 +537,14 @@ static void mem_map_init()
     // Initilize local variables.
     sys_pte_pool_phys_addr = _mm_sys_pte_pool_phys_start;
     sys_pte_pool_virt_addr = 
-        (_mm_sys_pte_pool_phys_start - _mm_krnl_space_physical_base_addr) + _mm_krnl_space_start;
+        (_mm_sys_pte_pool_phys_start - _mm_krnl_space_phys_base_addr) + _mm_krnl_space_start;
 
     offset_of_sys_pte_next_page = _mm_get_sys_pte_next_page();
     pml4t_phys_addr = sys_pte_pool_phys_addr + offset_of_sys_pte_next_page;
     pml4t_virt_addr = sys_pte_pool_virt_addr + offset_of_sys_pte_next_page;
 
     offset_of_sys_pte_next_page = _mm_get_sys_pte_next_page();
-    pdpt_phys_addr = sys_pte_pool_phys_addr + offset_of_sys_pte_next_page;
+    krnl_pdpt_phys_addr = sys_pte_pool_phys_addr + offset_of_sys_pte_next_page;
     pdpt_virt_addr = sys_pte_pool_virt_addr + offset_of_sys_pte_next_page;
 
     // the numerical range of offset_of_pml4e is 0x100 - PML4E_OFFSET_OF_KRNL_SPACE
@@ -549,15 +568,17 @@ static void mem_map_init()
 
     // Set PML4
     pml4t = (mmpte_hardware_t *)pml4t_virt_addr;
+
+    /* For Page-Directory Self-Mapping Scheme.*/
     pml4t[offset_of_pml4e].present = 1;
     pml4t[offset_of_pml4e].rw = 1;
     pml4t[offset_of_pml4e].address = ((uint64_t)pml4t_phys_addr >> PAGE_SHIFT);
 
     pml4t[PML4E_OFFSET_OF_KRNL_SPACE].present = 1;
     pml4t[PML4E_OFFSET_OF_KRNL_SPACE].rw = 1;
-    pml4t[PML4E_OFFSET_OF_KRNL_SPACE].address = (((uint64_t)pdpt_phys_addr) >> PAGE_SHIFT);
+    pml4t[PML4E_OFFSET_OF_KRNL_SPACE].address = (((uint64_t)krnl_pdpt_phys_addr) >> PAGE_SHIFT);
 
-    pdpt = (mmpte_hardware_t *)pdpt_virt_addr;
+    krnl_pdpt = (mmpte_hardware_t *)pdpt_virt_addr;
 
 
 
@@ -569,18 +590,15 @@ static void mem_map_init()
         (offset_of_pml4e << 39);
 
     _mm_pt_pdpt_pool_start = 0xFFFF000000000000 | 
-        // (0x1E0UL << 12) | 
         (offset_of_pml4e << 21) | 
         (offset_of_pml4e << 30) | 
         (offset_of_pml4e << 39);
 
     _mm_pt_pd_pool_start = 0xFFFF000000000000 | 
-        // (0x1E0UL << 21) | 
         (offset_of_pml4e << 30) | 
         (offset_of_pml4e << 39);
 
     _mm_pt_pt_pool_start = 0xFFFF000000000000 | 
-        // (0x1E0UL << 30) | 
         (offset_of_pml4e << 39);
 
 
@@ -588,20 +606,20 @@ static void mem_map_init()
 
 
     // Map krnl image
-    zone_addr = _mm_krnl_space_physical_base_addr;
-    zone_size = _mm_pfn_db_phys_start - _mm_krnl_space_physical_base_addr;
+    zone_addr = _mm_krnl_space_phys_base_addr;
+    zone_size = _mm_pfn_db_phys_start - _mm_krnl_space_phys_base_addr;
 
     calculate_num_of_ptes(zone_addr, zone_size, &num_of_pdptes, 
         &num_of_pdes, &num_of_ptes);
 
-    pdpt = map_zone(pdpt, num_of_pdptes, num_of_pdes,
+    krnl_pdpt = map_zone(krnl_pdpt, num_of_pdptes, num_of_pdes,
         num_of_ptes, zone_addr, zone_size);
     
+
+
     // Upate MM variables
     _mm_pfn_db_start = (mmpfn*)(_mm_krnl_space_start + ((num_of_pdptes << 30)));
     _mm_pfn_db_end = _mm_pfn_db_size + (uint64_t)_mm_pfn_db_start;
-    
-
 
     // Map PFN database
     zone_addr = _mm_pfn_db_phys_start;
@@ -610,15 +628,14 @@ static void mem_map_init()
     calculate_num_of_ptes(zone_addr, zone_size, &num_of_pdptes, 
         &num_of_pdes, &num_of_ptes);
 
-    pdpt = map_zone(pdpt, num_of_pdptes, num_of_pdes,
+    krnl_pdpt = map_zone(krnl_pdpt, num_of_pdptes, num_of_pdes,
         num_of_ptes, zone_addr, zone_size);
+
+
 
     // Upate MM variables
     _mm_non_paged_pool_start = (uint64_t)_mm_pfn_db_start + ((num_of_pdptes) << 30);
     _mm_non_paged_pool_end = _mm_non_paged_pool_size + _mm_non_paged_pool_start;
-
-
-
 
     // Map non paged pool
     zone_addr = _mm_non_paged_pool_phys_start;
@@ -627,14 +644,14 @@ static void mem_map_init()
     calculate_num_of_ptes(zone_addr, zone_size, &num_of_pdptes, 
         &num_of_pdes, &num_of_ptes);
 
-    pdpt = map_zone(pdpt, num_of_pdptes, num_of_pdes,
+    krnl_pdpt = map_zone(krnl_pdpt, num_of_pdptes, num_of_pdes,
         num_of_ptes, zone_addr, zone_size);
     
+
+
     // Upate MM variables
     _mm_sys_pte_pool_start = _mm_non_paged_pool_start + (num_of_pdptes << 30);
     _mm_sys_pte_pool_end = _mm_sys_pte_pool_size + _mm_sys_pte_pool_start;
-
-
 
     // Map system page table entry pool 
     zone_addr = _mm_sys_pte_pool_phys_start;
@@ -643,14 +660,14 @@ static void mem_map_init()
     calculate_num_of_ptes(zone_addr, zone_size, &num_of_pdptes, 
         &num_of_pdes, &num_of_ptes);
 
-    pdpt = map_zone(pdpt, num_of_pdptes, num_of_pdes,
+    krnl_pdpt = map_zone(krnl_pdpt, num_of_pdptes, num_of_pdes,
         num_of_ptes, zone_addr, zone_size);
 
     
 
     // Map FrameBuffer
     offset_of_sys_pte_next_page = _mm_get_sys_pte_next_page();
-    pdpt = (mmpte_hardware_t*)(sys_pte_pool_virt_addr + offset_of_sys_pte_next_page);
+    krnl_pdpt = (mmpte_hardware_t*)(sys_pte_pool_virt_addr + offset_of_sys_pte_next_page);
 
     // Set PML4
     pml4t[PML4E_OFFSET_OF_FRAMEBUFFER].present = 1;
@@ -658,16 +675,16 @@ static void mem_map_init()
     pml4t[PML4E_OFFSET_OF_FRAMEBUFFER].address = 
         ((sys_pte_pool_phys_addr + offset_of_sys_pte_next_page) >> PAGE_SHIFT);
         
-
     zone_addr = _current_machine_info->graphics_info.FrameBufferBase;
     zone_size = _current_machine_info->graphics_info.FrameBufferSize;
-
 
     calculate_num_of_ptes(zone_addr, zone_size, &num_of_pdptes, 
         &num_of_pdes, &num_of_ptes);
 
-    pdpt = map_zone(pdpt, num_of_pdptes, num_of_pdes,
+    krnl_pdpt = map_zone(krnl_pdpt, num_of_pdptes, num_of_pdes,
         num_of_ptes, zone_addr, zone_size);
+
+
 
     // Update machine_info
     _current_machine_info->graphics_info.FrameBufferBase = 0xFFFF000000000000UL |
@@ -698,6 +715,8 @@ corresponding linked list.
 
 Parameters:
 
+    _pt_bitmap.offset = offset_of_first_free_sys_pte;
+
     None.
 
 Returned Value:
@@ -717,7 +736,7 @@ static void pfn_init()
 
     pfn_number i_pfn_element;
 
-    krnl_space_start_page = _mm_krnl_space_physical_base_addr >> PAGE_SHIFT;
+    krnl_space_start_page = _mm_krnl_space_phys_base_addr >> PAGE_SHIFT;
 
     // the last page address is equal to the end address of system pte pool 
     krnl_space_end_page = _mm_sys_pte_pool_phys_end >> PAGE_SHIFT;
@@ -782,7 +801,7 @@ static void pfn_init()
                  i_pfn_element < (desc->NumberOfPages + phys_page_start);
                  i_pfn_element++)
             {
-                // We allocated a contiguous free physical memory space during OS Loader. Here, we need to set
+                // Since we allocated a contiguous free physical memory space during os loading. Hence, we need to set
                 // pfn items of the allocated memory space to active state, then fill corresponding attributes
                 if (i_pfn_element >= krnl_space_start_page && i_pfn_element < krnl_space_end_page)
                 {
@@ -853,7 +872,7 @@ static void pfn_init()
         }
     }
 
-    // set pfn items of machine information data space to assist dynamic memory page manager to free the
+    // Set PFN items of machine information data space to assist dynamic memory page manager to free the
     // memory space it occupies.
     mmpfn *_loader_data_pfn = &_mm_pfn_db_start[(_mm_non_paged_pool_phys_start >> PAGE_SHIFT)];
     _loader_data_pfn->state.read_in_process = 1;
@@ -910,8 +929,19 @@ static void memory_pool_init()
 
 static void sys_pte_pool_init()
 {
-}
+    _bitmap_init(&_pt_bitmap, _mm_sys_pte_pool_size);
+    _pt_bitmap.offset = offset_of_first_free_sys_pte;
 
+    int bytes = offset_of_first_free_sys_pte >> ITEM_SHIFT;
+    memset(_pt_bitmap.bits, 0xff, bytes);
+
+    int bits = offset_of_first_free_sys_pte % ITEM_BITS;
+    for (int i = 0; i < bits; i++) 
+    {
+        _pt_bitmap.bits[bytes] |= (ITEM)(1UL << ((ITEM_BITS - 1) - i));
+    }
+
+}
 
 
 
@@ -920,8 +950,8 @@ static void sys_pte_pool_init()
 Routine Description:
 
     The routine maps physical pages that stores hardware information into virtual 
-address space, then sets the PFN item corresponding to the physical page and fixes
-up the member of _current_machine_info that relates to the physical page.
+address space, then sets the PFN item corresponding to these physical pages and fixes
+up the member of _current_machine_info that relates to these physical pages.
 
 Parameters:
 
@@ -932,82 +962,70 @@ Returned Value:
     None.
 
 */
+
+extern mmpte_hardware_t* hardware_base_pdpt;
+extern mmpte_hardware_t* hardware_base_pd;
+extern mmpte_hardware_t* hardware_base_pt;
+extern uint64_t _mm_offset_of_hardware_pt;
+
 static void map_rom_zone()
 {
     uint64_t number_of_pdptes;
     uint64_t number_of_pdes;
     uint64_t number_of_ptes;
 
-    uint64_t pd_phys_addr;
-    uint64_t pt_phys_addr;
 
+    mm_addr_t new_pt_addr;
 
     mmpte_hardware_t* pdpt, *pd, *pt;
-
-    /* Physical address of system page table entry pool. */
-    uint64_t sys_pte_pool_phys_addr;
-
-    /* Virtual address of system page table entry pool. */
-    uint64_t sys_pte_pool_virt_addr;
-
-    /* Offset of next page from the beginning of the sys pte pool. */
-    uint64_t offset_of_sys_pte_next_page;
 
     uint64_t pfn_index;
 
     // Counter
     uint64_t i;
 
-
-    /* Initialize local variables. */
-    sys_pte_pool_phys_addr = _mm_sys_pte_pool_phys_start;
-    sys_pte_pool_virt_addr = _mm_sys_pte_pool_start;
-
     calculate_num_of_ptes(0,
         (_mm_phys_page_lists[3]->total << PAGE_SHIFT),
         &number_of_pdptes, &number_of_pdes, &number_of_ptes);
     
-    offset_of_sys_pte_next_page = _mm_get_sys_pte_next_page();
-    pdpt = (mmpte_hardware_t*)(sys_pte_pool_virt_addr + offset_of_sys_pte_next_page);
+    // Allocate a page table for hardware pdpt.
+    new_pt_addr = _pt_alloc();
+    hardware_base_pdpt = pdpt = (mmpte_hardware_t*)new_pt_addr.virt_addr;
 
+    // Set Hardware entry in PML4.
     ((mmpte_hardware_t*)_mm_pt_pml4_start)[PML4E_OFFSET_OF_HARDWARE].present = 1;
     ((mmpte_hardware_t*)_mm_pt_pml4_start)[PML4E_OFFSET_OF_HARDWARE].rw = 1;
     ((mmpte_hardware_t*)_mm_pt_pml4_start)[PML4E_OFFSET_OF_HARDWARE].address = 
-        ((sys_pte_pool_phys_addr + offset_of_sys_pte_next_page) >> PAGE_SHIFT);
+        ((new_pt_addr.phys_addr) >> PAGE_SHIFT);
         
-    
-
-    offset_of_sys_pte_next_page = _mm_get_sys_pte_next_page();
-    pd_phys_addr = sys_pte_pool_phys_addr + offset_of_sys_pte_next_page;
-    pd = (mmpte_hardware_t*)(sys_pte_pool_virt_addr + offset_of_sys_pte_next_page);
+    // Allocate new page table for PD.
+    new_pt_addr = _pt_alloc();
+    hardware_base_pd = pd = (mmpte_hardware_t*)(new_pt_addr.virt_addr);
 
     i = 0;
     do
     {
         pdpt[i].present = 1;
         pdpt[i].rw = 1;
-        pdpt[i].address = (pd_phys_addr >> PAGE_SHIFT);
+        pdpt[i].address = (new_pt_addr.phys_addr >> PAGE_SHIFT);
 
-        offset_of_sys_pte_next_page = _mm_get_sys_pte_next_page();
-        pd_phys_addr = sys_pte_pool_phys_addr + offset_of_sys_pte_next_page;
+        new_pt_addr = _pt_alloc();
 
         i++;
 
     } while (i < number_of_pdptes);
 
-    offset_of_sys_pte_next_page = _mm_get_sys_pte_next_page();
-    pt_phys_addr = sys_pte_pool_phys_addr + offset_of_sys_pte_next_page;
-    pt = (mmpte_hardware_t*)(sys_pte_pool_virt_addr + offset_of_sys_pte_next_page);
+    new_pt_addr = _pt_alloc();
+    hardware_base_pt = pt = (mmpte_hardware_t*)(new_pt_addr.virt_addr);
 
     i = 0;
     do
     {
         pd[i].present = 1;
         pd[i].rw = 1;
-        pd[i].address = (pt_phys_addr >> PAGE_SHIFT);
+        pd[i].address = (new_pt_addr.phys_addr >> PAGE_SHIFT);
 
-        offset_of_sys_pte_next_page = _mm_get_sys_pte_next_page();
-        pt_phys_addr = sys_pte_pool_phys_addr + offset_of_sys_pte_next_page;
+        new_pt_addr = _pt_alloc();
 
         i++;
 
@@ -1020,13 +1038,16 @@ static void map_rom_zone()
             (i << 12) |
             (PML4E_OFFSET_OF_HARDWARE << 39);
         pt[i].present = 1;
-        pt[i].rw = 1;
+
+        // Read-only
+        pt[i].rw = 0;
+
         pt[i].address = pfn_index;
         _mm_flush_tlb(_mm_pfn_db_start[pfn_index].original_pte.pte.LongPtr);
         pfn_index = _mm_pfn_db_start[pfn_index].u1.flink;
     }
 
-
+    _mm_offset_of_hardware_pt = i;
 }
 
 /*  
@@ -1047,43 +1068,93 @@ Returned Value:
     None.
 
 */
-void mapping_startup_routine(uint64_t startup_addr)
+
+void unmap_startup_routine(uint64_t startup_addr, uint64_t number_of_pages)
 {
-    uint64_t new_page;
-    uint64_t vpage = startup_addr >> PAGE_SHIFT;
     mmpte_hardware_t *startup_pml4_entry;
+    startup_pml4_entry = (mmpte_hardware_t*)(_mm_pt_pml4_start);
+
+#ifdef REMOVE_TMP_PT
+
+    mmpte_hardware_t *startup_pdpt = (mmpte_hardware_t*)(_pt_get_virt_addr_of_pt(startup_pml4_entry->address << PAGE_SHIFT));
+    startup_pml4_entry->present = 0;
+    startup_pml4_entry->rw = 0;
+    startup_pml4_entry->address = 0;
+
+
+    mmpte_hardware_t *startup_pd = (mmpte_hardware_t*)(_pt_get_virt_addr_of_pt(startup_pdpt->address << PAGE_SHIFT));
+    startup_pdpt->present = 0;
+    startup_pdpt->rw = 0;
+    startup_pdpt->address = 0;
+
+    mmpte_hardware_t *startup_pt = (mmpte_hardware_t*)(_pt_get_virt_addr_of_pt(startup_pd->address << PAGE_SHIFT));
+    
+
+    mm_addr_t pt_addr = { 0 };
+
+    pt_addr.virt_addr = (uint64_t)startup_pt;
+    _pt_free(pt_addr);
+    pt_addr.virt_addr = (uint64_t)startup_pd;
+    _pt_free(pt_addr);
+    pt_addr.virt_addr = (uint64_t)startup_pdpt;
+    _pt_free(pt_addr);
+
+
+#else
+    startup_pml4_entry->present = 0;
+    startup_pml4_entry->rw = 0;
+    startup_pml4_entry->address = 0;
+#endif
+}
+
+void mapping_startup_routine(uint64_t startup_addr, uint64_t number_of_pages)
+{
+    mmpte_hardware_t *startup_pml4_entry;
+    startup_pml4_entry = (mmpte_hardware_t*)(_mm_pt_pml4_start);
+
+#ifdef REMOVE_TMP_PT
+    mm_addr_t new_pt_addr;
+    uint64_t vpage = startup_addr >> PAGE_SHIFT;
     mmpte_hardware_t *startup_pdpt;
     mmpte_hardware_t *startup_pd;
     mmpte_hardware_t *startup_pt;
-    uint64_t value;
 
-    new_page = _mm_get_sys_pte_next_page();
-    startup_pdpt = (mmpte_hardware_t*)(new_page + _mm_sys_pte_pool_start);
 
-    startup_pml4_entry = (mmpte_hardware_t*)(_mm_pt_pml4_start);
+    new_pt_addr = _pt_alloc();
+    startup_pdpt = (mmpte_hardware_t*)(new_pt_addr.virt_addr);
+
     startup_pml4_entry->present = 1;
     startup_pml4_entry->rw = 1;
-    startup_pml4_entry->address = ((uint64_t)(new_page + _mm_sys_pte_pool_phys_start)) >> PAGE_SHIFT;
+    startup_pml4_entry->address = (new_pt_addr.phys_addr) >> PAGE_SHIFT;
 
-    new_page = _mm_get_sys_pte_next_page();
-    startup_pd = (mmpte_hardware_t*)(new_page + _mm_sys_pte_pool_start);
+    new_pt_addr = _pt_alloc();
+    startup_pd = (mmpte_hardware_t*)(new_pt_addr.virt_addr);
 
     startup_pdpt[0].present = 1;
     startup_pdpt[0].rw = 1;
-    startup_pdpt[0].address = ((uint64_t)(new_page + _mm_sys_pte_pool_phys_start)) >> PAGE_SHIFT;
+    startup_pdpt[0].address = (new_pt_addr.phys_addr) >> PAGE_SHIFT;
 
-    new_page = _mm_get_sys_pte_next_page();
-    startup_pt = (mmpte_hardware_t*)(new_page + _mm_sys_pte_pool_start);
+    new_pt_addr = _pt_alloc();
+    startup_pt = (mmpte_hardware_t*)(new_pt_addr.virt_addr);
 
     startup_pd[0].present = 1;
     startup_pd[0].rw = 1;
-    startup_pd[0].address = ((uint64_t)(new_page + _mm_sys_pte_pool_phys_start)) >> PAGE_SHIFT;
+    startup_pd[0].address = (new_pt_addr.phys_addr) >> PAGE_SHIFT;
 
-    startup_pt[vpage].present = 1;
-    startup_pt[vpage].rw = 1;
-    startup_pt[vpage].address = vpage;
+    for (int i = 0; i < number_of_pages; i++) 
+    {
+        startup_pt[vpage + i].present = 1;
+        startup_pt[vpage + i].rw = 1;
+        startup_pt[vpage + i].address = vpage + i;
 
-    _mm_flush_tlb(startup_addr);
+        _mm_flush_tlb(startup_addr + (i << PAGE_SHIFT));
+    }
+#else
+    startup_pml4_entry->present = 1;
+    startup_pml4_entry->rw = 1;
+    startup_pml4_entry->address = (startup_addr + 0x2000) >> PAGE_SHIFT;
+#endif
+
 }
 
 
@@ -1264,14 +1335,10 @@ Returned Value:
 */
 static inline void fixup_machine_info()
 {
-    uint64_t fixup = KERNEL_SPACE_BASE_ADDR - _mm_krnl_space_physical_base_addr;
+    uint64_t fixup = KERNEL_SPACE_BASE_ADDR - _mm_krnl_space_phys_base_addr;
     
     _current_machine_info->font[0].ttf_addr += fixup;
-    // _current_machine_info->font[0].fnt_addr += fixup;
-    // _current_machine_info->font[0].img.addr += fixup;
     _current_machine_info->font[1].ttf_addr += fixup;
-    // _current_machine_info->font[1].fnt_addr += fixup;
-    // _current_machine_info->font[1].img.addr += fixup;
 
     _current_machine_info->bg.addr += fixup;
 
@@ -1303,7 +1370,7 @@ void mm_init()
 
 
     // Set variables about kernel space
-    _mm_krnl_space_physical_base_addr = 
+    _mm_krnl_space_phys_base_addr = 
         _current_machine_info->memory_space_info[0].base_address;
 
     _mm_krnl_space_start = KERNEL_SPACE_BASE_ADDR;
@@ -1313,7 +1380,7 @@ void mm_init()
 
 
     // Set variables about krnl image
-    _mm_krnl_space_physical_base_addr = 
+    _mm_krnl_space_phys_base_addr = 
         _current_machine_info->memory_space_info[0].base_address;
 
     _mm_krnl_image_start = _mm_krnl_space_start;
@@ -1333,7 +1400,7 @@ void mm_init()
 
     // Calculate and set variables about PFN Database
     _mm_pfn_db_phys_start = (_mm_stack_top_of_initialization_thread - _mm_krnl_space_start) + 
-        _mm_krnl_space_physical_base_addr;
+        _mm_krnl_space_phys_base_addr;
 
     _mm_pfn_db_size = 
         (((_current_machine_info->memory_info.highest_physical_addr >> PAGE_SHIFT) + 1) * PFN_ITEM_SIZE);
@@ -1344,9 +1411,11 @@ void mm_init()
 
     // Calculate and set variables about Non paged pool 
     _mm_non_paged_pool_phys_start = page_aligned(_mm_pfn_db_phys_end);
-
-    _mm_non_paged_pool_size = 
-        (_current_machine_info->memory_space_info[0].size >> 1);
+    
+    /*
+     * The size of the memory pool is half of the _mm_krnl_space_size.
+     */
+    _mm_non_paged_pool_size = _mm_krnl_space_size >> 1;
 
     _mm_non_paged_pool_phys_end = 
         _mm_non_paged_pool_phys_start + _mm_non_paged_pool_size;
@@ -1357,7 +1426,7 @@ void mm_init()
     // space to kernel. It will be copied to the beginning of non paged pool 
     // on default case.
     loader_data_start = _mm_non_paged_pool_phys_start - 
-        _mm_krnl_space_physical_base_addr + _mm_krnl_space_start;
+        _mm_krnl_space_phys_base_addr + _mm_krnl_space_start;
 
     memcpy((void *)(loader_data_start), _current_machine_info, MACHINE_INFO_SIZE);
 
@@ -1371,12 +1440,18 @@ void mm_init()
     // Calculate and set variables about system page table entry pool 
     _mm_sys_pte_pool_phys_start = page_aligned(_mm_non_paged_pool_phys_end);
 
-    _mm_sys_pte_pool_size = 
-        (_current_machine_info->memory_space_info[0].size >> 2);
+    /*
+     * The size of sys pte is one fourth of the _mm_krnl_space_size.
+     */
+    _mm_sys_pte_pool_size = _mm_krnl_space_size >> 2;
 
     _mm_sys_pte_pool_phys_end = page_aligned(_mm_sys_pte_pool_phys_start + 
         _mm_sys_pte_pool_size);
 
+
+    _mm_reserved_mem_phys_start = page_aligned(_mm_sys_pte_pool_phys_end);
+    _mm_reserved_mem_size = _mm_krnl_space_size - (_mm_sys_pte_pool_phys_end - _mm_krnl_space_phys_base_addr);
+    _mm_reserved_mem_phys_end = page_aligned(_mm_krnl_space_phys_base_addr + _mm_krnl_space_size);
 
 
     // Build new kernel page table
@@ -1396,6 +1471,9 @@ void mm_init()
     // Map ROM Zone
     map_rom_zone();
 
-    mapping_startup_routine(_current_machine_info->memory_space_info[3].base_address);
+    mapping_startup_routine(
+        _current_machine_info->memory_space_info[3].base_address, 
+        _current_machine_info->memory_space_info[3].size >> PAGE_SHIFT
+    );
 
 }

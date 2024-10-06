@@ -32,9 +32,11 @@ $(TARGET): $(SUBDIRS) $(LINK_SCRIPT)
 		rm $(ESP_DIR)/ccoskrnl; \
 	fi
 
+	@echo ""
 	@cp -v $(TARGET) $(ESP_DIR)
 	@echo ""
 	@echo "ccoskrnl creation completed at $@"
+	@echo ""
 	@nm -n $(TARGET) > $(BUILD_DIR)/ccoskrnl.sym
 
 
