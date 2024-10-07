@@ -36,7 +36,7 @@ The design ideas of memory management is inspired by Window NT, which contains P
 
 ccos supports multi-windows, which means it can output text in different window on screen. It's uesful to debug multi-processors through open a text-output window to each processor. Even if not have mouse driver, user also can use keyboard to select which window need to enter characters.
 
-![Sample](./demonstration/sample.png)
+![Sample](./demo/sample.png)
 
 ## TO-DO
 

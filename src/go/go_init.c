@@ -156,7 +156,7 @@ void op_init()
     win->Register(
         win,
         _font_family_SourceHanSansSCVF,
-        14,
+        15,
         0
     );
     

@@ -129,6 +129,7 @@ void krnl_init()
 
     put_check(output_bsp, false, L"Power Off.\n");
 
+
     krnl_exit();
     
 }

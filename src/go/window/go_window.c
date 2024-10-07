@@ -277,7 +277,7 @@ static status_t text_window_scroll_screen(
     this->cursor.y = 0;
     this->output_buf_index = 0;
 
-    memzero(this->output_bufs[this->which_output_buf], OUTPUT_BUF_SIZE * sizeof(wch_t));
+    memzero(this->output_bufs[this->which_output_buf], OUTPUT_BUF_SIZE * sizeof(uint64_t));
     clear_window(this);
 
     while (*lf != 0)
@@ -290,6 +290,11 @@ static status_t text_window_scroll_screen(
             krnl_panic(NULL);
         }
         lf++;
+    }
+
+    if (this->output_bufs[0][101] == 0 || this->output_bufs[1][101] == 0)
+    {
+        uint32_t a = 0xffff;
     }
 
     this->ShowWindow(this);
@@ -327,12 +332,14 @@ __inspect_begin:
     {
         this->cursor.y += this->line_height;
         this->cursor.x = LSB_SIZE;
-        this->output_bufs[this->which_output_buf][this->output_buf_index - 1] = '\n';
+        // this->output_bufs[this->which_output_buf][this->output_buf_index - 1] = '\n';
+        this->output_bufs[this->which_output_buf][this->output_buf_index++] = '\n';
+        this->ShowWindow(this);
     }
 
     // Situation 1:
     // We need to scroll screen.
-    if ((this->cursor.y + (this->ascender - this->descender)) >= this->window.height)
+    while ((this->cursor.y + (this->ascender - this->descender)) >= this->window.height)
         text_window_scroll_screen(this);
     
     switch(wch)
@@ -353,6 +360,7 @@ __inspect_begin:
 
             this->cursor.y += this->line_height;
             this->cursor.x = this->lsb;
+            this->ShowWindow(this);
 
             goto __draw_ch_exit;
             break;
@@ -389,6 +397,11 @@ __draw_ch_exit:
     cwch |= wch;
 
     this->output_bufs[this->which_output_buf][this->output_buf_index++] = cwch;
+
+    if (this->output_bufs[0][101] == 0 || this->output_bufs[1][101] == 0)
+    {
+        uint32_t a = 0xffff;
+    }
 
 
     if (update) 
