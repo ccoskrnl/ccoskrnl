@@ -230,10 +230,10 @@ VOID AdjustGraphicsMode(IN LOADER_MACHINE_INFORMATION *MachineInfo)
 		}
 
 #ifdef _DEBUG
-		Print(L"Mode:%02d, Version:%x, Format:%d, Horizontal:%d, Vertical:%d, ScanLine:%d\n", i,
-					GrahpicsOutputModeInformation->Version, GrahpicsOutputModeInformation->PixelFormat,
-					GrahpicsOutputModeInformation->HorizontalResolution, GrahpicsOutputModeInformation->VerticalResolution,
-					GrahpicsOutputModeInformation->PixelsPerScanLine);
+		// Print(L"Mode:%02d, Version:%x, Format:%d, Horizontal:%d, Vertical:%d, ScanLine:%d\n", i,
+		// 			GrahpicsOutputModeInformation->Version, GrahpicsOutputModeInformation->PixelFormat,
+		// 			GrahpicsOutputModeInformation->HorizontalResolution, GrahpicsOutputModeInformation->VerticalResolution,
+		// 			GrahpicsOutputModeInformation->PixelsPerScanLine);
 #endif
 	}
 // #endif

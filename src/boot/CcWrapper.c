@@ -1,5 +1,13 @@
 #include "include/Wrapper.h"
 
+void* memcpy(void* restrict dstptr, const void* restrict srcptr, uint64_t size) {
+	unsigned char* dst = (unsigned char*) dstptr;
+	const unsigned char* src = (const unsigned char*) srcptr;
+	for (uint64_t i = 0; i < size; i++)
+		dst[i] = src[i];
+	return dstptr;
+}
+
 VOID WpFileOpen(
     IN EFI_FILE_PROTOCOL *This,
     OUT EFI_FILE_PROTOCOL **NewHandle,

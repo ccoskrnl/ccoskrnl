@@ -3,6 +3,8 @@
 
 #include "FrameWork.h"
 
+VOID RootDirList();
+
 VOID ReadFileInit();
 VOID ReadFileFnit();
 

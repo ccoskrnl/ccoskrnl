@@ -35,13 +35,6 @@ extern VOID GetPNGSize(
 	IN OUT UINT32* Height
 );
 
-static void* memcpy(void* restrict dstptr, const void* restrict srcptr, uint64_t size) {
-	unsigned char* dst = (unsigned char*) dstptr;
-	const unsigned char* src = (const unsigned char*) srcptr;
-	for (uint64_t i = 0; i < size; i++)
-		dst[i] = src[i];
-	return dstptr;
-}
 
 // Function to convert memory type to string
 CONST CHAR16 *
@@ -129,17 +122,17 @@ GetEfiMemMap(
 
 #ifdef _DEBUG
   // Now we can print the memory map
-  Print(L"Type       Physical Start    Number of Pages    Attribute\n");
+  // Print(L"Type       Physical Start    Number of Pages    Attribute\n");
 #endif
   for (Index = 0; Index < MemoryMapSize / DescriptorSize; Index++)
   {
     Descriptor = (EFI_MEMORY_DESCRIPTOR *)((UINT8 *)MemoryMap + (Index * DescriptorSize));
 #ifdef _DEBUG
-    Print(L"%-10s %-16lx %-16lx %-16lx\n",
-          MemoryTypeToStr(Descriptor->Type),
-          Descriptor->PhysicalStart,
-          Descriptor->NumberOfPages,
-          Descriptor->Attribute);
+    // Print(L"%-10s %-16lx %-16lx %-16lx\n",
+    //       MemoryTypeToStr(Descriptor->Type),
+    //       Descriptor->PhysicalStart,
+    //       Descriptor->NumberOfPages,
+    //       Descriptor->Attribute);
 #endif
   }
 
@@ -267,7 +260,9 @@ UefiMain(
   DisplayLoadingLogo();
 #endif
 
-
+#ifdef _DEBUG
+  RootDirList();
+#endif
   /* ========================= Print Memory Map ====================== */
   GetEfiMemMap(ImageHandle, SystemTable, MachineInfo);
 

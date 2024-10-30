@@ -1,6 +1,8 @@
 # ccoskrnl
 
-ccos is a hobby 64-bit operating system. I'm writing it on x86, because I like sadness and misery. I do not possess extensive expertise, and I am not a expert in OS design so it may contains numerous bugs. Actually, many of the design concepts I have implemented are inspired by Windows NT such as ccldr(OS Loader for ccos) and dynamic memory manager and so on. WRK(Windows Research Kernel) is an extremely excellent project suitable for those who wish to delve deeper in OS design. 
+ccos is a hobby 64-bit operating system. I'm writing it on x86, because I like sadness and misery. I do not possess extensive expertise, and I am not a expert in OS design so it may contains numerous bugs. Or, more accurately, I'm still a beginner for operating system design. Many of the design concepts I have implemented are inspired by Windows NT such as ccldr(OS Loader for ccos) and dynamic memory manager and so on. WRK(Windows Research Kernel) is an extremely excellent project suitable for those who wish to delve deeper in OS design. 
+
+There's plenty more courses that I need to learn in the comming months. I will not maintain the project frequently. 
 
 ## Features
 
@@ -22,7 +24,7 @@ Yes, ccos displays characters on screen through rendering TrueType Fonts(Default
 
 Probably the greatest thing about storing characters as outlines is that only one outline per character is needed to produce all the sizes of that character OS will ever need. A single outline can be scaled to an enormous range of different sizes, some of which are illustrated below. This enables the same character to be displayed on monitors of different resolutions, and to be printed out at a large number of different sizes. To scale a character outline is a simple mathematical operation, as indeed are other transformations such as rotation and reflections.
 
-The structure of TrueType is complex, I just write a font rasterizer and not fill. Actually, I have not achieved font rasterizer, because I didn't implement hinting of TrueType. Hinting is at the heart of TrueType. Its inventors, mindful of the diversity of opinion on the "correct" way to hint type, decided there was no single hinting paradigm that they would impose upon type developers. Instead, they linked a relatively simple rasterizer to a new interpreted programming language. For font readability, however, this is enough.
+The structure of TrueType is complex, I only implemented the font rasterizer without hinting of TrueType. Hinting is at the heart of TrueType. Its inventors, mindful of the diversity of opinion on the "correct" way to hint type, decided there was no single hinting paradigm that they would impose upon type developers. Instead, they linked a relatively simple rasterizer to a new interpreted programming language. For font readability, however, this is enough.
 
 **Wide Char**
 
@@ -40,8 +42,15 @@ ccos supports multi-windows, which means it can output text in different window 
 
 ## TO-DO
 
-- [ ] Keyboard Driver
+- [ ] Bug fix: Adjust the CcLoader reversed memory to ensure memory manager works on machines with more RAM.
+- [ ] Bug fix: Add spinlock to prevent conflicts of multiple windows output.
+
 - [ ] Dynamic memory manager with memory leaks detection.
+- [ ] System PTE management.
+
+- [ ] Devices management.
+- [ ] NVMe Driver
+- [ ] Keyboard Driver
 
 ## Installation
 

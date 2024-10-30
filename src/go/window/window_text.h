@@ -10,6 +10,9 @@
 #define OUTPUT_BUF_SIZE                                         2048
 #define MAX_OUTPUT_BUFS                                         2
 
+#define WINDOW_TEXT_CACHED_START_CODE                           0x21
+#define WINDOW_TEXT_CACHED_END_CODE                             128
+
 typedef status_t (*_window_text_register_t)(
     _in_ void                   *_this,
     _in_ font_ttf_t             *font_family,
@@ -116,6 +119,11 @@ typedef struct _window_text
      * @brief Left side bearing.
      **/
     uint16_t                    lsb;
+
+    /**
+     * @brief Cached glyphs.
+     **/
+    font_ttf_glyph_t            *cached_glyphs[WINDOW_TEXT_CACHED_END_CODE - WINDOW_TEXT_CACHED_START_CODE];
 
     /**
      * @brief Record the position where next character

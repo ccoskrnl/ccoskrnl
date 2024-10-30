@@ -2,6 +2,9 @@
 #define __INCLUDE_WRAPPER_H__
 
 #include "FrameWork.h"
+#include "types.h"
+
+void* memcpy(void* restrict dstptr, const void* restrict srcptr, uint64_t size);
 
 VOID WpFileOpen(
     IN EFI_FILE_PROTOCOL *This,

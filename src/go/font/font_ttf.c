@@ -816,33 +816,36 @@ status_t glyph_rasterize(void *_this, go_buf_t* buffer, point_i_t origin, double
 
             point_i_t p;
             bezier_curve_t *next = curve->flink;
-            
-            curve->p0.x += (-this->xMin);
-            curve->p1.x += (-this->xMin);
-            curve->p2.x += (-this->xMin);
+            point_f_t p0, p1, p2;
+            p0 = curve->p0;
+            p1 = curve->p1;
+            p2 = curve->p2;
 
-            curve->p0.y += (-this->yMin);
-            curve->p1.y += (-this->yMin);
-            curve->p2.y += (-this->yMin);
+            p0.x += (-this->xMin);
+            p1.x += (-this->xMin);
+            p2.x += (-this->xMin);
 
-            curve->p0.y = this->font_family->hhea.table.ascender - curve->p0.y;
-            curve->p1.y = this->font_family->hhea.table.ascender - curve->p1.y;
-            curve->p2.y = this->font_family->hhea.table.ascender - curve->p2.y;
+            p0.y += (-this->yMin);
+            p1.y += (-this->yMin);
+            p2.y += (-this->yMin);
+
+            p0.y = this->font_family->hhea.table.ascender - p0.y;
+            p1.y = this->font_family->hhea.table.ascender - p1.y;
+            p2.y = this->font_family->hhea.table.ascender - p2.y;
 
             if (curve->is_curve) 
             {
-                curve->p0.x *= scaling_factor;
-                curve->p0.y *= scaling_factor;
+                p0.x *= scaling_factor;
+                p0.y *= scaling_factor;
 
-                curve->p1.x *= scaling_factor;
-                curve->p1.y *= scaling_factor;
+                p1.x *= scaling_factor;
+                p1.y *= scaling_factor;
 
-                curve->p2.x *= scaling_factor;
-                curve->p2.y *= scaling_factor;
+                p2.x *= scaling_factor;
+                p2.y *= scaling_factor;
 
                 // const float delta = 1 / ((this->yMax - this->yMin) * scaling_factor);
-                const float delta = 1 / ((((this->yMax - this->yMin) >> 2)) * scaling_factor);
-                // const float delta = 0.0005;
+                const float delta = 1 / ((((float)(this->yMax - this->yMin) / (float)5)) * scaling_factor);
 
                 float i = 0.0f;
                 point_i_t p_i;
@@ -851,10 +854,10 @@ status_t glyph_rasterize(void *_this, go_buf_t* buffer, point_i_t origin, double
 
                 do {
 
-                    t1.x = __lerp_point_x_f(curve->p0, curve->p1, i);
-                    t1.y = __lerp_point_y_f(curve->p0, curve->p1, i);
-                    t2.x = __lerp_point_x_f(curve->p1, curve->p2, i);
-                    t2.y = __lerp_point_y_f(curve->p1, curve->p2, i);
+                    t1.x = __lerp_point_x_f(p0, p1, i);
+                    t1.y = __lerp_point_y_f(p0, p1, i);
+                    t2.x = __lerp_point_x_f(p1, p2, i);
+                    t2.y = __lerp_point_y_f(p1, p2, i);
                     p.x = __lerp_point_x_f(t1, t2, i);
                     p.y = __lerp_point_y_f(t1, t2, i);
 
@@ -878,11 +881,11 @@ status_t glyph_rasterize(void *_this, go_buf_t* buffer, point_i_t origin, double
 
                 point_i_t p_i0, p_i1;
 
-                p_i0.x = round(curve->p0.x * scaling_factor);
-                p_i0.y = round(curve->p0.y * scaling_factor);
+                p_i0.x = round(p0.x * scaling_factor);
+                p_i0.y = round(p0.y * scaling_factor);
 
-                p_i1.x = round(curve->p1.x * scaling_factor);
-                p_i1.y = round(curve->p1.y * scaling_factor);
+                p_i1.x = round(p1.x * scaling_factor);
+                p_i1.y = round(p1.y * scaling_factor);
 
                 int64_t dx = abs(p_i1.x - p_i0.x);
                 int64_t dy = abs(p_i1.y - p_i0.y);

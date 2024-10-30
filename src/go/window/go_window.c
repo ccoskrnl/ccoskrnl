@@ -373,19 +373,34 @@ __inspect_begin:
             break;
 
         default:
-            status = new_a_glyph(&glyph);
-            if (ST_ERROR(status)) 
-                krnl_panic(NULL);
+            {
+                draw_at_point.x = this->cursor.x + this->window.origin.x;
+                draw_at_point.y = this->cursor.y + this->window.origin.y;
 
-            glyph->init(glyph, wch,this->font_family);
-            draw_at_point.x = this->cursor.x + this->window.origin.x;
-            draw_at_point.y = this->cursor.y + this->window.origin.y;
-            status = glyph->rasterize(glyph, &this->window.framebuffer, draw_at_point, this->point_size, color);
-            if (ST_ERROR(status)) 
-                krnl_panic(NULL);
+                if (wch >= WINDOW_TEXT_CACHED_START_CODE
+                    && wch < WINDOW_TEXT_CACHED_END_CODE) 
+                {
+                    glyph = this->cached_glyphs[wch - WINDOW_TEXT_CACHED_START_CODE];                
+                    status = glyph->rasterize(glyph, &this->window.framebuffer, draw_at_point, this->point_size, color);
+                    if (ST_ERROR(status)) 
+                        krnl_panic(NULL);
+                    this->cursor.x += ceil(glyph->advance_width * this->scaling_factor);
+                }
+                else 
+                {
+                    status = new_a_glyph(&glyph);
+                    if (ST_ERROR(status)) 
+                        krnl_panic(NULL);
 
-            this->cursor.x += ceil(glyph->advance_width * this->scaling_factor);
-            del_a_glyph(glyph);
+                    glyph->init(glyph, wch,this->font_family);
+                    status = glyph->rasterize(glyph, &this->window.framebuffer, draw_at_point, this->point_size, color);
+                    if (ST_ERROR(status)) 
+                        krnl_panic(NULL);
+
+                    this->cursor.x += ceil(glyph->advance_width * this->scaling_factor);
+                    del_a_glyph(glyph);
+                }
+            }
             break;
             
     }
@@ -492,6 +507,24 @@ static status_t register_text_window(
 
     this->cursor.x = this->lsb;
     this->cursor.y = 0;
+
+    int number_of_cached_glyphs = (WINDOW_TEXT_CACHED_END_CODE - WINDOW_TEXT_CACHED_START_CODE);
+    wch_t start_code = WINDOW_TEXT_CACHED_START_CODE;
+    font_ttf_glyph_t *glyph = NULL;
+
+    for (int i = 0; i < number_of_cached_glyphs; i++) 
+    {
+        status = new_a_glyph(&glyph);
+        if (ST_ERROR(status)) 
+            krnl_panic(NULL);
+
+        this->cached_glyphs[i] = glyph;
+        status = glyph->init(glyph, start_code, this->font_family);
+        if (ST_ERROR(status)) 
+            krnl_panic(NULL);
+
+        start_code++;
+    }
 
     status = init_window_framebuffer(this);
     if (ST_ERROR(status)) {

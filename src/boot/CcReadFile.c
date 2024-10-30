@@ -6,10 +6,44 @@ EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *gSimpleFileSystem;
 EFI_FILE_PROTOCOL *RootProtocol;
 extern EFI_SYSTEM_TABLE *gSystemTable;
 
+VOID RootDirList()
+{
+    EFI_STATUS Status;
+
+    UINTN BufSize;
+    CHAR8 FileBuf[1024];
+    EFI_FILE_INFO *FileInfo;
+
+    Print(L"ls> ");
+
+    while(1)
+    {
+        BufSize = 1024;
+        Status = RootProtocol->Read(RootProtocol, &BufSize, (VOID*)FileBuf);
+        if (EFI_ERROR(Status))
+        {
+            Print(L"RootDirList(): RootProtocol->Read failed with error code: %d\n\r", Status);
+            UEFI_PANIC;
+        }
+
+        if (!BufSize)
+        {
+            break;
+        }
+
+        FileInfo = (EFI_FILE_INFO*)FileBuf;
+        Print(L"%s ", FileInfo->FileName);
+        gBS->SetMem((VOID*)FileBuf, 1024, 0);
+    }
+    Print(L"\n\r");
+
+}
 
 VOID ReadFileInit()
 {
     EFI_STATUS Status;
+
+
     WpLocateProtocol(&gEfiSimpleFileSystemProtocolGuid, NULL, (VOID **)&gSimpleFileSystem, L"SimpleFileSystemProtocol");
     Status = gSimpleFileSystem->OpenVolume(gSimpleFileSystem, &RootProtocol);
     if (EFI_ERROR(Status))
@@ -17,6 +51,7 @@ VOID ReadFileInit()
         Print(L"Can't open root volume.\n\r");
         UEFI_PANIC;
     }
+
 }
 
 VOID ReadFileFnit()
