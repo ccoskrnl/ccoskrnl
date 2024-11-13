@@ -121,24 +121,25 @@ GetEfiMemMap(
   }
 
 #ifdef _DEBUG
-  // Now we can print the memory map
-  // Print(L"Type       Physical Start    Number of Pages    Attribute\n");
+  Print(L"Type                    Physical Start    Number of Pages    Attribute\n");
 #endif
   for (Index = 0; Index < MemoryMapSize / DescriptorSize; Index++)
   {
     Descriptor = (EFI_MEMORY_DESCRIPTOR *)((UINT8 *)MemoryMap + (Index * DescriptorSize));
 #ifdef _DEBUG
-    // Print(L"%-10s %-16lx %-16lx %-16lx\n",
-    //       MemoryTypeToStr(Descriptor->Type),
-    //       Descriptor->PhysicalStart,
-    //       Descriptor->NumberOfPages,
-    //       Descriptor->Attribute);
+    Print(L"%-24s %-16llx %-16llx %-16llx\n",
+          MemoryTypeToStr(Descriptor->Type),
+          Descriptor->PhysicalStart,
+          Descriptor->NumberOfPages,
+          Descriptor->Attribute);
 #endif
   }
 
   MachineInfo->MemoryInformation.EfiMemDescCount = Index;
 
-  // Calculate total RAM size and find the highest physical address
+  /*
+   * Calculate total RAM size and the highest physical address
+   */
   for (UINTN i = 0; i < MemoryMapSize / DescriptorSize; i++)
   {
     Descriptor = (EFI_MEMORY_DESCRIPTOR *)((UINT8 *)MemoryMap + i * DescriptorSize);
@@ -172,14 +173,16 @@ GetEfiMemMap(
   }
 
   MachineInfo->MemoryInformation.RamSize = PageCount * EFI_PAGE_SIZE;
-  // Subtract page size to get the last addressable byte
+
+  /*
+   * Subtract page size to obtain the last addressable page.
+   */
   MachineInfo->MemoryInformation.HighestPhysicalAddress = HighestAddress - EFI_PAGE_SIZE;
 
 #ifdef _DEBUG
   Print(L"Total RAM: %ld Bytes\nHighest Physical Address: %-16lx\n",
         MachineInfo->MemoryInformation.RamSize,
         MachineInfo->MemoryInformation.HighestPhysicalAddress);
-
 #endif
 }
 
@@ -236,9 +239,16 @@ UefiMain(
   UINTN StartUpRoutineAddress = 0x1000;
 
 
-  // initialization
+  /*
+   * Clear screen.
+   */
   gSystemTable = SystemTable;
   SystemTable->ConOut->ClearScreen(SystemTable->ConOut);
+
+
+  /*
+   * Allocate memory for temporary machine_info structure.
+   */
   Status = gBS->AllocatePages(AllocateAnyPages, EfiLoaderData, MACHINE_INFO_STRUCT_SIZE >> EFI_PAGE_SHIFT, &InfoAddress);
   if (EFI_ERROR(Status))
   {
@@ -246,23 +256,37 @@ UefiMain(
     goto ExitUefi;
   }
 
-
   MachineInfo = (LOADER_MACHINE_INFORMATION *)(InfoAddress);
   gBS->SetMem((VOID*)MachineInfo, MACHINE_INFO_STRUCT_SIZE, 0);
 
 
+
+  /*
+   * Parpering to read file.
+   */
   ReadFileInit();
+
+
+
 
   /* ========================= Adjust the Graphics mode ====================== */
   AdjustGraphicsMode(MachineInfo);
+
+
 
 #ifndef _DEBUG
   DisplayLoadingLogo();
 #endif
 
+
+
 #ifdef _DEBUG
-  RootDirList();
+  // RootDirList();
 #endif
+
+
+
+
   /* ========================= Print Memory Map ====================== */
   GetEfiMemMap(ImageHandle, SystemTable, MachineInfo);
 
@@ -273,62 +297,67 @@ UefiMain(
 
   /* ==================== Load krnl, ccldr and icons ==================== */
 
-  /*  Allocate Kernel Space Address. */
+  /*
+   * Kernel Space Size = Size of Installed Ram / 4;
+   */
+  KernelSpaceSize = ((MachineInfo->MemoryInformation.HighestPhysicalAddress + EFI_PAGE_SIZE) >> 2);
+
+  /*
+   * The smallest size of Kernel Space is 512 MiB.
+   */
+  KernelSpaceSize = (KernelSpaceSize + MM512MB - 1) & ~(MM512MB - 1);
+
+  if (KernelSpaceSize == MM512MB)
+      CcldrSpaceSize = (MM1MB << 2);
+  else
+      CcldrSpaceSize = (MM1MB << 2) * (KernelSpaceSize / MM512MB);
 
 #ifdef _DEBUG
-  Print(L"Allocate Kernel Space Address.\n\r");
+  Print(L"Allocating memmory for Kernel Space.\n\r");
+  Print(L"Kernel Space size is %f GiB.\n\r", (float)(KernelSpaceSize / MM1GB));
+  Print(L"Ccldr Space size is %f MiB.\n\r", (float)(CcldrSpaceSize / MM1MB));
 #endif
 
 
-  // Kernel Space Size = RamSize / 4;
-  KernelSpaceSize = ((MachineInfo->MemoryInformation.RamSize) >> 2);
 
-  // check kernel space size and perform appropriate alignment
-  if (KernelSpaceSize <= MM32MB)
-    KernelSpaceSize = (KernelSpaceSize + MM32MB - 1) & ~(MM32MB - 1);
-  else if (KernelSpaceSize <= MM64MB)
-    KernelSpaceSize = (KernelSpaceSize + MM64MB - 1) & ~(MM64MB - 1);
-  else if (KernelSpaceSize <= MM128MB)
-    KernelSpaceSize = (KernelSpaceSize + MM128MB - 1) & ~(MM128MB - 1);
-  else if (KernelSpaceSize <= MM256MB)
-    KernelSpaceSize = (KernelSpaceSize + MM256MB - 1) & ~(MM256MB - 1);
-  else if (KernelSpaceSize <= MM512MB)
-    KernelSpaceSize = (KernelSpaceSize + MM512MB - 1) & ~(MM512MB - 1);
-  else if (KernelSpaceSize <= MM1GB)
-    KernelSpaceSize = (KernelSpaceSize + MM1GB - 1) & ~(MM1GB - 1);
-  else if (KernelSpaceSize <= MM2GB)
-    KernelSpaceSize = (KernelSpaceSize + MM2GB - 1) & ~(MM2GB - 1);
-  else if (KernelSpaceSize > MM2GB)
-    // Kernel use 2GB at most.
-    KernelSpaceSize = MM2GB;
 
-  // test
-  KernelSpaceSize = MM512MB;
-
+  /*
+   * Allocate and Zero memory for Kernel Space.
+   */
   Status = gBS->AllocatePages(AllocateAnyPages, EfiLoaderData, (KernelSpaceSize >> EFI_PAGE_SHIFT), &KrnlImageBase);
   if (EFI_ERROR(Status))
   {
-    Print(L"[ERROR]: Kernel Space Size: %x, Allocate memory for krnl failed...\n\r", KernelSpaceSize);
+    Print(L"[ERROR]: Kernel Space Size: %llx, Allocate memory for krnl failed...\n\r", KernelSpaceSize);
     goto ExitUefi;
   }
   gBS->SetMem((VOID*)KrnlImageBase, KernelSpaceSize, 0);
 
-  // Ccldr request 16MB memory for mapping kernel space.
-  CcldrSpaceSize = MM16MB;
 
+
+
+  /*
+   * Allocate and Zero memory for Ccldr Space.
+   */
   Status = gBS->AllocatePages(AllocateAnyPages, EfiLoaderData, CcldrSpaceSize >> EFI_PAGE_SHIFT, &CcldrBase); 
   if (EFI_ERROR(Status))
   {
     Print(L"[ERROR]: Allocate memory for ccldr failed...\n\r");
     goto ExitUefi;
   }
-
   gBS->SetMem((VOID*)CcldrBase, CcldrSpaceSize, 0);
-  memcpy((void*)CcldrBase, (void*)MachineInfo, MACHINE_INFO_STRUCT_SIZE);
 
+
+  /*
+   * Copy machine_info into ccldr space.
+   */
+  memcpy((void*)CcldrBase, (void*)MachineInfo, MACHINE_INFO_STRUCT_SIZE);
   MachineInfo = (LOADER_MACHINE_INFORMATION*)CcldrBase;
   CcldrBase += (MACHINE_INFO_STRUCT_SIZE);
 
+
+  /**
+   * Free the original machine_info memory.
+   */
   Status = gBS->FreePages(InfoAddress, MACHINE_INFO_STRUCT_SIZE >> EFI_PAGE_SHIFT);
   if (EFI_ERROR(Status))
   {
@@ -336,7 +365,9 @@ UefiMain(
     goto ExitUefi;
   }
 
-  // Allocate one page to store start-up routine code for application processors initialization.
+  /**
+   * Allocate pages to store start-up routine code for application processors initialization.
+   */
   Status = gBS->AllocatePages(AllocateAddress, EfiLoaderData, STARTUP_ROUTINE_SIZE >> EFI_PAGE_SHIFT, &StartUpRoutineAddress); 
   while (EFI_ERROR(Status))
   {
@@ -349,11 +380,22 @@ UefiMain(
     Status = gBS->AllocatePages(AllocateAddress, EfiLoaderData, STARTUP_ROUTINE_SIZE >> EFI_PAGE_SHIFT, &StartUpRoutineAddress); 
   }
 
+#ifdef _DEBUG
+  Print(L"Kernel Space at %llx, size: %llx\n\r", KrnlImageBase, KernelSpaceSize);
+  Print(L"Ccldr Space at %llx, size: %llx\n\r", CcldrBase, CcldrSpaceSize);
+#endif
+
+  /*
+   * Read images into ram.
+   */
   ReadFileToBufferAt(KRNL_PATH, KrnlImageBase, &KernelBufferSize);
   ReadFileToBufferAt(CCLDR_PATH, CcldrBase, &CcldrBufferSize);
   ReadFileToBufferAt(AP_PATH, StartUpRoutineAddress, &StartUpRoutineBufferSize);
 
 
+  /*
+   * Set corresponding members.
+   */
   MachineInfo->MemorySpaceInformation[0].BaseAddress = KrnlImageBase;
   MachineInfo->MemorySpaceInformation[0].Size = KernelSpaceSize;
   MachineInfo->MemorySpaceInformation[1].BaseAddress = (UINTN)MachineInfo;
@@ -362,6 +404,11 @@ UefiMain(
   MachineInfo->MemorySpaceInformation[2].Size = KernelBufferSize;
   MachineInfo->MemorySpaceInformation[3].BaseAddress = StartUpRoutineAddress;
   MachineInfo->MemorySpaceInformation[3].Size = STARTUP_ROUTINE_SIZE;
+
+#ifdef _DEBUG
+  Print(L"AP routine at %llx, size: %llx\n\r", MachineInfo->MemorySpaceInformation[3].BaseAddress, MachineInfo->MemorySpaceInformation[3].Size);
+#endif
+
 
 
   /*
@@ -388,9 +435,10 @@ UefiMain(
 
 #endif
 
+  /*
+   * Read turetype fonts into kernel image space and update the value of the related member.
+   */
   MachineInfo->SumOfSizeOfFilesInPages = (PAGE_ALIGNED(KernelBufferSize) >> EFI_PAGE_SHIFT);
-
-  // Read Font info
 
   FileBuffer = KrnlImageBase + (MachineInfo->SumOfSizeOfFilesInPages << EFI_PAGE_SHIFT);
   ReadFileToBufferAt(AgeFonts001_TTF_PATH, FileBuffer, &FileSize);
@@ -403,7 +451,12 @@ UefiMain(
   MachineInfo->Font[0].TTF_Addr = FileBuffer;
   MachineInfo->Font[0].TTF_Size = FileSize;
 
-  // Read Background
+
+
+  /*
+   * Read wallpaper file into kernel image space.
+   * Parse the file and record the wallpaper size.
+   */
   MachineInfo->SumOfSizeOfFilesInPages += (PAGE_ALIGNED(FileSize) >> EFI_PAGE_SHIFT);
   FileBuffer = KrnlImageBase + (MachineInfo->SumOfSizeOfFilesInPages << EFI_PAGE_SHIFT);
   ReadFileToBufferAt(BG_PATH, FileBuffer, &FileSize);
@@ -415,28 +468,40 @@ UefiMain(
 
   MachineInfo->SumOfSizeOfFilesInPages += (PAGE_ALIGNED(FileSize) >> EFI_PAGE_SHIFT);
 
+
+
+  /*
+   * Since we already finish all file I/O work, so we ned to call the fnit function.
+   */
   ReadFileFnit();
 
 
 #ifdef _DEBUG
 
-  Print(L"Start-up Routine at %x\n\r", StartUpRoutineAddress);
-  Print(L"Kernel Space at %x, size: %x\n\r", MachineInfo->MemorySpaceInformation[0].BaseAddress, MachineInfo->MemorySpaceInformation[0].Size);
-  Print(L"Ccldr Space at %x, size: %x\n\r", MachineInfo->MemorySpaceInformation[1].BaseAddress, MachineInfo->MemorySpaceInformation[1].Size);
-  Print(L"Ram Size: %x, Highest Physical Address: %x\n\r", MachineInfo->MemoryInformation.RamSize, MachineInfo->MemoryInformation.HighestPhysicalAddress);
-  Print(L"FADT Version: %d, at %x\n\r", (UINTN)MachineInfo->AcpiInformation.Fadt->Header.Revision, (UINTN)MachineInfo->AcpiInformation.Fadt);
-  Print(L"DSDT at %x\n\r", (UINTN)MachineInfo->AcpiInformation.Dsdt);
+  Print(L"Start-up Routine at %llx\n\r", StartUpRoutineAddress);
+  Print(L"Kernel Space at %llx, size: %llx\n\r", MachineInfo->MemorySpaceInformation[0].BaseAddress, MachineInfo->MemorySpaceInformation[0].Size);
+  Print(L"Ccldr Space at %llx, size: %llx\n\r", MachineInfo->MemorySpaceInformation[1].BaseAddress, MachineInfo->MemorySpaceInformation[1].Size);
+  Print(L"Ram Size: %llx, Highest Physical Address: %llx\n\r", MachineInfo->MemoryInformation.RamSize, MachineInfo->MemoryInformation.HighestPhysicalAddress);
+  Print(L"FADT Version: %d, at %llx\n\r", (UINTN)MachineInfo->AcpiInformation.Fadt->Header.Revision, (UINTN)MachineInfo->AcpiInformation.Fadt);
+  Print(L"DSDT at %llx\n\r", (UINTN)MachineInfo->AcpiInformation.Dsdt);
   Print(L"HorizontalResolution: %d, VerticalResolution: %d\n\r", MachineInfo->GraphicsOutputInformation.HorizontalResolution, MachineInfo->GraphicsOutputInformation.VerticalResolution);
-  Print(L"FrameBufferBase at %x, size: %x\n\r", MachineInfo->GraphicsOutputInformation.FrameBufferBase, MachineInfo->GraphicsOutputInformation.FrameBufferSize);
+  Print(L"FrameBufferBase at %llx, size: %llx\n\r", MachineInfo->GraphicsOutputInformation.FrameBufferBase, MachineInfo->GraphicsOutputInformation.FrameBufferSize);
 
 #endif
 
+  /*
+   * Parpering to enter ccldr.
+   */
   void (*ccldr_start)(LOADER_MACHINE_INFORMATION *MachineInfo) = (void *)(CcldrBase);
 
   /* ========================== Exit Services ================================ */
   gBS->GetMemoryMap(&MemMapSize, MemMap, &MapKey, &DescriptorSize, &DesVersion);
   gBS->ExitBootServices(ImageHandle, MapKey);
 
+
+  /*
+   * translate the control of cpu to ccldr and never be returned.
+   */
   ccldr_start(MachineInfo);
 
   return EFI_SUCCESS;

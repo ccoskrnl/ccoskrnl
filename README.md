@@ -1,4 +1,4 @@
-# ccoskrnl
+# ChengCheng OS
 
 ccos is a hobby 64-bit operating system. I'm writing it on x86, because I like sadness and misery. I do not possess extensive expertise, and I am not a expert in OS design so it may contains numerous bugs. Or, more accurately, I'm still a beginner for operating system design. Many of the design concepts I have implemented are inspired by Windows NT such as ccldr(OS Loader for ccos) and dynamic memory manager and so on. WRK(Windows Research Kernel) is an extremely excellent project suitable for those who wish to delve deeper in OS design. 
 
@@ -20,11 +20,13 @@ APIC(Advanced Programmable Interrupt Controller) is a critical component in mode
 
 **TrueType**
 
-Yes, ccos displays characters on screen through rendering TrueType Fonts(Default font in ccos is Adobe Source Han Sans SC VF.). It's not worth to output characters using TrueType rendering. For early OS developing, using bitmap fonts is more recommended method of characters output. 
+ccos displays characters on screen through rendering TrueType Fonts(Default font in ccos is Adobe Source Han Sans SC VF.). It's not worth to output characters using TrueType rendering. For early OS developing, using bitmap fonts is more recommended method of characters output. 
 
 Probably the greatest thing about storing characters as outlines is that only one outline per character is needed to produce all the sizes of that character OS will ever need. A single outline can be scaled to an enormous range of different sizes, some of which are illustrated below. This enables the same character to be displayed on monitors of different resolutions, and to be printed out at a large number of different sizes. To scale a character outline is a simple mathematical operation, as indeed are other transformations such as rotation and reflections.
 
 The structure of TrueType is complex, I only implemented the font rasterizer without hinting of TrueType. Hinting is at the heart of TrueType. Its inventors, mindful of the diversity of opinion on the "correct" way to hint type, decided there was no single hinting paradigm that they would impose upon type developers. Instead, they linked a relatively simple rasterizer to a new interpreted programming language. For font readability, however, this is enough.
+
+These is a cirtical issus here, which is that the preformence of text output of ccos is very pool. The badly performing will seriously slow down the running of ccos. I don't know how to optimize the function because the font drawing is a relatively complex process. Another method is use bitmap font to instead the TrueType font.
 
 **Wide Char**
 
@@ -42,7 +44,6 @@ ccos supports multi-windows, which means it can output text in different window 
 
 ## TO-DO
 
-- [ ] Bug fix: Adjust the CcLoader reversed memory to ensure memory manager works on machines with more RAM.
 - [ ] Bug fix: Add spinlock to prevent conflicts of multiple windows output.
 
 - [ ] Dynamic memory manager with memory leaks detection.
@@ -51,6 +52,18 @@ ccos supports multi-windows, which means it can output text in different window 
 - [ ] Devices management.
 - [ ] NVMe Driver
 - [ ] Keyboard Driver
+
+## Requirements
+
+
+- **QEMU with 2 GiB RAM or higher**
+
+    I just roughly divide the memory space such that the kernel space only use the quarter of availalbe RAM. But a problem need to noticed that GetMemoryMap() routine returned the incorrect memory map information when attempting to allocate higher RAM (larger that 2 GiB) for QEMU. I'm not trying other OVMF firmware so I guess such error may stem from my OVMF.
+
+- **x86_64 CPU (Intel or AMD) with AVX instruction set**
+
+    There are slight differences on x86_64 architecture programming between Intel 64 and AMD64. I'm developing ccos based on AMD CPU but use Intel® 64 and IA-32 architectures software developer's manuals as my x86_64 architechure reference manual. For now, though, whatever the cpu vendor.
+
 
 ## Installation
 
@@ -66,10 +79,13 @@ No license.
 
 ## Contact
 
+
 ChengCheng: 2010705797@qq.com
+
 ccoskrnl: https://github.com/ccoskrnl/ccoskrnl
 
-## Acknowledgments
+
+## Related Reading
 
 - [**Intel® 64 and IA-32 architectures software developer's manuals**](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html)
 
@@ -87,4 +103,3 @@ ccoskrnl: https://github.com/ccoskrnl/ccoskrnl
 
 - [**UEFI Specification**](https://uefi.org/specs/UEFI/2.10/01_Introduction.html)
 
-- ...

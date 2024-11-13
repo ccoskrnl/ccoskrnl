@@ -111,7 +111,6 @@ ReadFileToBuffer(
 }
 
 
-
 EFI_STATUS
 ReadFileToBufferAt(
     IN CHAR16 *FileName,
@@ -119,35 +118,54 @@ ReadFileToBufferAt(
     IN OUT UINTN *BufferSize)
 {
     EFI_STATUS Status;
-    EFI_FILE_PROTOCOL *FileProtocol;
-    EFI_FILE_INFO *FileInfo;
-    UINTN FileInfoSize = SIZE_OF_EFI_FILE_INFO + 200;
+    UINTN BufSize = 0;
+    char *Buf = 0;
 
-    WpFileOpen(RootProtocol, &FileProtocol, FileName, EFI_FILE_MODE_READ, 0);
+    Status = ReadFileToBuffer(FileName, (VOID**)&Buf, &BufSize);
+    memcpy((VOID*)BufferAddress, (VOID*)Buf, BufSize);
+    FreePool((VOID*)Buf);
+    *BufferSize = BufSize;
 
-    // Allocate memory for file info
-    FileInfo = AllocateZeroPool(FileInfoSize);
-    if (FileInfo == NULL)
-    {
-        // Debug
-        UEFI_PANIC;
-        return EFI_OUT_OF_RESOURCES;
-    }
-
-    // Get file info
-    Status = FileProtocol->GetInfo(FileProtocol, &gEfiFileInfoGuid, &FileInfoSize, FileInfo);
-    if (EFI_ERROR(Status))
-    {
-        UEFI_PANIC;
-    }
-
-    *BufferSize = FileInfo->FileSize;
-
-    WpFileRead(FileProtocol, BufferSize, (VOID*)BufferAddress, FileName);
-
-    FreePool(FileInfo);
-
-    WpFileClose(FileProtocol, FileName);
-
-    return EFI_SUCCESS;
+    return Status;
 }
+
+
+// EFI_STATUS
+// ReadFileToBufferAt(
+//     IN CHAR16 *FileName,
+//     IN EFI_PHYSICAL_ADDRESS BufferAddress,
+//     IN OUT UINTN *BufferSize)
+// {
+//     EFI_STATUS Status;
+//     EFI_FILE_PROTOCOL *FileProtocol;
+//     EFI_FILE_INFO *FileInfo;
+//     UINTN FileInfoSize = SIZE_OF_EFI_FILE_INFO + 200;
+//
+//     WpFileOpen(RootProtocol, &FileProtocol, FileName, EFI_FILE_MODE_READ, 0);
+//
+//     // Allocate memory for file info
+//     FileInfo = AllocateZeroPool(FileInfoSize);
+//     if (FileInfo == NULL)
+//     {
+//         // Debug
+//         UEFI_PANIC;
+//         return EFI_OUT_OF_RESOURCES;
+//     }
+//
+//     // Get file info
+//     Status = FileProtocol->GetInfo(FileProtocol, &gEfiFileInfoGuid, &FileInfoSize, FileInfo);
+//     if (EFI_ERROR(Status))
+//     {
+//         UEFI_PANIC;
+//     }
+//
+//     *BufferSize = FileInfo->FileSize;
+//
+//     WpFileRead(FileProtocol, BufferSize, (VOID*)BufferAddress, FileName);
+//
+//     FreePool(FileInfo);
+//
+//     WpFileClose(FileProtocol, FileName);
+//
+//     return EFI_SUCCESS;
+// }

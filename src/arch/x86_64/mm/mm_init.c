@@ -48,7 +48,7 @@ uint64_t _mm_krnl_image_size;
 uint64_t _mm_available_free_pages;
 
 /*  The heigest addressable physical address */
-uint64_t _mm_heigest_addressable_physical_addr;
+uint64_t _mm_highest_addressable_physical_addr;
 
 
 /*  
@@ -1109,6 +1109,13 @@ void unmap_startup_routine(uint64_t startup_addr, uint64_t number_of_pages)
 
 void mapping_startup_routine(uint64_t startup_addr, uint64_t number_of_pages)
 {
+
+    /*
+     * Since we have constructed a temporary pml4 entry during ccloader
+     * initialization. In here, hence, we only need to do one thing is set
+     * the first entry of our kernel pml4 table.
+     */
+
     mmpte_hardware_t *startup_pml4_entry;
     startup_pml4_entry = (mmpte_hardware_t*)(_mm_pt_pml4_start);
 
@@ -1367,8 +1374,6 @@ void mm_init()
     // The address to which _current_machine_info will be copied 
     uint64_t loader_data_start;
 
-
-
     // Set variables about kernel space
     _mm_krnl_space_phys_base_addr = 
         _current_machine_info->memory_space_info[0].base_address;
@@ -1393,7 +1398,7 @@ void mm_init()
     _mm_available_free_pages = _current_machine_info->memory_info.ram_size >> PAGE_SHIFT;
     
     // Calculate the heigest addressable physical address on current machine
-    _mm_heigest_addressable_physical_addr = 
+    _mm_highest_addressable_physical_addr = 
         _current_machine_info->memory_info.highest_physical_addr + PAGE_SIZE - 1;
 
 
