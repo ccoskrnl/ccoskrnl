@@ -23,6 +23,6 @@ typedef struct _bitmap {
 void _bitmap_init(bitmap_t* bitmap, uint64_t size);
 void _bitmap_set(bitmap_t* bitmap, uint64_t offset, uint64_t set);
 uint64_t _bitmap_alloc(bitmap_t* bitmap, uint64_t size);
-void _bitmap_fini(bitmap_t* bitmap);
+void _bitmap_fint(bitmap_t* bitmap);
 
 #endif

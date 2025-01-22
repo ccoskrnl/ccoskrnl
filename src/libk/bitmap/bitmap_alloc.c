@@ -23,9 +23,11 @@ uint64_t _bitmap_alloc(bitmap_t* bitmap, uint64_t size)
             }
             else
             {
-                if (++free_bits == size)
+                free_bits++;
+                if (free_bits == size)
                 {
                     start = ((starting_position_in_byte << ITEM_SHIFT) + offset_in_byte) - (size - 1);
+                    bitmap->offset = start + size;
                     for (int i = 0; i < size; i++)
                         _bitmap_set(bitmap, start+i, 1);
 
@@ -53,9 +55,11 @@ uint64_t _bitmap_alloc(bitmap_t* bitmap, uint64_t size)
             }
             else
             {
-                if (++free_bits == size)
+                free_bits++;
+                if (free_bits == size)
                 {
                     start = ((starting_position_in_byte << ITEM_SHIFT) + offset_in_byte) - (size - 1);
+                    bitmap->offset = start + size;
                     for (int i = 0; i < size; i++)
                         _bitmap_set(bitmap, start+i, 1);
 
