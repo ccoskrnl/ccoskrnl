@@ -4,3 +4,4 @@ docs/ccoskrnl.wiki
 .clangd
 src/.gdb_history
 models
+esp/NvVars

@@ -1,8 +1,5 @@
 target remote localhost:8848
 hbreak *0xfffff00000001000
 continue
-add-symbol-file ../esp/EFI/ChengChengOS/ccoskrnl 0xfffff00000001000
 set listsize 16
-
-hbreak kernel/krnl_start.c:krnl_exit
-hbreak arch/x86_64/mpboot.c:ap_entry
+add-symbol-file /home/0d00/src/ccoskrnl/esp/EFI/ChengChengOS/ccoskrnl 0xfffff00000001000

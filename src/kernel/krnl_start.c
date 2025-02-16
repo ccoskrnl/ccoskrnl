@@ -124,9 +124,6 @@ void krnl_init()
 
     // active_aps();
 
-    // From Stellaris.
-    put_check(output_bsp, true, L"System diagnostic completed. All systems nominal.\n");
-
     put_check(output_bsp, false, L"Power Off.\n");
 
 

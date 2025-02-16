@@ -26,11 +26,11 @@ for arg in "$@"; do
 done
 
 disable_ccdebug() {
-    sed -i 's/^CCDEBUG = -g/#CCDEBUG = -g/' ../conf/target.conf
+    sed -i 's/^CCBUILD = -g -O0/CCBUILD = -O2/' ../conf/target.conf
 }
 
 enable_ccdebug() {
-    sed -i 's/^#CCDEBUG = -g/CCDEBUG = -g/' ../conf/target.conf
+    sed -i 's/^CCBUILD = -O2/CCBUILD = -g -O0/' ../conf/target.conf
 }
 
 if [ "$release_mode" = true ]; then
