@@ -11,6 +11,7 @@
 
 
 extern void preparing_for_bsp(boolean is_first);
+extern void transition_to_p0();
 extern void mm_init();
 
 extern void op_init();
@@ -94,6 +95,8 @@ void krnl_init()
 {
 
     preparing_for_bsp(false);
+
+    transition_to_p0();
 
     // Output Initialization
     op_init();

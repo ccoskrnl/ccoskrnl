@@ -5,7 +5,7 @@ include ../../../conf/target.conf
 
 BUILD_DIR = ../../../build/arch/$(ARCH)
 
-SRC_DIRS = . intr mm cpu io lib intr/isr
+SRC_DIRS = . intr mm cpu cpu/power io lib intr/isr
 
 SRCS = $(foreach dir, $(SRC_DIRS), $(wildcard $(dir)/*.c))
 OBJS = $(patsubst %.c,$(BUILD_DIR)/%.o,$(SRCS))
@@ -82,6 +82,11 @@ $(BUILD_DIR)/intr/%.o: intr/%.c
 	@$(CC) $(CFLAGS) -c -o $@ $<
 
 $(BUILD_DIR)/cpu/%.o: cpu/%.c
+	$(shell mkdir -p $(dir $@))
+	@echo "	Compiling $<"
+	@$(CC) $(CFLAGS) -c -o $@ $<
+
+$(BUILD_DIR)/cpu/power/%.o: cpu/power/%.c
 	$(shell mkdir -p $(dir $@))
 	@echo "	Compiling $<"
 	@$(CC) $(CFLAGS) -c -o $@ $<

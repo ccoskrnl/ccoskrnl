@@ -102,7 +102,7 @@ void mtrr_init(void)
         get_mtrr_state();
 
     }
-    if (!memcmp(cpu_vendor_id, CPUID_VENDOR_AMD, sizeof(CPUID_VENDOR_AMD)))
+    if (!memcmp(cpu_feat_id.vendor_id, CPUID_VENDOR_AMD, sizeof(CPUID_VENDOR_AMD)))
     {
         value = rdmsr(AMD_MSR_SYSCFG_REG);
         if (value & AMD_MSR_SYSCFG_MtrrFixDramModEn)

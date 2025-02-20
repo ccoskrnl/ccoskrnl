@@ -137,14 +137,40 @@ uint64_t rdtsc();
 
 
 
+typedef struct _cpu_feat_id 
+{
+    /**
+     * The processor family identifies one or more processors as belonging to
+     * a group that processes some common definition for software or hardware purpose.
+     */
+    uint64_t family;
 
+    /**
+     * The model specifies one instance of a processor family.
+     */
+    uint64_t model;
+    
+    /**
+     * The stepping identifies a particular version of a specific model.
+     */
+    uint64_t stepping;
 
+    /**
+     * Vendor ID
+     */
+    char vendor_id[16];
 
-// CPU Vendor.
-extern char cpu_vendor_id[16];
+    /**
+     * Current Machine CPU Brand.
+     */
+    char brand[49];
 
-// Current Machine cpu brand.
-extern char cpu_brand_string[49];  // 48 characters + null terminator
+} __attribute__ ((packed)) cpu_feat_id_t;
+
+/**
+ * CPU Feature Identifer.
+ */
+extern cpu_feat_id_t cpu_feat_id;
 
 
 typedef enum 

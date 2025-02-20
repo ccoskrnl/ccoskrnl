@@ -2,11 +2,10 @@
 #include "cpu_features.h"
 
 
-// CPU Vendor.
-char cpu_vendor_id[16] = { 0 };
-
-// Current Machine cpu brand.
-char cpu_brand_string[49] = { 0 };  // 48 characters + null terminator
+/**
+ * CPU Feature Identifer.
+ */
+cpu_feat_id_t cpu_feat_id;
 
 // rdrand instruction to generate a random number.
 static boolean support_rdrand;
@@ -35,12 +34,10 @@ static boolean support_sse3;
 // MTRR
 static boolean support_mtrr;
 
-
-void cpu_feature_detect()
+static void get_cpu_info(cpu_feat_id_t* p_cpu_feat_id)
 {
-    uint64_t value;
     uint32_t eax, ebx, ecx, edx;
-    char* processor_name = cpu_brand_string;
+    char* processor_name = cpu_feat_id.brand;
 
     // Get CPU Vendor
     cpuid(CPUID_LEFT_LARGEST_STD_FUNC_NUM, &eax, &ebx, &ecx, &edx);
@@ -50,21 +47,21 @@ void cpu_feature_detect()
         do
         {
             uc = (char)(ebx >> (i * 8));
-            cpu_vendor_id[i] = uc;
+            cpu_feat_id.vendor_id[i] = uc;
 
         } while (i-- >= 0);
         i = 7;
         do
         {
             uc = (char)(edx >> (i * 8));
-            cpu_vendor_id[i] = uc;
+            cpu_feat_id.vendor_id[i] = uc;
 
         } while (i-- > 4);
         i = 11;
         do
         {
             uc = (char)(ecx >> (i * 8));
-            cpu_vendor_id[i] = uc;
+            cpu_feat_id.vendor_id[i] = uc;
 
         } while (i-- > 8);
 
@@ -84,7 +81,30 @@ void cpu_feature_detect()
         processor_name += 4;
     }
 
+    cpuid(CPUID_LEFT_FEATURE_IDENTIFIERS, &eax, &ebx, &ecx, &edx);
 
+    p_cpu_feat_id->stepping = eax & 0xf;
+
+    /**
+     * Model is an 8-bit value and is defined as: Model[7:0] = {ExtendedModel[3:0],BaseModel[3:0]}
+     */
+    p_cpu_feat_id->model = (((eax >> 4) & 0xf) | ((eax >> 16) & 0xf)) & 0xff;
+
+    /**
+     * Family is an 8-bit value and is defined as: Family[7:0] = 
+     * ( { 0000b, BaseFamily[3:0]} + ExtendedFamily[7:0] ).
+     */
+    p_cpu_feat_id->family = (((eax >> 8) & 0xf) + ((eax >> 20) & 0xff)) & 0xff;
+
+}
+
+
+void cpu_feature_detect()
+{
+    uint64_t value;
+    uint32_t eax, ebx, ecx, edx;
+
+    get_cpu_info(&cpu_feat_id);
 
     // Miscellaneous Feature Identifiers
     cpuid(CPUID_LEFT_FEATURE_IDENTIFIERS,

@@ -176,7 +176,7 @@ void enable_timer_intr()
     // divide configuration register.
 
     // Configuration to APIC Timer
-    if (!memcmp(cpu_vendor_id, CPUID_VENDOR_INTEL, sizeof(CPUID_VENDOR_INTEL)))
+    if (!memcmp(cpu_feat_id.vendor_id, CPUID_VENDOR_INTEL, sizeof(CPUID_VENDOR_INTEL)))
     {
         /**
          * For Intel 64
@@ -220,7 +220,7 @@ void enable_timer_intr()
 
         
     }
-    else if (!memcmp(cpu_vendor_id, CPUID_VENDOR_AMD, sizeof(CPUID_VENDOR_AMD)))
+    else if (!memcmp(cpu_feat_id.vendor_id, CPUID_VENDOR_AMD, sizeof(CPUID_VENDOR_AMD)))
     {
         /**
          * For AMD

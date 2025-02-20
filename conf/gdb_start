@@ -1,5 +1,5 @@
 target remote localhost:8848
 hbreak *0xfffff00000001000
 continue
-set listsize 16
 add-symbol-file /home/0d00/src/ccoskrnl/esp/EFI/ChengChengOS/ccoskrnl 0xfffff00000001000
+set listsize 16
