@@ -845,7 +845,7 @@ status_t glyph_rasterize(void *_this, go_buf_t* buffer, point_i_t origin, double
                 p2.y *= scaling_factor;
 
                 // const float delta = 1 / ((this->yMax - this->yMin) * scaling_factor);
-                const float delta = 1 / ((((float)(this->yMax - this->yMin) / (float)4)) * scaling_factor);
+                const float delta = 1 / ((((float)(this->yMax - this->yMin) / (float)5)) * scaling_factor);
 
                 float i = 0.0f;
                 point_i_t p_i;

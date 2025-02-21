@@ -96,7 +96,6 @@ void krnl_init()
 
     preparing_for_bsp(false);
 
-    transition_to_p0();
 
     // Output Initialization
     op_init();
@@ -118,12 +117,14 @@ void krnl_init()
     // Initialize OSPM
     put_check(output_bsp, -1, L"OSPM initializing...\n");
     acpi_init();
+    transition_to_p0();
+
     put_check(output_bsp, true, L"OSPM has already been initialized.\n");
 
     // Initialize PCIe
-    put_check(output_bsp, -1, L"PCIe initializing...\n");
-    pci_init();
-    put_check(output_bsp, true, L"PCIe has already been initialized.\n");
+    // put_check(output_bsp, -1, L"PCIe initializing...\n");
+    // pci_init();
+    // put_check(output_bsp, true, L"PCIe has already been initialized.\n");
 
     // active_aps();
 
@@ -136,6 +137,8 @@ void krnl_init()
 
 void krnl_exit()
 {
+
+    __asm__("hlt\n\t");
     // sleep(3600);
-    krnl_panic(NULL);
+    // krnl_panic(NULL);
 }

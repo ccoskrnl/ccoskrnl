@@ -14,13 +14,13 @@ ChengCheng OS (CCOS) is a hobby 64 bit operating system. I'm writing it on x86, 
 
     CCOS uses UEFI to bootstrap ccoskrnl. UEFI greatly facilitates OS Loader developing. Developer can directly call the interfaces provided by UEFI (Use C language instead of assembly). There is one thing to note here, that CCOS still needs ccldr (another binary executable file) to load ccoskrnl. It is a bit like "a second stage boot loader". But in fact, BOOTX64.efi just simply divides kernel space and searches for a suitable physical memory space for ccoskrnl image loading. Then ccldr will map kernel space into high address of virtual address space and set GDT(Global Descriptor Table, a significant structure for x86 architecture.)
 
-- **Multi-Processors**
+- **Multi-Cores**
 
-    Multi-processors support is an enormous challenge for me. I do not guarantee a good implementation of multi-processors system. For now, CCOS can correctly active other application processors. Not like other operating system demo, CCOS puts application processor initialization routine at a isolated binary file and load it into the first 1 MiB of physical memory and construct separately the page table for the memory space. Before of application processors running, CCOS will fix the citation of relative address of the binary program. I have to admit, this is a foolish design.
+    Multi-cores support is an enormous challenge for me. I do not guarantee a good implementation of multi-cores system. For now, CCOS can correctly active other application cores. Not like other operating system demo, CCOS puts application cores initialization routine at a isolated binary file and load it into the first 1 MiB of physical memory and construct separately the page table for the memory space. Before of application cores running, CCOS will fix the citation of relative address of the binary program. I have to admit, this is a foolish design.
 
 - **APIC**
 
-    APIC(Advanced Programmable Interrupt Controller) is a critical component in modern computer system. It provides the possibility for multi-processors system and supports multilevel interrupt priority on the hardware level. Unfortunately, APIC is complicated. Since to fully understand APIC needs sound knowledge of computer system, I only implement the basic driver of APIC.
+    APIC(Advanced Programmable Interrupt Controller) is a critical component in modern computer system. It provides the possibility for multi-cores system and supports multilevel interrupt priority on the hardware level. Unfortunately, APIC is complicated. Since to fully understand APIC needs sound knowledge of computer system, I only implement the basic driver of APIC.
 
 - **TrueType**
 
@@ -42,7 +42,7 @@ ChengCheng OS (CCOS) is a hobby 64 bit operating system. I'm writing it on x86, 
 
 - **Graphics Output with multi-windows**
 
-    CCOS supports multi-windows, which means it can output text in different window on screen. It's uesful to debug multi-processors through open a text-output window to each processor. Even if not have mouse driver, user also can use keyboard to select which window need to enter characters.
+    CCOS supports multi-windows, which means it can output text in different window on screen. It's uesful to debug multi-cores through open a text-output window to each core. Even if not have mouse driver, user also can use keyboard to select which window need to enter characters.
 
 
 ## TO-DO
@@ -55,6 +55,10 @@ ChengCheng OS (CCOS) is a hobby 64 bit operating system. I'm writing it on x86, 
 - [ ] PCIe management
 - [ ] NVMe Driver
 - [ ] Keyboard Driver (Not urgent)
+
+- [ ] Use bitmap fonts rather than TypeTrue Fonts rendering.
+- [ ] Power Management.
+- [ ] CPU prefromence management.
 
 ## Requirements
 
