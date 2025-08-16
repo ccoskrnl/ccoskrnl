@@ -1,6 +1,5 @@
 #!/bin/bash
 
-release_mode=false
 debug_mode=false
 
 # Parse command line arguments
@@ -16,7 +15,8 @@ for arg in "$@"; do
     esac
     case $arg in
         --debug=off)
-        release_mode=true
+        debug_mode=false
+        # release_mode=true
         shift
         ;;
         *)
@@ -33,15 +33,15 @@ enable_ccdebug() {
     sed -i 's/^CCBUILD = -O2/CCBUILD = -g -O0/' ../conf/target.conf
 }
 
-if [ "$release_mode" = true ]; then
-    echo "Release mode enabled."
-    disable_ccdebug
-    exit
-else
-    echo "Debug mode enabled."
-    enable_ccdebug
-    exit
-fi
+# if [ "$release_mode" = true ]; then
+#     echo "Release mode enabled."
+#     disable_ccdebug
+#     exit
+# else
+#     echo "Debug mode enabled."
+#     enable_ccdebug
+#     exit
+# fi
 
 if [ "$debug_mode" = true ]; then
     echo "Debug mode enabled."

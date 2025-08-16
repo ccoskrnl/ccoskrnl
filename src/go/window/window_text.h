@@ -59,6 +59,11 @@ typedef struct _window_text
     _window_text_putws_t        PutWString;
 
     /**
+     * @brief Indicates whether the window has been registered.
+     */
+    boolean                     has_been_register;
+
+    /**
      * Window use this member to tell screen which Font family
      * to display.
      */

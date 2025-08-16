@@ -99,6 +99,7 @@ void krnl_init()
 
     // Output Initialization
     op_init();
+    // putwsc(output_bsp, L"Ciallo～(∠・ω< )⌒★", SPRINT_GREEN2);
     put_check(output_bsp, true, L"Ccoskrnl loaded.\n");
     put_check(output_bsp, true, L"Bootstrap Processor has already been initializated.\n");
     put_check(output_bsp, -1, L"Memory Manager perparing...\n");
@@ -117,9 +118,11 @@ void krnl_init()
     // Initialize OSPM
     put_check(output_bsp, -1, L"OSPM initializing...\n");
     acpi_init();
-    transition_to_p0();
+    // transition_to_p0();
 
     put_check(output_bsp, true, L"OSPM has already been initialized.\n");
+
+    putc(output_bsp, '\n');
 
     // Initialize PCIe
     // put_check(output_bsp, -1, L"PCIe initializing...\n");
@@ -128,7 +131,7 @@ void krnl_init()
 
     // active_aps();
 
-    put_check(output_bsp, false, L"Power Off.\n");
+    // put_check(output_bsp, false, L"Power Off.\n");
 
 
     krnl_exit();

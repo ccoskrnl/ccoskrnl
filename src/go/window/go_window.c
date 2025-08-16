@@ -512,6 +512,18 @@ static status_t register_text_window(
     wch_t start_code = WINDOW_TEXT_CACHED_START_CODE;
     font_ttf_glyph_t *glyph = NULL;
 
+    if (this->has_been_register) {
+
+        for (int i = 0; i < number_of_cached_glyphs; i++) 
+        {
+            if (this->cached_glyphs[i] == NULL)
+                continue;
+            glyph = this->cached_glyphs[i];
+            del_a_glyph(glyph);
+            this->cached_glyphs[i] = NULL;
+        }
+    }
+
     for (int i = 0; i < number_of_cached_glyphs; i++) 
     {
         status = new_a_glyph(&glyph);

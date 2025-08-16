@@ -75,14 +75,19 @@ bsp_init:
 
 
     ; Set temporary kernel stack pointer.
+    ; before entering bsp_init, we already have allocated MACHINE_INFO_SIZE bytes memory.
     ; rsp -> ccldr base + machine info structure size.
+    ; rsp and rbp used as temporary stack pointer and pointer to the top of stack.
     mov rsp, rbp
+
+
     mov rax, magic_number
-    push rax
+    push rax                ; push magic number, used by ccldr to verify it's loaded by the bootloader correctly.
+                            ; magic number stored at [rbp - 0x8]
 
     ; Determine how to construct ccldr page table based on it's base address
     ; Calculate pml4_base
-    add r9, 0x18000         ; pml4_base = ccldr_base + 0x100000 + 0x4000
+    add r9, 0x18000         ; pml4_base = ccldr_base + MACHINE_INFO_SIZE + 0x4000
     push r9                 ; pml4_base stored at [rbp - 0x10]
 
     ; Calculate ccldr number of ptes

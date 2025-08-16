@@ -62,6 +62,7 @@
 // typedef uint8_t point_state_t;
 
 
+// #define FILL_CHAR 0
 
 static status_t font_tty_destroy(void *this) {
     status_t status = ST_SUCCESS;

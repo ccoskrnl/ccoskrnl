@@ -156,12 +156,21 @@ void op_init()
     win->Register(
         win,
         _font_family_SourceHanSansSCVF,
-        14,
+        34,
         0
     );
     
     win->ShowWindow(win);
     _go_cpu_output_window[output_bsp] = win; 
+
+    putwsc(output_bsp, L"Ciallo～(∠・ω< )⌒★", SPRINT_GREEN2);
+
+    win->Register(
+        win,
+        _font_family_SourceHanSansSCVF,
+        14,
+        0
+    );
 
     _go_has_been_initialize = true;
 }

@@ -298,6 +298,13 @@ UefiMain(
   /* ==================== Load krnl, ccldr and icons ==================== */
 
   /*
+   * Before entering bsp_init function to remap kernel code, 
+   * we need to dynamiclly calcuate the kernel space reservation 
+   * size based on the installed physical RAM size, as well as 
+   * how much memory ccldr should use to store temporary page tables. 
+  */
+
+  /*
    * Kernel Space Size = Size of Installed Ram / 4;
    */
   KernelSpaceSize = ((MachineInfo->MemoryInformation.HighestPhysicalAddress + EFI_PAGE_SIZE) >> 2);

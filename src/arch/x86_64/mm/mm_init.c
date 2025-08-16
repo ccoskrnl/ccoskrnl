@@ -1258,6 +1258,8 @@ static void dynamic_memory_management_test()
     }
 
 
+    alloc0 = _mm_kmalloc_tag(8, '0D00');
+    _mm_kfree(alloc0);
 
     // case 1: 
     alloc0 = _mm_kmalloc(sizeof(int64_t) * 8);

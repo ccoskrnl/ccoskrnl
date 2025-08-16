@@ -50,6 +50,7 @@ run: $(TARGET) $(EFI)
 
 
 clean:
+	@echo "Cleaning up build artifacts..."
 	@for dir in $(SUBDIRS); do \
 		$(MAKE) -C $$dir clean; \
 	done
