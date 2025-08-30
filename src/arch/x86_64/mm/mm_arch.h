@@ -51,6 +51,17 @@ typedef struct _mm_addr
 // By shifting the macro, it can replace the multipication or division of page size.
 #define PAGE_SHIFT                                          0xC
 
+#define PT_ENTRY_SHIFT                                      0x9
+
+#define PML4_SHIFT                                          (PAGE_SHIFT + (PT_ENTRY_SHIFT << 1) + PT_ENTRY_SHIFT)
+#define PDPT_SHIFT                                          (PAGE_SHIFT + (PT_ENTRY_SHIFT << 1))
+#define PD_SHIFT                                            (PAGE_SHIFT + PT_ENTRY_SHIFT)
+#define PT_SHIFT                                            (PAGE_SHIFT)
+
+#define PML4_SIZE                                           ((uint64_t)(1UL << PML4_SHIFT))
+
+#define PML4_ALIGNED(x) \
+    (((uint64_t)x + PAGE_SIZE - 1) & ~(PML4_SHIFT - 1))
 
 // The macro is used to align an address(64 bits). It always rounds up. 
 // The macro adds (PAGE_SIZE - 1) to x,then clears lower PAGE_SHIFI bits.
@@ -78,11 +89,11 @@ same as PML4 entry.
 */
 #define DEFAULT_OFFSET_OF_PML4T_BASE                0x199UL             // 110011001(binary represention)
 #define DEFAULT_PML4T_BASE_ADDR                     0xFFFFCCE673399000UL
+#define PML4E_MIN_OFFSET_OF_KRNL_SPACE              0x100UL
 #define PML4E_OFFSET_OF_KRNL_SPACE                  0x1E0UL
 #define PML4E_OFFSET_OF_HARDWARE                    0x1F0UL
 #define PML4E_OFFSET_OF_FRAMEBUFFER                 0x1F8UL
 
-#define PT_ENTRY_SHIFT                              0x9
 
 // #define HARDWARE_ADDRESS                            
 
@@ -139,6 +150,7 @@ extern uint64_t _mm_pt_pt_pool_start;
 void _mm_flush_tlb(uint64_t vaddr);
 
 uint64_t mm_set_mmio(uint64_t base_addr, uint64_t num_of_pages);
+void mm_init();
 
 /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 #endif

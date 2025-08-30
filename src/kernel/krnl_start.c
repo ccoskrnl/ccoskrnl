@@ -9,10 +9,9 @@
 #include "../include/libk/stdlib.h"
 #include "../include/libk/bitmap.h"
 
+#include "../include/arch/cpu_features.h"
 
-extern void preparing_for_bsp(boolean is_first);
 extern void transition_to_p0();
-extern void mm_init();
 
 extern void op_init();
 extern void acpi_init();
@@ -22,6 +21,40 @@ extern void active_aps(void);
 
 extern wch_t* tengwangge;
 extern wch_t* chushibiao;
+
+
+/*
+ * ┌────────────────────────┐                    
+ * │                        │                    
+ * │                        │                    
+ * │                        │                    
+ * │                        │                    
+ * │                        │                    
+ * │                        │                    
+ * │                        │                    
+ * │                        │                    
+ * │                        │                    
+ * │                        │                    
+ * │                        │                    
+ * │                        │                    
+ * |────────────────────────┤◄─────- stack top
+ * │                        │                    
+ * │    krnl temp stack     │ 0x100000                   
+ * │                        │                    
+ * |────────────────────────┤◄────── stack bottom
+ * │                        │                    
+ * │    background file     │                    
+ * │                        │                    
+ * |────────────────────────┤                    
+ * │                        │                    
+ * │      font files        │                    
+ * │                        │                    
+ * |────────────────────────┤                    
+ * │                        │                    
+ * │  ccoskrnl image file   │                    
+ * │                        │                    
+ * └────────────────────────┘◄────── kernel space base addr
+ */
 
 /*  Stack top of temporary stack of kernel initialization thread  */
 extern uint64_t _mm_stack_top_of_initialization_thread;
@@ -63,10 +96,27 @@ void krnl_start(LOADER_MACHINE_INFORMATION* ptr)
     // _current_machine_info needs to be updated through mm_init(). 
     set_krnl_stack(_mm_stack_top_of_initialization_thread);
 
-    // prepare to execute initialization code.
+    /**
+     * Prepare the system for the Bootstrap Processor (BSP) initialization.
+     * This function sets up the necessary environment for the BSP to start executing.
+     * Copy GDT from ccldr area to kernel area. Set up the GDT and IDT for BSP. Then
+     * we reload the segment selector register.
+     * 
+     * We also need to check current cpu features and set some global variables about cpu info.
+     * (e.g. XCR0, AVX, XSAVE ...)
+     * 
+     */
     preparing_for_bsp(true);
     
-    // Memory Management Initialization
+    /**
+     * @brief Memory Management initialization.
+     * 
+     * Set up global variables about memory layout. (e.g. kernel space, pfn database
+     * non paged pool and system pte pool.)
+     * 
+     * After we divided the memory layout, we need to remap kernel space and construct
+     * new kernel page directories.
+     */
     mm_init();
 
     // Memory layout already was constructed, 
@@ -99,7 +149,6 @@ void krnl_init()
 
     // Output Initialization
     op_init();
-    // putwsc(output_bsp, L"Ciallo～(∠・ω< )⌒★", SPRINT_GREEN2);
     put_check(output_bsp, true, L"Ccoskrnl loaded.\n");
     put_check(output_bsp, true, L"Bootstrap Processor has already been initializated.\n");
     put_check(output_bsp, -1, L"Memory Manager perparing...\n");

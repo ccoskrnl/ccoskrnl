@@ -33,6 +33,8 @@ cpu_core_desc_t *cpu_cores[MAX_CPU_CORES] = { 0 };
  * the processors on the system bus as the BSP. The remaining processors are designated as APs.
  *      As part of the BSP selection mechanism, the BSP flag is set in the IA32_APIC_BASE MSR (see Figure 11-5) of the 
  * BSP, indicating that it is the BSP. This flag is cleared for all other processors.
+ * 
+ * @param[in]   is_first    Indicates if this is the first time the function is called.
  */ 
 void preparing_for_bsp(boolean is_first)
 {

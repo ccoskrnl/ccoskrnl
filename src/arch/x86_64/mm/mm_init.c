@@ -23,12 +23,68 @@ Memory Manager Initialization.
 #include "mm_pt_pool.h"
 
 
+/*
+ * Virtual Address Space (512-GiB page aligned)                                                                                                                    
+ *                                                                                                                                                                 
+ * ┌─────────────────────────────┐                                                                                                                                 
+ * │                             │                                                                                                                                 
+ * │                             │                                                                                                                                 
+ * │                             │                                                                                                                                 
+ * │         framebuffer         │                                                                                                                                 
+ * │                             │                       Kernel Physical Address Space (4-KiB page aligned)                                                        
+ * │                             │                                                                                                                                 
+ * │                             │                             ┌───────────────────────┐◄──────── _mm_reserved_mem_phys_end = _mm_krnl_space_phys_end              
+ * ├─────────────────────────────┤                             │                       │                                                                           
+ * │                             │                             │     reserved_mem      │                                                                           
+ * │                             │                             │                       │                                                                           
+ * │                             │     ┌───────────────────────►───────────────────────┤◄──────── _mm_sys_pte_pool_phys_end = _mm_reserved_mem_phys_start          
+ * │         hardware            │     │                       │                       │                                                                           
+ * │                             │     │                       │                       │                                                                           
+ * │                             │     │                       │     sys_pte_pool      │                                                                           
+ * │                             │     │                       │                       │                                                                           
+ * ├─────────────────────────────┼─────┘                       │                       │                                                                           
+ * │                             │            ┌────────────────►───────────────────────┤◄──────── _mm_non_paged_pool_phys_end = _mm_sys_pte_pool_phys_start        
+ * │                             │            │                │                       │                                                                           
+ * │                             │            │                │                       │                                                                           
+ * │        sys_pte_pool         │            │                │                       │                                                                           
+ * │                             │            │                │                       │                                                                           
+ * │                             │            │                │                       │                                                                           
+ * │                             │            │                │     non_paged_pool    │                                                                           
+ * ├─────────────────────────────┼────────────┘                │                       │                                                                           
+ * │                             │                             |                       |                                                                           
+ * │                             │                             │                       │                                                                           
+ * │                             │                             │                       │                                                                           
+ * │       non_paged_pool        │                             │                       │                                                                           
+ * │                             │       ┌─────────────────────►───────────────────────┤◄──────── _mm_pfn_db_phys_end = _mm_non_paged_pool_phys_start              
+ * │                             │       │                     │                       │                                                                           
+ * │                             │       │                     │     pfn_database      │                                                                           
+ * ├─────────────────────────────┼───────┘                     │                       │                                                                           
+ * │                             │            ┌────────────────►───────────────────────|◄──────── _mm_stack_top_of_initialization_thread = _mm_pfn_db_phys_start   
+ * │                             │            │                │                       │                                                                           
+ * │                             │            │                │image, rec_files, stack│                                                                           
+ * │        pfn_database         │            │                │                       │                                                                           
+ * │                             │            │      ┌─────────►───────────────────────┘◄──────── _mm_krnl_space_phys_base_addr = 0x000000005bb5c000 (random value)
+ * │                             │            │      │                                                                                                             
+ * │                             │            │      │                                                                                                             
+ * ├─────────────────────────────┼────────────┘      │                                                                                                             
+ * │                             │                   │                                                                                                             
+ * │                             │                   │                                                                                                             
+ * │                             │                   │                                                                                                             
+ * │   image, rec_files, stack   │                   │                                                                                                             
+ * │                             │                   │                                                                                                             
+ * │                             │                   │                                                                                                             
+ * │                             │                   │                                                                                                             
+ * └─────────────────────────────┴───────────────────┘                                                                                                             
+*/
+
+
 /* ================================================================================ */
 /* ================== Global Variable that Memory Manager maintained ============== */
 /* ================================================================================ */
 
 /*  The base physical address of kernel space */
 uint64_t _mm_krnl_space_phys_base_addr;
+uint64_t _mm_krnl_space_phys_end;
 
 /*  The base virtual address of kernel space */
 uint64_t _mm_krnl_space_start;
@@ -284,24 +340,27 @@ static uint64_t _mm_get_sys_pte_next_page()
 
 
 
+
 /*  
-
 Routine Description:
+    This function calculates the number of page directory pointer table entries (PDPTEs),
+    page directory entries (PDEs), and page table entries (PTEs) required to map a
+    memory region of specified size starting at a given base address.
 
-    The runtine calculates the number of pdptes, the number of pdes and the number of
-ptes with specified byte size respectively.
+    The calculation accounts for:
+    1. The size of the memory region
+    2. The base address alignment relative to different page table levels
+    3. Potential crossing of boundaries at each page table level
 
 Parameters:
+    base - Starting virtual address of the memory region
+    size - Size of the memory region in bytes
+    p_num_of_pdptes - Output pointer for the number of PDPTEs required
+    p_num_of_pdes - Output pointer for the number of PDEs required
+    p_num_of_ptes - Output pointer for the number of PTEs required
 
-    size - Specified byte size.
-    p_num_of_pdptes - Pointer that points the number of pdptes. 
-    p_num_of_pdes - Pointer that points the number of pdes. 
-    p_num_of_ptes - Pointer that points the number of ptes. 
-
-Returned Value:
-
-    None.
-
+Return Value:
+    None
 */
 static void calculate_num_of_ptes(uint64_t base, uint64_t size, uint64_t *p_num_of_pdptes,
                                uint64_t *p_num_of_pdes, uint64_t *p_num_of_ptes)
@@ -309,52 +368,67 @@ static void calculate_num_of_ptes(uint64_t base, uint64_t size, uint64_t *p_num_
     uint64_t remainder;
     uint64_t offset;
 
-    // Calculate PDPTES
+    // Calculate number of PDPTEs required
+    // Each PDPTE covers 1GB of address space (2^(PT_ENTRY_SHIFT*2 + PAGE_SHIFT))
     remainder = size & ((1UL << ((PT_ENTRY_SHIFT << 1) + PAGE_SHIFT)) - 1);
     if (remainder != 0)
     {
+        // If size isn't aligned to 1GB boundary, need an extra PDPTE
         *p_num_of_pdptes = (size >> ((PT_ENTRY_SHIFT << 1) + PAGE_SHIFT)) + 1;
     }
     else
+        // Size is aligned to 1GB boundary
         *p_num_of_pdptes = size >> ((PT_ENTRY_SHIFT << 1) + PAGE_SHIFT);
 
-    // Calculate PDES
+    // Calculate number of PDEs required
+    // Each PDE covers 2MB of address space (2^(PT_ENTRY_SHIFT + PAGE_SHIFT))
     remainder = size & ((1UL << ((PT_ENTRY_SHIFT) + PAGE_SHIFT)) - 1);
     if (remainder != 0)
     {
+        // If size isn't aligned to 2MB boundary, need an extra PDE
         *p_num_of_pdes = (size >> ((PT_ENTRY_SHIFT) + PAGE_SHIFT)) + 1;
     }
     else
+        // Size is aligned to 2MB boundary
         *p_num_of_pdes = size >> ((PT_ENTRY_SHIFT) + PAGE_SHIFT);
     
+    // Calculate offset of base address within the PDPT structure
+    // This determines which PDPTE the region starts in
     offset = base >> ((PT_ENTRY_SHIFT) + PAGE_SHIFT);
     offset &= ((1UL << ((PT_ENTRY_SHIFT))) - 1);
 
+    // Check if the region crosses a PDPTE boundary
+    // If the combined offset and number of PDEs exceeds what can be contained
+    // in the initially calculated PDPTEs, we need an additional PDPTE
     if ((offset + (*p_num_of_pdes)) > ((*p_num_of_pdptes) << PT_ENTRY_SHIFT))
     {
         *p_num_of_pdptes += 1;
     }
 
-    
-
-    // Calculate PTES
+    // Calculate number of PTEs required
+    // Each PTE covers 4KB of address space (2^PAGE_SHIFT)
     remainder = size & ((1UL << ((PAGE_SHIFT))) - 1);
     if (remainder != 0)
     {
+        // If size isn't aligned to 4KB boundary, need an extra PTE
         *p_num_of_ptes = (size >> PAGE_SHIFT) + 1;
     }
     else
+        // Size is aligned to 4KB boundary
         *p_num_of_ptes = size >> PAGE_SHIFT;
 
-
+    // Calculate offset of base address within the PD structure
+    // This determines which PDE the region starts in
     offset = base >> PAGE_SHIFT;
     offset &= ((1UL << ((PT_ENTRY_SHIFT))) - 1);
         
+    // Check if the region crosses a PDE boundary
+    // If the combined offset and number of PTEs exceeds what can be contained
+    // in the initially calculated PDEs, we need an additional PDE
     if ((offset + (*p_num_of_ptes)) > ((*p_num_of_pdes) << PT_ENTRY_SHIFT))
     {
         *p_num_of_pdes += 1 ;
     }
-    
 }
 
 
@@ -362,27 +436,29 @@ static void calculate_num_of_ptes(uint64_t base, uint64_t size, uint64_t *p_num_
 
 Routine Description:
 
-    The routine maps a kernel zone to specified virtual address kernel space.
+    This routine maps a kernel memory zone to the specified virtual address space by setting up
+    the necessary page directory pointer table entries (PDPTEs), page directory entries (PDEs),
+    and page table entries (PTEs). It uses a system-allocated pool of page table entries for 
+    creating the required page tables.
 
 Parameters:
 
-    pdpte_addr - The offset of the base address of PDPT.
-    number_of_pdptes - The number of pdptes is needed by specified zone.
-    number_of_pdes - The number of pdes is needed by specified zone.
-    number_of_ptes - The number of ptes is needed by specified zone.
-    zone_addr - The base address of specified zone.
-    size - The size of specified zone in bytes.
+    pdpte_addr - Virtual address pointer to the start of the PDPT where entries should be created
+    number_of_pdptes - Number of PDPTEs required for the mapping
+    number_of_pdes - Number of PDEs required for the mapping
+    number_of_ptes - Number of PTEs required for the mapping
+    zone_addr - Physical base address of the memory zone to be mapped
+    size - Size of the memory zone in bytes (not directly used in this function but provided for context)
 
 Returned Value:
 
-    The address of next pdpte which closely follows the variable zone_addr 
-corresponding zone.
+    Returns a pointer to the next available PDPTE after setting up all required entries for this zone.
+    This allows the caller to continue mapping additional zones sequentially.
 
 */
 static mmpte_hardware_t *map_zone(mmpte_hardware_t *pdpte_addr, uint64_t number_of_pdptes,
                                   uint64_t number_of_pdes, uint64_t number_of_ptes, uint64_t zone_addr, uint64_t size)
 {
-
     /* Physical address of Page-Directory Table. */
     uint64_t pd_phys_addr;
 
@@ -404,69 +480,75 @@ static mmpte_hardware_t *map_zone(mmpte_hardware_t *pdpte_addr, uint64_t number_
     /* Counter of page table entry.*/
     uint32_t i;
 
-    /* Initialize local variables. */
+    /* Initialize local variables with system page table pool addresses */
     sys_pte_pool_phys_addr = _mm_sys_pte_pool_phys_start;
+    // Calculate virtual address of system PTE pool using the physical-to-virtual mapping offset
     sys_pte_pool_virt_addr = (_mm_sys_pte_pool_phys_start - _mm_krnl_space_phys_base_addr) + _mm_krnl_space_start;
 
-
-    // Set PDPTE
-    offset_of_sys_pte_next_page = _mm_get_sys_pte_next_page();
-    pd_phys_addr = sys_pte_pool_phys_addr + offset_of_sys_pte_next_page;
-    pd = (mmpte_hardware_t *)(sys_pte_pool_virt_addr + offset_of_sys_pte_next_page);
+    // Set up PDPTEs (Page Directory Pointer Table Entries)
+    // Each PDPTE points to a Page Directory (PD)
+    offset_of_sys_pte_next_page = _mm_get_sys_pte_next_page(); // Get next available page from system PTE pool
+    pd_phys_addr = sys_pte_pool_phys_addr + offset_of_sys_pte_next_page; // Physical address of the Page Directory
+    pd = (mmpte_hardware_t *)(sys_pte_pool_virt_addr + offset_of_sys_pte_next_page); // Virtual address of the Page Directory
 
     i = 0;
     do
     {
-
-        pdpte_addr->present = 1;
-        pdpte_addr->rw = 1;
-        pdpte_addr->address = (pd_phys_addr >> PAGE_SHIFT);
+        // Configure the PDPTE to point to the Page Directory
+        pdpte_addr->present = 1;    // Mark entry as present
+        pdpte_addr->rw = 1;         // Mark entry as read/write
+        pdpte_addr->address = (pd_phys_addr >> PAGE_SHIFT); // Set physical address of PD (shifted by page size)
 
         i++;
-        pdpte_addr++;
+        pdpte_addr++; // Move to next PDPTE slot
 
+        // If we need more PDPTEs, allocate another Page Directory from system pool
         if (i < number_of_pdptes)
         {
             offset_of_sys_pte_next_page = _mm_get_sys_pte_next_page();
             pd_phys_addr = sys_pte_pool_phys_addr + offset_of_sys_pte_next_page;
         }
-        
-
     } while (i < number_of_pdptes);
 
-
-    // Set PDE
-    offset_of_sys_pte_next_page = _mm_get_sys_pte_next_page();
-    pt_phys_addr = sys_pte_pool_phys_addr + offset_of_sys_pte_next_page;
-    pt = (mmpte_hardware_t *)(sys_pte_pool_virt_addr + offset_of_sys_pte_next_page);
+    // Set up PDEs (Page Directory Entries)
+    // Each PDE points to a Page Table (PT)
+    offset_of_sys_pte_next_page = _mm_get_sys_pte_next_page(); // Get next available page from system PTE pool
+    pt_phys_addr = sys_pte_pool_phys_addr + offset_of_sys_pte_next_page; // Physical address of the Page Table
+    pt = (mmpte_hardware_t *)(sys_pte_pool_virt_addr + offset_of_sys_pte_next_page); // Virtual address of the Page Table
 
     i = 0;
     do
     {
-        pd[i].present = 1;
-        pd[i].rw = 1;
-        pd[i].address = (pt_phys_addr >> PAGE_SHIFT);
+        // Configure the PDE to point to the Page Table
+        pd[i].present = 1;    // Mark entry as present
+        pd[i].rw = 1;         // Mark entry as read/write
+        pd[i].address = (pt_phys_addr >> PAGE_SHIFT); // Set physical address of PT (shifted by page size)
+        
         i++;
+        
+        // If we need more PDEs, allocate another Page Table from system pool
         if (i < number_of_pdes)
         {
             offset_of_sys_pte_next_page = _mm_get_sys_pte_next_page();
             pt_phys_addr = sys_pte_pool_phys_addr + offset_of_sys_pte_next_page;
         }
-
     } while (i < number_of_pdes);
 
-
-    // Set PTE
+    // Set up PTEs (Page Table Entries)
+    // Each PTE directly maps to a physical page in the zone
     i = 0;
     do
     {
-        pt[i].present = 1;
-        pt[i].rw = 1;
-        pt[i].address = (zone_addr >> PAGE_SHIFT);
-        zone_addr += 0x1000;
+        // Configure the PTE to point to the physical page in the zone
+        pt[i].present = 1;    // Mark entry as present
+        pt[i].rw = 1;         // Mark entry as read/write
+        pt[i].address = (zone_addr >> PAGE_SHIFT); // Set physical address of the zone page (shifted by page size)
+        
+        zone_addr += 0x1000;  // Move to next 4KB page in the zone
         i++;
     } while (i < number_of_ptes);
 
+    // Return pointer to the next available PDPTE for potential future mappings
     return pdpte_addr;
 }
 
@@ -536,13 +618,18 @@ static void mem_map_init()
 
     // Initilize local variables.
     sys_pte_pool_phys_addr = _mm_sys_pte_pool_phys_start;
+
+    // The desired virtual address of the system page table entry pool.
     sys_pte_pool_virt_addr = 
         (_mm_sys_pte_pool_phys_start - _mm_krnl_space_phys_base_addr) + _mm_krnl_space_start;
 
+
+    // The first page of system pte pool holds kernel PML4 table.
     offset_of_sys_pte_next_page = _mm_get_sys_pte_next_page();
     pml4t_phys_addr = sys_pte_pool_phys_addr + offset_of_sys_pte_next_page;
     pml4t_virt_addr = sys_pte_pool_virt_addr + offset_of_sys_pte_next_page;
 
+    // The second page of system pte pool holds kernel PDPT table.
     offset_of_sys_pte_next_page = _mm_get_sys_pte_next_page();
     krnl_pdpt_phys_addr = sys_pte_pool_phys_addr + offset_of_sys_pte_next_page;
     pdpt_virt_addr = sys_pte_pool_virt_addr + offset_of_sys_pte_next_page;
@@ -555,14 +642,17 @@ static void mem_map_init()
     
 
     // Calculate the number of PML4 entries that mapping kernel space needed.
-    if (_mm_krnl_space_size & 0x7FFFFFFFFFUL)
-    {
-        num_of_pml4tes = 1 + (_mm_krnl_space_size >> 39);
-    }
+    if (_mm_krnl_space_size & (PML4_SIZE - 1))
+        // When the condition is met, it means the kernel space size is not aligned to PML4_SIZE.
+        // That's means we need to add one more PML4 entry. The practice also applies 
+        // to when kernel space size lesses PML4_SIZE, in this situation, we only need an extra pml4 entry.
+        num_of_pml4tes = 1 + (_mm_krnl_space_size >> PML4_SHIFT);
     else
-        num_of_pml4tes = _mm_krnl_space_size >> 39;
+        num_of_pml4tes = _mm_krnl_space_size >> PML4_SHIFT;
+
 
     // The size of kernel space can not greater than 512 GBytes.
+    // Because the maximum offset of pml4e is PML4E_OFFSET_OF_KRNL_SPACE.
     assert(num_of_pml4tes <= (PML4E_OFFSET_OF_HARDWARE - PML4E_OFFSET_OF_KRNL_SPACE));
 
 
@@ -574,6 +664,7 @@ static void mem_map_init()
     pml4t[offset_of_pml4e].rw = 1;
     pml4t[offset_of_pml4e].address = ((uint64_t)pml4t_phys_addr >> PAGE_SHIFT);
 
+    /* Set up the pml4 entry for kernel space. */
     pml4t[PML4E_OFFSET_OF_KRNL_SPACE].present = 1;
     pml4t[PML4E_OFFSET_OF_KRNL_SPACE].rw = 1;
     pml4t[PML4E_OFFSET_OF_KRNL_SPACE].address = (((uint64_t)krnl_pdpt_phys_addr) >> PAGE_SHIFT);
@@ -618,7 +709,7 @@ static void mem_map_init()
 
 
     // Upate MM variables
-    _mm_pfn_db_start = (mmpfn*)(_mm_krnl_space_start + ((num_of_pdptes << 30)));
+    _mm_pfn_db_start = (mmpfn*)(_mm_krnl_space_start + ((num_of_pdptes << PDPT_SHIFT)));
     _mm_pfn_db_end = _mm_pfn_db_size + (uint64_t)_mm_pfn_db_start;
 
     // Map PFN database
@@ -634,7 +725,7 @@ static void mem_map_init()
 
 
     // Upate MM variables
-    _mm_non_paged_pool_start = (uint64_t)_mm_pfn_db_start + ((num_of_pdptes) << 30);
+    _mm_non_paged_pool_start = (uint64_t)(_mm_pfn_db_start + ((num_of_pdptes) << PDPT_SHIFT));
     _mm_non_paged_pool_end = _mm_non_paged_pool_size + _mm_non_paged_pool_start;
 
     // Map non paged pool
@@ -650,7 +741,7 @@ static void mem_map_init()
 
 
     // Upate MM variables
-    _mm_sys_pte_pool_start = _mm_non_paged_pool_start + (num_of_pdptes << 30);
+    _mm_sys_pte_pool_start = (uint64_t)(_mm_non_paged_pool_start + (num_of_pdptes << PDPT_SHIFT));
     _mm_sys_pte_pool_end = _mm_sys_pte_pool_size + _mm_sys_pte_pool_start;
 
     // Map system page table entry pool 
@@ -688,7 +779,7 @@ static void mem_map_init()
 
     // Update machine_info
     _current_machine_info->graphics_info.FrameBufferBase = 0xFFFF000000000000UL |
-        (PML4E_OFFSET_OF_FRAMEBUFFER << 39);
+        (PML4E_OFFSET_OF_FRAMEBUFFER << PML4_SHIFT);
 
     _current_machine_info = (struct _LOADER_MACHINE_INFORMATION *)_mm_non_paged_pool_start;
     _machine_info_end = _mm_non_paged_pool_start + 0x10000;
@@ -927,6 +1018,28 @@ static void memory_pool_init()
     memzero(&pool->list_heads, sizeof(list_node_t) * POOL_LIST_HEADS);
 }
 
+/*
+
+Routine Description:
+
+    The routine initializes the system page table entry pool. We use a bitmap 
+to manage the free system page table entries. We already used some ptes
+(use offset_of_first_free_sys_pte to record) before we initializing system pte pool.
+The reason is what we have not initialized the kernel memory allocator, we can't
+allocate memory for bitmap initialization. In this routine, we store the bitmap
+into non paged pool and set a portion of the pages at the beginning of sys pte pool
+as used(mark these bits to 1).
+    
+
+Parameters:
+
+    None.
+
+Returned Value:
+
+    None.
+
+*/
 static void sys_pte_pool_init()
 {
     _bitmap_init(&_pt_bitmap, _mm_sys_pte_pool_size);
@@ -1380,9 +1493,14 @@ void mm_init()
     _mm_krnl_space_phys_base_addr = 
         _current_machine_info->memory_space_info[0].base_address;
 
+    _mm_krnl_space_phys_end = 
+        _mm_krnl_space_phys_base_addr + _current_machine_info->memory_space_info[0].size;
+
     _mm_krnl_space_start = KERNEL_SPACE_BASE_ADDR;
 
     _mm_krnl_space_size = _current_machine_info->memory_space_info[0].size;
+
+
 
 
 

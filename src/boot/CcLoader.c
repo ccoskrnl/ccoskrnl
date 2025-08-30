@@ -216,7 +216,7 @@ UefiMain(
   LOADER_MACHINE_INFORMATION *MachineInfo;
 
   EFI_PHYSICAL_ADDRESS KrnlImageBase;
-  UINTN KernelBufferSize = 0;
+  UINTN KernelImageBufferSize = 0;
   UINTN KernelSpaceSize = 0;
 
   UINTN CcldrBufferSize = 0;
@@ -395,7 +395,7 @@ UefiMain(
   /*
    * Read images into ram.
    */
-  ReadFileToBufferAt(KRNL_PATH, KrnlImageBase, &KernelBufferSize);
+  ReadFileToBufferAt(KRNL_PATH, KrnlImageBase, &KernelImageBufferSize);
   ReadFileToBufferAt(CCLDR_PATH, CcldrBase, &CcldrBufferSize);
   ReadFileToBufferAt(AP_PATH, StartUpRoutineAddress, &StartUpRoutineBufferSize);
 
@@ -408,7 +408,7 @@ UefiMain(
   MachineInfo->MemorySpaceInformation[1].BaseAddress = (UINTN)MachineInfo;
   MachineInfo->MemorySpaceInformation[1].Size = CcldrSpaceSize;
   MachineInfo->MemorySpaceInformation[2].BaseAddress = KrnlImageBase;
-  MachineInfo->MemorySpaceInformation[2].Size = KernelBufferSize;
+  MachineInfo->MemorySpaceInformation[2].Size = KernelImageBufferSize;
   MachineInfo->MemorySpaceInformation[3].BaseAddress = StartUpRoutineAddress;
   MachineInfo->MemorySpaceInformation[3].Size = STARTUP_ROUTINE_SIZE;
 
@@ -445,7 +445,7 @@ UefiMain(
   /*
    * Read turetype fonts into kernel image space and update the value of the related member.
    */
-  MachineInfo->SumOfSizeOfFilesInPages = (PAGE_ALIGNED(KernelBufferSize) >> EFI_PAGE_SHIFT);
+  MachineInfo->SumOfSizeOfFilesInPages = (PAGE_ALIGNED(KernelImageBufferSize) >> EFI_PAGE_SHIFT);
 
   FileBuffer = KrnlImageBase + (MachineInfo->SumOfSizeOfFilesInPages << EFI_PAGE_SHIFT);
   ReadFileToBufferAt(AgeFonts001_TTF_PATH, FileBuffer, &FileSize);

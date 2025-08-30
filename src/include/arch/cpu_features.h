@@ -5,6 +5,7 @@
 #ifdef X86
 #include "../../arch/x86_64/cpu/cpu_features.h"
 #include "../../arch/x86_64/cpu/mtrr.h"
+#include "../../arch/x86_64/cpu/cpu.h"
 #endif 
 
 #endif

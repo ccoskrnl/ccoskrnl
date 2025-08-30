@@ -42,6 +42,8 @@ extern uint32_t _cpuid_get_apic_id();
 int output_bsp;
 
 window_text_t *_go_cpu_output_window[32];
+window_text_t *_go_ciallo_output_window;
+
 wch_t *_go_weclome_texts[32] = 
 {
     L"Bootstrap Processor",
@@ -68,6 +70,9 @@ static window_style_t def_wnd = {
     {0xc0,0xc0,0xc0}, 
     { 0 }
 };
+
+
+void op_init_for_bsp();
 
 /**
  * A boolean type to indicate whether output module has
@@ -130,6 +135,16 @@ void op_init()
     if (_go_def_screen->horizontal == background.width && _go_def_screen->vertical == background.height)
         memcpy(_go_def_screen->frame_buf_base, _go_default_wallpaper->buf, _go_default_wallpaper->size);
 
+    _go_has_been_initialize = true;
+
+    op_init_for_bsp();
+
+}
+
+void op_init_for_bsp()
+{
+    status_t status;
+
     output_bsp = _cpuid_get_apic_id();
 
     // In initialization phrase, we create a text window for bootstrap processor.
@@ -156,23 +171,49 @@ void op_init()
     win->Register(
         win,
         _font_family_SourceHanSansSCVF,
-        34,
+        15,
         0
     );
     
     win->ShowWindow(win);
     _go_cpu_output_window[output_bsp] = win; 
 
-    putwsc(output_bsp, L"Ciallo～(∠・ω< )⌒★", SPRINT_GREEN2);
 
-    win->Register(
-        win,
+    _go_ciallo_output_window = NULL;
+    status = new_a_window(
+        'yozu',
+        WindowText,
+        NULL,
+        _go_def_screen,
+        L"Ciallo～(∠・ω< )⌒★",
+        def_wnd,
+        1000,
+        40,
+        600,
+        400,
+        (void**)&_go_ciallo_output_window
+    );
+
+    if (ST_ERROR(status)) {
+        krnl_panic(NULL);
+    }
+
+    _go_ciallo_output_window->Register(
+        _go_ciallo_output_window,
         _font_family_SourceHanSansSCVF,
-        14,
+        24,
         0
     );
 
-    _go_has_been_initialize = true;
+    win->ShowWindow(win);
+
+    go_blt_pixel_t color;
+    color.Red = 238;
+    color.Green = 44;
+    color.Blue = 44;
+
+    _go_ciallo_output_window->PutWString(_go_ciallo_output_window, L"Ciallo～(∠・ω< )⌒★", color);
+
 }
 
 void op_init_for_ap(int lapic_id)
