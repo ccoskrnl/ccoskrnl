@@ -37,7 +37,7 @@
  * 
  * q is any integer emin <= q + p - 1 <= emax
  * c is a number represented by a digit string of the form
-*/
+ */
 
 #define __get_sign_of_double(f)     (f & (0x8000000000000000))
 
@@ -116,7 +116,7 @@ static long long2str(long num, char* str, long min_digtis, int base)
         str[i++] = '-';
         is_negative = true;
     }
-        
+
 
     while (num)
     {
@@ -216,7 +216,7 @@ void putss(int window_index, const char *s1, const char *s2)
     {
         puts(window_index, s2);
     }
-    
+
 }
 
 /*  Put string and digit */
@@ -228,7 +228,7 @@ void putsd(int window_index, const char *s, int64_t d)
     }
     long2str(d, digit_buf, INT64_MIN, 10);
     puts(window_index, digit_buf);
-    
+
 }
 
 
@@ -265,7 +265,7 @@ void putsf(int window_index, const char *s, double f)
     {
         puts(window_index, s);
     }
-    
+
     uf.f = f;
     str = digit_buf;
 
@@ -286,7 +286,7 @@ void putsf(int window_index, const char *s, double f)
         str++;
     }
 
-     
+
     if (exp == 0x0)
     {
         str[0] = '0';
@@ -302,7 +302,7 @@ void putsf(int window_index, const char *s, double f)
     /**
      * If 1 <= E <= 2^W - 2
      * 
-    */
+     */
     else
     {
         uf.d &= 0x7FFFFFFFFFFFFFFF;               
@@ -335,7 +335,7 @@ void putsds(int window_index, const char *s, int64_t d, const char *s1)
     {
         puts(window_index, s1);
     }
-    
+
 }
 
 /* Put string, hex and string. */

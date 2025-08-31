@@ -10,8 +10,8 @@
 
 
 static void clear_window(
-    _in_ void                   *_this
-)
+        _in_ void                   *_this
+        )
 {
     window_t *this = _this;
 
@@ -31,27 +31,27 @@ static void clear_window(
         assert((this->style.bg.height == this->height) && (this->style.bg.width == this->width));
         for (int i = 0; i < this->height; i++) 
             memcpy(
-                this->framebuffer.buf + (win_bg_origin.y + i ) * this->framebuffer.width + win_bg_origin.x, 
-                this->style.bg.buf, 
-                this->style.bg.width * sizeof(go_blt_pixel_t)
-            );
+                    this->framebuffer.buf + (win_bg_origin.y + i ) * this->framebuffer.width + win_bg_origin.x, 
+                    this->style.bg.buf, 
+                    this->style.bg.width * sizeof(go_blt_pixel_t)
+                  );
 
     }
     else if (window_bg_flag == WINDOW_STYLE_COLOR)
     {
         for (int i = 0; i < this->height; i++) 
             memsetd(
-                (uint32_t*)this->framebuffer.buf + (win_bg_origin.y + i ) * this->framebuffer.width + win_bg_origin.x, 
-                *(uint32_t*)&this->style.color, 
-               this->width 
-            );
+                    (uint32_t*)this->framebuffer.buf + (win_bg_origin.y + i ) * this->framebuffer.width + win_bg_origin.x, 
+                    *(uint32_t*)&this->style.color, 
+                    this->width 
+                   );
     }
 
 }
 
 static void text_window_clear_window(
-    _in_ void                   *_this
-)
+        _in_ void                   *_this
+        )
 {
     clear_window(_this);
     window_text_t *this = _this;
@@ -60,8 +60,8 @@ static void text_window_clear_window(
 }
 
 static status_t init_window_framebuffer(
-    _in_ void                                   *_this
-)
+        _in_ void                                   *_this
+        )
 {
     status_t status = ST_SUCCESS;
     window_t *this = _this;
@@ -94,33 +94,33 @@ static status_t init_window_framebuffer(
         start_x = 0;
         for (int i = 0; i < (WINDOW_TITLE_DECORATION_SIZE + WINDOW_BORDER_STROKE_SIZE); i++) 
             memsetd(
-        (uint32_t*)this->framebuffer.buf + (i + start_y) * win_width + start_x, 
-        *(uint32_t*)&border_color, 
-        win_width);
+                    (uint32_t*)this->framebuffer.buf + (i + start_y) * win_width + start_x, 
+                    *(uint32_t*)&border_color, 
+                    win_width);
 
         // draw buttom side
         start_y = (WINDOW_TITLE_DECORATION_SIZE + WINDOW_BORDER_STROKE_SIZE) + this->framebuffer.height;
         for (int i = 0; i < (WINDOW_BORDER_STROKE_SIZE); i++) 
             memsetd(
-        (uint32_t*)this->framebuffer.buf + (i + start_y) * win_width + start_x, 
-        *(uint32_t*)&border_color, 
-        win_width);
+                    (uint32_t*)this->framebuffer.buf + (i + start_y) * win_width + start_x, 
+                    *(uint32_t*)&border_color, 
+                    win_width);
 
         // draw left side
         start_y = (WINDOW_TITLE_DECORATION_SIZE + WINDOW_BORDER_STROKE_SIZE);
         for (int i = 0; i < this->framebuffer.height; i++) 
             memsetd(
-        (uint32_t*)this->framebuffer.buf + (i + start_y) * win_width + start_x, 
-        *(uint32_t*)&border_color, 
-        WINDOW_BORDER_STROKE_SIZE);
+                    (uint32_t*)this->framebuffer.buf + (i + start_y) * win_width + start_x, 
+                    *(uint32_t*)&border_color, 
+                    WINDOW_BORDER_STROKE_SIZE);
 
         // draw right side 
         start_x = WINDOW_BORDER_STROKE_SIZE + this->framebuffer.width;
         for (int i = 0; i < this->framebuffer.height; i++) 
             memsetd(
-        (uint32_t*)this->framebuffer.buf + (i + start_y) * win_width + start_x, 
-        *(uint32_t*)&border_color, 
-        WINDOW_BORDER_STROKE_SIZE);
+                    (uint32_t*)this->framebuffer.buf + (i + start_y) * win_width + start_x, 
+                    *(uint32_t*)&border_color, 
+                    WINDOW_BORDER_STROKE_SIZE);
 
         this->framebuffer.width = win_width;
         this->framebuffer.height = win_height;
@@ -133,14 +133,14 @@ static status_t init_window_framebuffer(
         go_blt_pixel_t title_color = WINDOW_TITLE_COLOR;
         if (this->window_title != NULL)
             _op_text_out(
-        &this->framebuffer, 
-        this->window_title, 
-        origin, 
-        _go_font_ttfs.fonts[0], 
-        WINDOW_TITLE_POINT_SIZE, 
-        title_color
-        );
-        
+                    &this->framebuffer, 
+                    this->window_title, 
+                    origin, 
+                    _go_font_ttfs.fonts[0], 
+                    WINDOW_TITLE_POINT_SIZE, 
+                    title_color
+                    );
+
     }
     else 
     {
@@ -158,8 +158,8 @@ static status_t init_window_framebuffer(
 }
 
 static status_t show_window(
-    _in_ void                                   *_this
-)
+        _in_ void                                   *_this
+        )
 {
     status_t status = ST_SUCCESS;
     go_screen_desc* screen;
@@ -194,7 +194,7 @@ static status_t show_window(
                 || this->upper_left_hand.y + win_height <= 0
                 || this->upper_left_hand.x >= screen->horizontal
                 || this->upper_left_hand.y >= screen->vertical
-            ) 
+           ) 
         {
             return status;
         }
@@ -230,7 +230,7 @@ static status_t show_window(
         }
 
         drawing_height = (dest_point.y + drawing_height < screen->vertical ?
-            drawing_height : screen->vertical - dest_point.y);
+                drawing_height : screen->vertical - dest_point.y);
 
         status = screen->Blt(
                 screen,
@@ -245,7 +245,7 @@ static status_t show_window(
                 drawing_width,
                 drawing_height,
                 BACKBUFFER_INDEX
-        );
+                );
         if (ST_ERROR(status))
         {
             krnl_panic(NULL);
@@ -263,8 +263,8 @@ static status_t show_window(
 }
 
 static status_t text_window_scroll_screen(
-    _in_ void                                   *_this
-)
+        _in_ void                                   *_this
+        )
 {
     status_t status = ST_SUCCESS;
     window_text_t *this = _this;
@@ -302,11 +302,11 @@ static status_t text_window_scroll_screen(
 }
 
 static status_t text_window_putc( 
-    _in_ void                                   *_this,
-    _in_ wch_t                                  wch,
-    _in_ go_blt_pixel_t                         color,
-    _in_ boolean                                update
-)
+        _in_ void                                   *_this,
+        _in_ wch_t                                  wch,
+        _in_ go_blt_pixel_t                         color,
+        _in_ boolean                                update
+        )
 {
     status_t status = ST_SUCCESS;
     int TAB = 0;
@@ -341,7 +341,7 @@ __inspect_begin:
     // We need to scroll screen.
     while ((this->cursor.y + (this->ascender - this->descender)) >= this->window.height)
         text_window_scroll_screen(this);
-    
+
     switch(wch)
     {
         case ' ':
@@ -378,7 +378,7 @@ __inspect_begin:
                 draw_at_point.y = this->cursor.y + this->window.origin.y;
 
                 if (wch >= WINDOW_TEXT_CACHED_START_CODE
-                    && wch < WINDOW_TEXT_CACHED_END_CODE) 
+                        && wch < WINDOW_TEXT_CACHED_END_CODE) 
                 {
                     glyph = this->cached_glyphs[wch - WINDOW_TEXT_CACHED_START_CODE];                
                     status = glyph->rasterize(glyph, &this->window.framebuffer, draw_at_point, this->point_size, color);
@@ -402,7 +402,7 @@ __inspect_begin:
                 }
             }
             break;
-            
+
     }
 
 __draw_ch_exit:
@@ -427,10 +427,10 @@ __draw_ch_exit:
 }
 
 static status_t text_window_puts(
-    _in_ void                                   *_this,
-    _in_ const char                             *string,
-    _in_ go_blt_pixel_t                         color
-)
+        _in_ void                                   *_this,
+        _in_ const char                             *string,
+        _in_ go_blt_pixel_t                         color
+        )
 {
     status_t status = ST_SUCCESS;
     window_text_t *this = _this;
@@ -450,10 +450,10 @@ static status_t text_window_puts(
 }
 
 static status_t text_window_putws(
-    _in_ void                                   *_this,
-    _in_ const wch_t                            *wstring,
-    _in_ go_blt_pixel_t                         color
-)
+        _in_ void                                   *_this,
+        _in_ const wch_t                            *wstring,
+        _in_ go_blt_pixel_t                         color
+        )
 {
     status_t status = ST_SUCCESS;
     window_text_t *this = _this;
@@ -474,11 +474,11 @@ static status_t text_window_putws(
 
 
 static status_t register_text_window(
-    _in_ void                   *_this,
-    _in_ font_ttf_t             *font_family,
-    _in_ double                 point_size,
-    _in_ int                    fix_line_gap
-)
+        _in_ void                   *_this,
+        _in_ font_ttf_t             *font_family,
+        _in_ double                 point_size,
+        _in_ int                    fix_line_gap
+        )
 {
     status_t status = ST_SUCCESS;
 
@@ -502,8 +502,8 @@ static status_t register_text_window(
     this->descender = ceil(this->scaling_factor * font_family->hhea.table.descender);
     this->line_height = ceil(
             (font_family->hhea.table.ascender
-            - font_family->hhea.table.descender
-            + font_family->hhea.table.lineGap) * this->scaling_factor) + this->fix_line_gap;
+             - font_family->hhea.table.descender
+             + font_family->hhea.table.lineGap) * this->scaling_factor) + this->fix_line_gap;
 
     this->cursor.x = this->lsb;
     this->cursor.y = 0;
@@ -549,18 +549,18 @@ static status_t register_text_window(
 
 
 status_t new_a_window(
-    _in_ uint64_t                           tag,
-    _in_ WindowType                         type,
-    _in_ window_t                           *parent_window,
-    _in_ void                               *screen,
-    _in_ wch_t                              *window_title,
-    _in_ window_style_t                     style,
-    _in_ int                                x_of_upper_left_hand,
-    _in_ int                                y_of_upper_left_hand,
-    _in_ int                                width,
-    _in_ int                                height,
-    _in_ _out_ void                         **window
-)
+        _in_ uint64_t                           tag,
+        _in_ WindowType                         type,
+        _in_ window_t                           *parent_window,
+        _in_ void                               *screen,
+        _in_ wch_t                              *window_title,
+        _in_ window_style_t                     style,
+        _in_ int                                x_of_upper_left_hand,
+        _in_ int                                y_of_upper_left_hand,
+        _in_ int                                width,
+        _in_ int                                height,
+        _in_ _out_ void                         **window
+        )
 {
     status_t status = ST_SUCCESS;
 

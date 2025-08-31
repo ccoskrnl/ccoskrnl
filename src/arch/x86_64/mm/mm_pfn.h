@@ -8,10 +8,10 @@
 /* ================================================================================ */
 
 /*
-    PFN Database Structure Definition
+   PFN Database Structure Definition
 
 Introduction:
-    PFN database describes the state of each page in physical memory.
+PFN database describes the state of each page in physical memory.
 
 */
 typedef uint64_t pfn_number;
@@ -22,7 +22,7 @@ typedef uint64_t pfn_number;
 typedef enum _mm_page_state {
     zero_page_list,
     free_page_list,
-    
+
     bad_page_list,
     rom_page_list,
     active_and_valid,

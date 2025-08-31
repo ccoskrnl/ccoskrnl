@@ -20,7 +20,7 @@ status_t _mm_alloc_pages(uint64_t size, void **addr)
 
     // the start addr routine returned
     pool_free_page_entry *start_page;
-    
+
     pool_free_list_head *free_list;
     mmpte *pte;
     pool_free_page_entry **allocate_address;
@@ -198,7 +198,7 @@ __construct_pages:
             while (free_list->total > 1 && (rear_page->number_of_pages < number_of_pages)) 
             {
                 prev_page = rear_page->node.blink;
-                
+
                 // merge the previous contiguous pages and this contiguous pages into 
                 // single contiguous pages. 
                 prev_page->number_of_pages += rear_page->number_of_pages;
@@ -216,7 +216,7 @@ __construct_pages:
                 rear_page = prev_page;
                 free_list->rear = rear_page;
                 free_list->total--;
-            
+
             }
 
             goto __construct_pages;
@@ -318,7 +318,7 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index, uint32_t tag)
     {
         size = (size & ~POOL_BLOCK_SHIFT_MASK) + (1 << POOL_BLOCK_SHIFT);
     }
-    
+
     // case3 : the size larger than maximum allocatable block.
     if (size > POOL_BUDDY_MAX)
     {
@@ -613,7 +613,7 @@ void _mm_free(void *addr, uint16_t pool_index)
 
         // record next block
         next_block_head = (pool_header *)((uint64_t)released_block +
-                                          (released_block_head->block_size << POOL_BLOCK_SHIFT));
+                (released_block_head->block_size << POOL_BLOCK_SHIFT));
         next_block = (list_node_t *)((uint64_t)next_block_head + POOL_HEAD_OVERHEAD);
 
         // check if prev_size in next block header is not equal to the size of released block
@@ -659,7 +659,7 @@ void _mm_free(void *addr, uint16_t pool_index)
 
             // the next block
             next_block_head = (pool_header *)((uint64_t)next_block +
-                                              (next_block_head->block_size << POOL_BLOCK_SHIFT));
+                    (next_block_head->block_size << POOL_BLOCK_SHIFT));
             next_block = (list_node_t *)((uint64_t)next_block_head + POOL_HEAD_OVERHEAD);
         }
     }
@@ -669,7 +669,7 @@ void _mm_free(void *addr, uint16_t pool_index)
     {
 
         prev_block = (list_node_t *)((uint64_t)released_block_head -
-                                   (released_block_head->prev_size << POOL_BLOCK_SHIFT));
+                (released_block_head->prev_size << POOL_BLOCK_SHIFT));
         prev_block_head = (pool_header *)((uint64_t)prev_block - POOL_HEAD_OVERHEAD);
 
         // if the block in front of released_block is free.
@@ -696,7 +696,7 @@ void _mm_free(void *addr, uint16_t pool_index)
 
                 // The predict block is in front of the block in front of current block.
                 predict_block_head = (pool_header *)((uint64_t)prev_block_head -
-                                                     (prev_block_head->prev_size << POOL_BLOCK_SHIFT) - POOL_HEAD_OVERHEAD);
+                        (prev_block_head->prev_size << POOL_BLOCK_SHIFT) - POOL_HEAD_OVERHEAD);
 
                 if (predict_block_head->pool_type != POOL_TYPE_FREE)
                 {
@@ -705,7 +705,7 @@ void _mm_free(void *addr, uint16_t pool_index)
 
                 // the block in front of the released_block.
                 prev_block = (list_node_t *)((uint64_t)prev_block_head -
-                                           (prev_block_head->block_size << POOL_BLOCK_SHIFT));
+                        (prev_block_head->block_size << POOL_BLOCK_SHIFT));
                 prev_block_head = (pool_header *)((uint64_t)prev_block - POOL_HEAD_OVERHEAD);
             }
 
@@ -734,7 +734,7 @@ void _mm_free(void *addr, uint16_t pool_index)
                 //     next_block_head->prev_size = released_block_head->block_size;
                 // }
                 // // memzero((void *)released_block, free_size);
-                
+
                 // free_list = &pool_desc->list_heads[(free_size >> POOL_BLOCK_SHIFT)];
                 // _list_push(free_list, prev_block);
             }
@@ -782,7 +782,7 @@ __free_released_block:
             }
 
             // memzero((void *)released_block, free_size);
-            
+
             free_list = &pool_desc->list_heads[released_block_head->block_size];
             _list_push(free_list, released_block);
         }

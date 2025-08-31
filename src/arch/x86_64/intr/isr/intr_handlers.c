@@ -44,13 +44,13 @@ static wch_t *pm_msg[] = {
  *
  **/
 void _intr_pm_handler (
-    uint64_t error_code,
-    uint64_t RIP,
-    uint64_t CS,
-    uint64_t EFLAGS,
-    uint64_t RSP,
-    uint64_t SS
-    )
+        uint64_t error_code,
+        uint64_t RIP,
+        uint64_t CS,
+        uint64_t EFLAGS,
+        uint64_t RSP,
+        uint64_t SS
+        )
 {
     _go_cpu_output_window[0]->ClearWindow((window_t*)_go_cpu_output_window[0]);
     _go_cpu_output_window[0]->ShowWindow(_go_cpu_output_window[0]);

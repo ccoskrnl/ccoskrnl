@@ -153,78 +153,78 @@ typedef struct _cr4 {
 
 #define __get_cr0(cr0) \
     __asm__(    \
-        "mov %%cr0, %0\n\t" \
-        : "=r"(cr0) :: "memory" \
-    )  \
+            "mov %%cr0, %0\n\t" \
+            : "=r"(cr0) :: "memory" \
+            )  \
 
 #define __get_cr3(cr3) \
     __asm__(    \
-        "mov %%cr3, %0\n\t" \
-        : "=r"(cr3) :: "memory" \
-    )  \
+            "mov %%cr3, %0\n\t" \
+            : "=r"(cr3) :: "memory" \
+            )  \
 
 #define __get_cr4(cr4) \
     __asm__(    \
-        "mov %%cr4, %0\n\t" \
-        : "=r"(cr4) :: "memory" \
-    )  \
+            "mov %%cr4, %0\n\t" \
+            : "=r"(cr4) :: "memory" \
+            )  \
 
 #define __write_cr0(cr0) \
     __asm__(    \
-        "mov %0, %%cr0\n\t" \
-        : : "r"(cr0) : \
-    )
+            "mov %0, %%cr0\n\t" \
+            : : "r"(cr0) : \
+            )
 
 #define __write_cr3(cr3) \
-    __asm__(    \
-        "mov %0, %%cr3\n\t" \
-        : : "r"(cr3) : \
-    )
+            __asm__(    \
+                    "mov %0, %%cr3\n\t" \
+                    : : "r"(cr3) : \
+                    )
 
 #define __write_cr4(cr4) \
-    __asm__(    \
-        "mov %0, %%cr4\n\t" \
-        : : "r"(cr4) : \
-    )
+                    __asm__(    \
+                            "mov %0, %%cr4\n\t" \
+                            : : "r"(cr4) : \
+                            )
 
 
-uint64_t read_xcr0();
-void write_xcr0(uint64_t value);
-
-
-
+                        uint64_t read_xcr0();
+                        void write_xcr0(uint64_t value);
 
 
 
 
 
-/*================ Interrupt Descriptor Table Definition ================*/
 
-// Protected-Mode Exceptions and Interrupts were reserved by Intel.
+
+
+                        /*================ Interrupt Descriptor Table Definition ================*/
+
+                        // Protected-Mode Exceptions and Interrupts were reserved by Intel.
 #define IDT_RESERVED_ENTRY                              0x20
-// 64-bit Call Gate
+                        // 64-bit Call Gate
 #define IDT_DESC_TYPE_CALL_GATE                         0xC
-// 64-bit Interrupt Gate
+                        // 64-bit Interrupt Gate
 #define IDT_DESC_TYPE_INTERRUPT_GATE                    0xE
-// 64-bit Trap Gate
+                        // 64-bit Trap Gate
 #define IDT_DESC_TYPE_TRAP_GATE                         0xF
 
-// 64-Bit IDT Gate Descriptors
-typedef struct _idt_desc {
+                        // 64-Bit IDT Gate Descriptors
+                        typedef struct _idt_desc {
 
-    uint16_t offset0;               // Offset to procedure entry point
-    uint16_t selector;              // Segment Selector for destination code segment 
-    uint16_t ist : 3;               // Interrupt Stack Table
-    uint16_t zero0 : 5;
-    uint16_t type : 4;              // IDT descriptor type
-    uint16_t zero1 : 1;             
-    uint16_t dpl : 2;               // Descriptor Privilege Level
-    uint16_t present : 1;           // Segment Present flag
-    uint16_t offset1;
-    uint32_t offset2;
-    uint32_t reserved;
+                            uint16_t offset0;               // Offset to procedure entry point
+                            uint16_t selector;              // Segment Selector for destination code segment 
+                            uint16_t ist : 3;               // Interrupt Stack Table
+                            uint16_t zero0 : 5;
+                            uint16_t type : 4;              // IDT descriptor type
+                            uint16_t zero1 : 1;             
+                            uint16_t dpl : 2;               // Descriptor Privilege Level
+                            uint16_t present : 1;           // Segment Present flag
+                            uint16_t offset1;
+                            uint32_t offset2;
+                            uint32_t reserved;
 
-} __attribute__ ((packed)) idt_desc_t;
+                        } __attribute__ ((packed)) idt_desc_t;
 
 void __set_idtr(struct _pseudo_desc *idtr);
 void __read_idtr(struct _pseudo_desc *idtr);

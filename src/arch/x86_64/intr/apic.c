@@ -19,7 +19,7 @@ lapic_ver_t lapic_ver;
  * The LAPIC is responsible for handling interrupts that are specific to the CPU 
  * core it is associated with.
 
- */
+*/
 volatile uint64_t local_apic_addr;
 
 /**
@@ -31,7 +31,7 @@ volatile uint64_t local_apic_addr;
  * I/O APIC can manage another set of interrupt lines, allowing your system to 
  * support more devices.
 
- */  
+*/  
 volatile uint32_t *volatile ioapics[IOAPIC_ADDRESSES_MAX] = { 0 };
 
 
@@ -145,9 +145,9 @@ void get_lapic_ver(lapic_ver_t* lapic_version)
 
 
 void map_lapic_and_ioapic(
-    _in_ uint64_t lapic_phys_addr, 
-    _in_ intr_ctr_struct_head_t* ioapic_intr_ctr_structure
-)
+        _in_ uint64_t lapic_phys_addr, 
+        _in_ intr_ctr_struct_head_t* ioapic_intr_ctr_structure
+        )
 {
 
     local_apic_addr = mm_set_mmio(lapic_phys_addr, 1);

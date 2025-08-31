@@ -82,7 +82,7 @@ typedef int64_t                     status_t;
  * @param[in]   member_name     The member name was defined in struct_type.
  * 
  * @retval      Offset of the member_name from struct_type base.     
-*/
+ */
 #define element_offset(struct_type, member_name)    ((uint64_t)(&((struct_type*)0)->member_name))
 
 /**
@@ -93,7 +93,7 @@ typedef int64_t                     status_t;
  * @param[in]   member_ptr      The pointer that points member_name.
  * 
  * @retval      A pointer that points struct_type.
-*/
+ */
 #define struct_base(struct_type, member_name, member_ptr) \
     (struct_type*)((uint64_t)member_ptr - element_offset(struct_type, member_name))
 

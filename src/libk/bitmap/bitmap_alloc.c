@@ -17,7 +17,7 @@ uint64_t _bitmap_alloc(bitmap_t* bitmap, uint64_t size)
         for (offset_in_byte = 0; offset_in_byte < ITEM_BITS; offset_in_byte++)
         {
             if (bitmap->bits[starting_position_in_byte] & 
-                (ITEM)(1UL << (ITEM_BITS - offset_in_byte - 1)))
+                    (ITEM)(1UL << (ITEM_BITS - offset_in_byte - 1)))
             {
                 free_bits = 0;
             }
@@ -33,7 +33,7 @@ uint64_t _bitmap_alloc(bitmap_t* bitmap, uint64_t size)
 
                     goto _allocated;
                 }
-                
+
             }
         }
     }
@@ -49,7 +49,7 @@ uint64_t _bitmap_alloc(bitmap_t* bitmap, uint64_t size)
         for (offset_in_byte = 0; offset_in_byte < ITEM_BITS; offset_in_byte++)
         {
             if ((bitmap->bits[starting_position_in_byte] & 
-                (ITEM)(1UL << (ITEM_BITS - offset_in_byte - 1))))
+                        (ITEM)(1UL << (ITEM_BITS - offset_in_byte - 1))))
             {
                 free_bits = 0;
             }
@@ -65,12 +65,12 @@ uint64_t _bitmap_alloc(bitmap_t* bitmap, uint64_t size)
 
                     goto _allocated;
                 }
-                
+
             }
         }
     }
 
-    
+
 _allocated:
 
     return start;

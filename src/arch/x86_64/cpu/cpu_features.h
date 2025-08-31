@@ -25,7 +25,7 @@
 #define CPUID_VENDOR_ZHAOXIN       "  Shanghai  "
 #define CPUID_VENDOR_HYGON         "HygonGenuine"
 #define CPUID_VENDOR_ELBRUS        "E2K MACHINE "
- 
+
 // Vendor strings from hypervisors.
 #define CPUID_VENDOR_QEMU          "TCGTCGTCGTCG"
 #define CPUID_VENDOR_KVM           " KVMKVMKVM  "
@@ -149,7 +149,7 @@ typedef struct _cpu_feat_id
      * The model specifies one instance of a processor family.
      */
     uint64_t model;
-    
+
     /**
      * The stepping identifies a particular version of a specific model.
      */
@@ -177,39 +177,39 @@ typedef enum
 {
     X86_FEATURE_RDRAND,
 
-// AVX2. Supports Intel® Advanced Vector Extensions 2 (Intel® AVX2) if 1.
+    // AVX2. Supports Intel® Advanced Vector Extensions 2 (Intel® AVX2) if 1.
     X86_FEATURE_AVX2,
 
-// AVX instruction support
+    // AVX instruction support
     X86_FEATURE_AVX,
 
-// XSAVE (and related) instructions are enabled.
+    // XSAVE (and related) instructions are enabled.
     X86_FEATURE_OSXSAVE,
 
-// XSAVE (and related) instructions are supported by hardware. .
+    // XSAVE (and related) instructions are supported by hardware. .
     X86_FEATURE_XSAVE,
 
-// AES instruction support.
+    // AES instruction support.
     X86_FEATURE_AES,
 
-// SSE4.2 instruction support.
+    // SSE4.2 instruction support.
     X86_FEATURE_SSE42,
 
-// SSE4.1 instruction support. 
+    // SSE4.1 instruction support. 
     X86_FEATURE_SSE41,
 
-// CMPXCHG16B instruction
+    // CMPXCHG16B instruction
     X86_FEATURE_CMPXCHG16B,
-// FMA instruction support.
+    // FMA instruction support.
     X86_FEATURE_FMA,
 
-// supplemental SSE3 instruction support.
+    // supplemental SSE3 instruction support.
     X86_FEATURE_SSSE3,
 
-// SSE3 instruction support.
+    // SSE3 instruction support.
     X86_FEATURE_SSE3,
 
-// MTRR
+    // MTRR
     X86_FEATURE_MTRR
 } X86_FEATURE;
 

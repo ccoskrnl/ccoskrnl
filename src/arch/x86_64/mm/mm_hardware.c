@@ -11,21 +11,21 @@ mmpte_hardware_t* hardware_base_pt;
 
 /*  
 
-Routine Description:
+    Routine Description:
 
     The routine maps memory mapped address space into virtual address space so 
-that the processors can correctly access the space even if the paging mechanism
-is enabled.
+    that the processors can correctly access the space even if the paging mechanism
+    is enabled.
 
 Parameters:
 
-    base_addr - The physical base address of memory mapped address space.
-    
-    num_of_pages - The number of pages of memory mapped address space.
+base_addr - The physical base address of memory mapped address space.
+
+num_of_pages - The number of pages of memory mapped address space.
 
 Returned Value:
 
-    The virtual base address of the memory mapped address space.
+The virtual base address of the memory mapped address space.
 
 */
 uint64_t mm_set_mmio(uint64_t base_addr, uint64_t num_of_pages)
@@ -49,7 +49,7 @@ uint64_t mm_set_mmio(uint64_t base_addr, uint64_t num_of_pages)
 
     // Do we need to add a new page table?
     if ((((_mm_offset_of_hardware_pt + num_of_pages - 1) >> PT_ENTRY_SHIFT) >
-        (_mm_offset_of_hardware_pt >> PT_ENTRY_SHIFT)) || (offset_of_pt == 0))
+                (_mm_offset_of_hardware_pt >> PT_ENTRY_SHIFT)) || (offset_of_pt == 0))
     {
         for (; (offset_of_pt != 0) || (offset_of_pt < ((1UL << PT_ENTRY_SHIFT) - 1)); offset_of_pt++) 
         {

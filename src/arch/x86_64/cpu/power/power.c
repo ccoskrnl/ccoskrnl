@@ -30,10 +30,10 @@ void transition_to_p0()
             putsds(output_bsp, "\tIddDiv: ", pstate->IddDiv, "\n");
         }
     }
-        
-    
+
+
     uint64_t cur_pstate = rdmsr(AMD_MSR_P_STATE_STATUS);
     putsds(output_bsp, "Current P-State: ", 
-        AMD_MSR_P_STATE_CurPstate(cur_pstate), "\n");
+            AMD_MSR_P_STATE_CurPstate(cur_pstate), "\n");
 
 }

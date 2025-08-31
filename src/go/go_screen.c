@@ -228,19 +228,19 @@ static status_t swap_framebuffer(
  * @retval          ST_INVALID_PARAMETER        blt_operation is not valid.
  */
 static status_t blt(
-    _in_ void                               *_this, 
-    _in_ _out_ go_blt_pixel_t               *blt_buffer,
-    _in_ GO_BLT_OPERATIONS                  blt_operation, 
-    _in_ uint64_t                           src_x,
-    _in_ uint64_t                           src_y, 
-    _in_ uint16_t                           src_buf_width, 
-    _in_ uint16_t                           src_buf_height, 
-    _in_ uint64_t                           dest_x,
-    _in_ uint64_t                           dest_y, 
-    _in_ uint16_t                           drawing_width,
-    _in_ uint16_t                           drawing_height, 
-    _in_ _optional_ int                     buffer_index
-) 
+        _in_ void                               *_this, 
+        _in_ _out_ go_blt_pixel_t               *blt_buffer,
+        _in_ GO_BLT_OPERATIONS                  blt_operation, 
+        _in_ uint64_t                           src_x,
+        _in_ uint64_t                           src_y, 
+        _in_ uint16_t                           src_buf_width, 
+        _in_ uint16_t                           src_buf_height, 
+        _in_ uint64_t                           dest_x,
+        _in_ uint64_t                           dest_y, 
+        _in_ uint16_t                           drawing_width,
+        _in_ uint16_t                           drawing_height, 
+        _in_ _optional_ int                     buffer_index
+        ) 
 {
 
     go_screen_desc *this;
@@ -256,13 +256,13 @@ static status_t blt(
     this = (go_screen_desc *)_this;
 
     if (   dest_x >= this->horizontal 
-        || dest_y >= this->vertical
-        || dest_x < 0
-        || dest_y < 0
-        || src_x < 0
-        || src_y < 0
-        || src_x >= drawing_width 
-        || src_y >= drawing_height 
+            || dest_y >= this->vertical
+            || dest_x < 0
+            || dest_y < 0
+            || src_x < 0
+            || src_y < 0
+            || src_x >= drawing_width 
+            || src_y >= drawing_height 
        ) 
     {
         status = ST_INVALID_PARAMETER;
@@ -295,10 +295,10 @@ static status_t blt(
             for (row = 0; row < drawing_height; row++) 
             {
                 memcpy(
-                    this->frame_bufs[buffer_index].buf + (dest_y + row) * this->pixels_per_scanline + dest_x,
-                    blt_buffer + (src_y + row) * src_buf_width + src_x,
-                    drawing_width * sizeof(go_blt_pixel_t)
-                );
+                        this->frame_bufs[buffer_index].buf + (dest_y + row) * this->pixels_per_scanline + dest_x,
+                        blt_buffer + (src_y + row) * src_buf_width + src_x,
+                        drawing_width * sizeof(go_blt_pixel_t)
+                      );
             }
             break;
 
@@ -350,11 +350,11 @@ static status_t draw_hollow_rectangle(
     this = _this;
 
     if (   x >= this->horizontal 
-        || y >= this->vertical
-        || width > this->horizontal
-        || height > this->vertical 
-        || width == 0
-        || height == 0
+            || y >= this->vertical
+            || width > this->horizontal
+            || height > this->vertical 
+            || width == 0
+            || height == 0
        ) 
     {
         status = ST_INVALID_PARAMETER;
@@ -366,7 +366,7 @@ static status_t draw_hollow_rectangle(
     // The maximum stroke size is the minimum value of the height or width of the rectangle
     if  (stroke_size > width || stroke_size > height)
         stroke_size = width < height ? width : height;
-    
+
     boolean do_we_need_to_draw_right_side = x + width - stroke_size <= this->horizontal;
     boolean do_we_need_to_draw_buttom_side = y + height - stroke_size <= this->vertical;
 
@@ -420,7 +420,7 @@ static status_t draw_hollow_rectangle(
         for (int i = 0; i < drawing_height; i++) 
             memsetd((uint32_t*)(buf + i * this->horizontal), *(uint32_t*)&color, drawing_width);
     }
-    
+
     if (do_we_need_to_draw_buttom_side)
     {
         go_blt_pixel_t* buf = this->frame_bufs[buf_index].buf + (y + height - stroke_size) * this->horizontal + x;
@@ -437,14 +437,14 @@ static status_t draw_hollow_rectangle(
 
 
 static status_t draw_rectangle(
-    _in_ void                                   *_this,
-    _in_ int                                    x,
-    _in_ int                                    y,
-    _in_ int                                    width,
-    _in_ int                                    height,
-    _in_ go_blt_pixel_t                         color,
-	_in_ int                            		buf_index
-)
+        _in_ void                                   *_this,
+        _in_ int                                    x,
+        _in_ int                                    y,
+        _in_ int                                    width,
+        _in_ int                                    height,
+        _in_ go_blt_pixel_t                         color,
+        _in_ int                            		buf_index
+        )
 {
     go_screen_desc *this = _this;
     status_t status;
@@ -453,9 +453,9 @@ static status_t draw_rectangle(
     go_blt_pixel_t* buf = this->frame_bufs[buf_index].buf + y * this->horizontal + x;
 
     if (   x >= this->horizontal 
-        || y >= this->vertical
-        || width > this->horizontal
-        || height > this->vertical 
+            || y >= this->vertical
+            || width > this->horizontal
+            || height > this->vertical 
        ) 
     {
         status = ST_INVALID_PARAMETER;
@@ -472,13 +472,13 @@ static status_t draw_rectangle(
 }
 
 void _go_install_a_screen(
-    _in_ _out_ struct _go_screen_desc       *screen,
-    _in_ go_blt_pixel_t                     *frame_buf_base, 
-    _in_ size_t                             frame_buf_size,
-    _in_ int                                horizontal_resolution, 
-    _in_ int                                vertical_resolution,
-    _in_ int                                pixels_per_scan_line
-) 
+        _in_ _out_ struct _go_screen_desc       *screen,
+        _in_ go_blt_pixel_t                     *frame_buf_base, 
+        _in_ size_t                             frame_buf_size,
+        _in_ int                                horizontal_resolution, 
+        _in_ int                                vertical_resolution,
+        _in_ int                                pixels_per_scan_line
+        ) 
 {
 
     memzero(screen, sizeof(*screen));

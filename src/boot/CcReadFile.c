@@ -59,11 +59,11 @@ VOID ReadFileFnit()
     WpFileClose(RootProtocol, L"Root Volume");
 }
 
-EFI_STATUS
+    EFI_STATUS
 ReadFileToBuffer(
-    IN CHAR16 *FileName,
-    IN OUT VOID **Buffer,
-    IN OUT UINTN *BufferSize)
+        IN CHAR16 *FileName,
+        IN OUT VOID **Buffer,
+        IN OUT UINTN *BufferSize)
 {
     EFI_STATUS Status;
     EFI_FILE_PROTOCOL *File;
@@ -111,11 +111,11 @@ ReadFileToBuffer(
 }
 
 
-EFI_STATUS
+    EFI_STATUS
 ReadFileToBufferAt(
-    IN CHAR16 *FileName,
-    IN EFI_PHYSICAL_ADDRESS BufferAddress,
-    IN OUT UINTN *BufferSize)
+        IN CHAR16 *FileName,
+        IN EFI_PHYSICAL_ADDRESS BufferAddress,
+        IN OUT UINTN *BufferSize)
 {
     EFI_STATUS Status;
     UINTN BufSize = 0;

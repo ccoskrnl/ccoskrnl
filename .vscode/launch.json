@@ -22,9 +22,9 @@
                     "description": "Enable pretty-printting for gdb",
                     "text": "-enable-pretty-printing",
                     "ignoreFailures": true
-                },
+                }
             ],
             "launchCompleteCommand": "exec-continue"
-        },
-    ],
+        }
+    ]
 }

@@ -2,38 +2,38 @@
 #define __LIBK_RBTREE_H__
 /*
 
-Red-Black Properties:
+   Red-Black Properties:
 
-    1.  Every node is either red or black.
+   1.  Every node is either red or black.
 
-    2.  The root is black.
+   2.  The root is black.
 
-    3.  Every leaf(nil) is black.
+   3.  Every leaf(nil) is black.
 
-    4.  If a node is red, then both its children are black.
+   4.  If a node is red, then both its children are black.
 
-    5.  For each node, all simple paths from th node to descendant
-        leaves contain the same number of black nodes.
+   5.  For each node, all simple paths from th node to descendant
+   leaves contain the same number of black nodes.
 
-Black-Depth:
+   Black-Depth:
 
-    Definition:
+Definition:
 
-        1.  The black-depth of a node is a red-black tree refers to
-            the number of black nodes encountered when traversing 
-            from the root to that specific node.
+1.  The black-depth of a node is a red-black tree refers to
+the number of black nodes encountered when traversing 
+from the root to that specific node.
 
-        2.  In other words, it represents the number of black ancestors
-            of a given node.
-    
-    Uniform Black-Depth:
+2.  In other words, it represents the number of black ancestors
+of a given node.
 
-        1.  One of the essential properties of red-black trees is that
-            every path from the root to any of its descendant NIL nodes
-            (i.e., leaf node) contains the same number of black nodes.
+Uniform Black-Depth:
 
-        2.  This unifomity ensures that the tree remains balanced and
-            efficient for search operations.
+1.  One of the essential properties of red-black trees is that
+every path from the root to any of its descendant NIL nodes
+(i.e., leaf node) contains the same number of black nodes.
+
+2.  This unifomity ensures that the tree remains balanced and
+efficient for search operations.
 
 
 */

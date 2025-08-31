@@ -72,7 +72,7 @@ static void krnl_exit();
  * @param[in]       ptr                         machine_info passed by ccldr
  * 
  * @retval          never be returned.
-*/
+ */
 void krnl_start(LOADER_MACHINE_INFORMATION* ptr)
 {
 
@@ -107,7 +107,7 @@ void krnl_start(LOADER_MACHINE_INFORMATION* ptr)
      * 
      */
     preparing_for_bsp(true);
-    
+
     /**
      * @brief Memory Management initialization.
      * 
@@ -127,17 +127,17 @@ void krnl_start(LOADER_MACHINE_INFORMATION* ptr)
 
 /*
 
-Routine Description:
+   Routine Description:
 
-    The routine be called by krnl_start to initialize other components.    
+   The routine be called by krnl_start to initialize other components.    
 
 Parameters:
 
-    None.
+None.
 
 Return Value:
 
-    None.
+None.
 
 */
 
@@ -184,7 +184,7 @@ void krnl_init()
 
 
     krnl_exit();
-    
+
 }
 
 void krnl_exit()

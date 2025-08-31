@@ -23,7 +23,7 @@ inline void _list_push(list_node_t* list, list_node_t* node)
         list->blink->flink = node;
         list->blink = node;
     }
-    
+
 }
 
 list_node_t* _list_dequeue(list_node_t *list)
@@ -72,7 +72,7 @@ void _list_remove_from_list(list_node_t* list, list_node_t* node)
         node->flink->blink = node->blink;
         node->blink->flink = node->flink;
     }
-    
+
 
 
     _list_init(node);

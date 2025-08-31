@@ -1,8 +1,8 @@
 /*
 
-@file mm_init.c
+   @file mm_init.c
 
-Memory Manager Initialization.
+   Memory Manager Initialization.
 
 */
 
@@ -37,13 +37,13 @@ Memory Manager Initialization.
  * ├─────────────────────────────┤                             │                       │                                                                           
  * │                             │                             │     reserved_mem      │                                                                           
  * │                             │                             │                       │                                                                           
- * │                             │     ┌───────────────────────►───────────────────────┤◄──────── _mm_sys_pte_pool_phys_end = _mm_reserved_mem_phys_start          
+ * │                             │     ┌──────────────────────►|───────────────────────┤◄──────── _mm_sys_pte_pool_phys_end = _mm_reserved_mem_phys_start          
  * │         hardware            │     │                       │                       │                                                                           
  * │                             │     │                       │                       │                                                                           
  * │                             │     │                       │     sys_pte_pool      │                                                                           
  * │                             │     │                       │                       │                                                                           
  * ├─────────────────────────────┼─────┘                       │                       │                                                                           
- * │                             │            ┌────────────────►───────────────────────┤◄──────── _mm_non_paged_pool_phys_end = _mm_sys_pte_pool_phys_start        
+ * │                             │            ┌───────────────►|───────────────────────┤◄──────── _mm_non_paged_pool_phys_end = _mm_sys_pte_pool_phys_start        
  * │                             │            │                │                       │                                                                           
  * │                             │            │                │                       │                                                                           
  * │        sys_pte_pool         │            │                │                       │                                                                           
@@ -55,15 +55,15 @@ Memory Manager Initialization.
  * │                             │                             │                       │                                                                           
  * │                             │                             │                       │                                                                           
  * │       non_paged_pool        │                             │                       │                                                                           
- * │                             │       ┌─────────────────────►───────────────────────┤◄──────── _mm_pfn_db_phys_end = _mm_non_paged_pool_phys_start              
+ * │                             │       ┌────────────────────►|───────────────────────┤◄──────── _mm_pfn_db_phys_end = _mm_non_paged_pool_phys_start              
  * │                             │       │                     │                       │                                                                           
  * │                             │       │                     │     pfn_database      │                                                                           
  * ├─────────────────────────────┼───────┘                     │                       │                                                                           
- * │                             │            ┌────────────────►───────────────────────|◄──────── _mm_stack_top_of_initialization_thread = _mm_pfn_db_phys_start   
+ * │                             │            ┌───────────────►|───────────────────────|◄──────── _mm_stack_top_of_initialization_thread = _mm_pfn_db_phys_start   
  * │                             │            │                │                       │                                                                           
  * │                             │            │                │image, rec_files, stack│                                                                           
  * │        pfn_database         │            │                │                       │                                                                           
- * │                             │            │      ┌─────────►───────────────────────┘◄──────── _mm_krnl_space_phys_base_addr = 0x000000005bb5c000 (random value)
+ * │                             │            │      ┌────────►└───────────────────────┘◄──────── _mm_krnl_space_phys_base_addr = 0x000000005bb5c000 (random value)
  * │                             │            │      │                                                                                                             
  * │                             │            │      │                                                                                                             
  * ├─────────────────────────────┼────────────┘      │                                                                                                             
@@ -75,7 +75,7 @@ Memory Manager Initialization.
  * │                             │                   │                                                                                                             
  * │                             │                   │                                                                                                             
  * └─────────────────────────────┴───────────────────┘                                                                                                             
-*/
+ */
 
 
 /* ================================================================================ */
@@ -151,19 +151,19 @@ uint64_t _mm_pfn_db_phys_end;
 
 // The list head of zero physical pages linked list
 mm_pfn_list _mm_zero_phys_page_list_head =
-    {0, zero_page_list, -1, -1};
+{0, zero_page_list, -1, -1};
 
 // The list head of free physical pages linked list
 mm_pfn_list _mm_free_phys_page_list_head =
-    {0, free_page_list, -1, -1};
+{0, free_page_list, -1, -1};
 
 // The list head of bad physical pages linked list
 mm_pfn_list _mm_bad_phys_page_list_head =
-    {0, bad_page_list, -1, -1};
+{0, bad_page_list, -1, -1};
 
 // The list head of ROM physical pages linked list
 mm_pfn_list _mm_rom_phys_page_list_head =
-    {0, rom_page_list, -1, -1};
+{0, rom_page_list, -1, -1};
 
 // linked list array about physical page
 mm_pfn_list *_mm_phys_page_lists[NUMBER_OF_PHYSICAL_PAGE_LISTS] = {
@@ -206,20 +206,20 @@ uint64_t _mm_non_paged_pool_phys_end;
     Free list array of Non paged pool.
 
     Memory manager uses lists to manage non paged pool pages. By default, there have
-4 (NON_PAGED_POOL_LIST_HEADS_MAXIMUM is defined by macros) lists. The 
-_mm_non_paged_pool_free_list_array[0] contains all consecutive pages with a quantily 
-greater than or equal to 4. And the _mm_non_paged_pool_free_list_array[1] includes 
-all single pages. In the same way, the third item and fourth item also are linked list
-and are similar to the second item. 
+    4 (NON_PAGED_POOL_LIST_HEADS_MAXIMUM is defined by macros) lists. The 
+    _mm_non_paged_pool_free_list_array[0] contains all consecutive pages with a quantily 
+    greater than or equal to 4. And the _mm_non_paged_pool_free_list_array[1] includes 
+    all single pages. In the same way, the third item and fourth item also are linked list
+    and are similar to the second item. 
 
 */ 
 pool_free_list_head 
 _mm_non_paged_pool_free_list_array[NON_PAGED_POOL_LIST_HEADS_MAXIMUM] =
 {
-        {0, NULL, NULL},
-        {0, NULL, NULL},
-        {0, NULL, NULL},
-        {0, NULL, NULL},
+    {0, NULL, NULL},
+    {0, NULL, NULL},
+    {0, NULL, NULL},
+    {0, NULL, NULL},
 };
 
 // The number of memory pool
@@ -304,7 +304,7 @@ void _mm_flush_tlb(uint64_t vaddr)
         take appropriate precautions to ensure that memory is not cached
         or optimized in a way that would interfere with the inline assembly code.  */
     __asm__ volatile("invlpg (%0)" ::"r"(vaddr)
-                     : "memory");
+            : "memory");
 }
 
 
@@ -312,7 +312,7 @@ void _mm_flush_tlb(uint64_t vaddr)
 /*  
 
     The offset of the first free page from the beginning of 
-the system page table entry pool. 
+    the system page table entry pool. 
 
 */
 static uint64_t offset_of_first_free_sys_pte = 0;
@@ -321,8 +321,8 @@ static uint64_t offset_of_first_free_sys_pte = 0;
 
 Routine Description:
 
-    The routine adds 1 to the static variable offset_of_first_free_sys_pte then
-returns the original value of variable offset_of_first_free_sys_pte.
+   The routine adds 1 to the static variable offset_of_first_free_sys_pte then
+   returns the original value of variable offset_of_first_free_sys_pte.
 
 Parameters:
 
@@ -343,6 +343,7 @@ static uint64_t _mm_get_sys_pte_next_page()
 
 /*  
 Routine Description:
+
     This function calculates the number of page directory pointer table entries (PDPTEs),
     page directory entries (PDEs), and page table entries (PTEs) required to map a
     memory region of specified size starting at a given base address.
@@ -353,6 +354,7 @@ Routine Description:
     3. Potential crossing of boundaries at each page table level
 
 Parameters:
+
     base - Starting virtual address of the memory region
     size - Size of the memory region in bytes
     p_num_of_pdptes - Output pointer for the number of PDPTEs required
@@ -360,10 +362,12 @@ Parameters:
     p_num_of_ptes - Output pointer for the number of PTEs required
 
 Return Value:
+
     None
+
 */
 static void calculate_num_of_ptes(uint64_t base, uint64_t size, uint64_t *p_num_of_pdptes,
-                               uint64_t *p_num_of_pdes, uint64_t *p_num_of_ptes)
+        uint64_t *p_num_of_pdes, uint64_t *p_num_of_ptes)
 {
     uint64_t remainder;
     uint64_t offset;
@@ -391,7 +395,7 @@ static void calculate_num_of_ptes(uint64_t base, uint64_t size, uint64_t *p_num_
     else
         // Size is aligned to 2MB boundary
         *p_num_of_pdes = size >> ((PT_ENTRY_SHIFT) + PAGE_SHIFT);
-    
+
     // Calculate offset of base address within the PDPT structure
     // This determines which PDPTE the region starts in
     offset = base >> ((PT_ENTRY_SHIFT) + PAGE_SHIFT);
@@ -421,7 +425,7 @@ static void calculate_num_of_ptes(uint64_t base, uint64_t size, uint64_t *p_num_
     // This determines which PDE the region starts in
     offset = base >> PAGE_SHIFT;
     offset &= ((1UL << ((PT_ENTRY_SHIFT))) - 1);
-        
+
     // Check if the region crosses a PDE boundary
     // If the combined offset and number of PTEs exceeds what can be contained
     // in the initially calculated PDEs, we need an additional PDE
@@ -436,10 +440,10 @@ static void calculate_num_of_ptes(uint64_t base, uint64_t size, uint64_t *p_num_
 
 Routine Description:
 
-    This routine maps a kernel memory zone to the specified virtual address space by setting up
-    the necessary page directory pointer table entries (PDPTEs), page directory entries (PDEs),
-    and page table entries (PTEs). It uses a system-allocated pool of page table entries for 
-    creating the required page tables.
+   This routine maps a kernel memory zone to the specified virtual address space by setting up
+   the necessary page directory pointer table entries (PDPTEs), page directory entries (PDEs),
+   and page table entries (PTEs). It uses a system-allocated pool of page table entries for 
+   creating the required page tables.
 
 Parameters:
 
@@ -457,7 +461,7 @@ Returned Value:
 
 */
 static mmpte_hardware_t *map_zone(mmpte_hardware_t *pdpte_addr, uint64_t number_of_pdptes,
-                                  uint64_t number_of_pdes, uint64_t number_of_ptes, uint64_t zone_addr, uint64_t size)
+        uint64_t number_of_pdes, uint64_t number_of_ptes, uint64_t zone_addr, uint64_t size)
 {
     /* Physical address of Page-Directory Table. */
     uint64_t pd_phys_addr;
@@ -523,9 +527,9 @@ static mmpte_hardware_t *map_zone(mmpte_hardware_t *pdpte_addr, uint64_t number_
         pd[i].present = 1;    // Mark entry as present
         pd[i].rw = 1;         // Mark entry as read/write
         pd[i].address = (pt_phys_addr >> PAGE_SHIFT); // Set physical address of PT (shifted by page size)
-        
+
         i++;
-        
+
         // If we need more PDEs, allocate another Page Table from system pool
         if (i < number_of_pdes)
         {
@@ -543,7 +547,7 @@ static mmpte_hardware_t *map_zone(mmpte_hardware_t *pdpte_addr, uint64_t number_
         pt[i].present = 1;    // Mark entry as present
         pt[i].rw = 1;         // Mark entry as read/write
         pt[i].address = (zone_addr >> PAGE_SHIFT); // Set physical address of the zone page (shifted by page size)
-        
+
         zone_addr += 0x1000;  // Move to next 4KB page in the zone
         i++;
     } while (i < number_of_ptes);
@@ -557,8 +561,8 @@ static mmpte_hardware_t *map_zone(mmpte_hardware_t *pdpte_addr, uint64_t number_
 Routine Description:
 
     The routine initializes kernel virtual address space based on kernel space layout
-variables be setted by mm_init() routine. The routine is used to divide kernel
-space layout and to set on further kernel space layout variables(includes _pt_bitmap).
+    variables be setted by mm_init() routine. The routine is used to divide kernel
+    space layout and to set on further kernel space layout variables(includes _pt_bitmap).
 
 Parameters:
 
@@ -636,10 +640,10 @@ static void mem_map_init()
 
     // the numerical range of offset_of_pml4e is 0x100 - PML4E_OFFSET_OF_KRNL_SPACE
     offset_of_pml4e = ((random_num
-        + _current_machine_info->memory_space_info[0].base_address
-        + _current_machine_info->memory_space_info[1].base_address) % (PML4E_OFFSET_OF_KRNL_SPACE - 0x100) + 0x100);
+                + _current_machine_info->memory_space_info[0].base_address
+                + _current_machine_info->memory_space_info[1].base_address) % (PML4E_OFFSET_OF_KRNL_SPACE - 0x100) + 0x100);
 
-    
+
 
     // Calculate the number of PML4 entries that mapping kernel space needed.
     if (_mm_krnl_space_size & (PML4_SIZE - 1))
@@ -701,11 +705,11 @@ static void mem_map_init()
     zone_size = _mm_pfn_db_phys_start - _mm_krnl_space_phys_base_addr;
 
     calculate_num_of_ptes(zone_addr, zone_size, &num_of_pdptes, 
-        &num_of_pdes, &num_of_ptes);
+            &num_of_pdes, &num_of_ptes);
 
     krnl_pdpt = map_zone(krnl_pdpt, num_of_pdptes, num_of_pdes,
-        num_of_ptes, zone_addr, zone_size);
-    
+            num_of_ptes, zone_addr, zone_size);
+
 
 
     // Upate MM variables
@@ -717,10 +721,10 @@ static void mem_map_init()
     zone_size = _mm_non_paged_pool_phys_start - _mm_pfn_db_phys_start;
 
     calculate_num_of_ptes(zone_addr, zone_size, &num_of_pdptes, 
-        &num_of_pdes, &num_of_ptes);
+            &num_of_pdes, &num_of_ptes);
 
     krnl_pdpt = map_zone(krnl_pdpt, num_of_pdptes, num_of_pdes,
-        num_of_ptes, zone_addr, zone_size);
+            num_of_ptes, zone_addr, zone_size);
 
 
 
@@ -733,11 +737,11 @@ static void mem_map_init()
     zone_size = _mm_sys_pte_pool_phys_start - _mm_non_paged_pool_phys_start;
 
     calculate_num_of_ptes(zone_addr, zone_size, &num_of_pdptes, 
-        &num_of_pdes, &num_of_ptes);
+            &num_of_pdes, &num_of_ptes);
 
     krnl_pdpt = map_zone(krnl_pdpt, num_of_pdptes, num_of_pdes,
-        num_of_ptes, zone_addr, zone_size);
-    
+            num_of_ptes, zone_addr, zone_size);
+
 
 
     // Upate MM variables
@@ -749,12 +753,12 @@ static void mem_map_init()
     zone_size = _mm_sys_pte_pool_phys_end - _mm_sys_pte_pool_phys_start;
 
     calculate_num_of_ptes(zone_addr, zone_size, &num_of_pdptes, 
-        &num_of_pdes, &num_of_ptes);
+            &num_of_pdes, &num_of_ptes);
 
     krnl_pdpt = map_zone(krnl_pdpt, num_of_pdptes, num_of_pdes,
-        num_of_ptes, zone_addr, zone_size);
+            num_of_ptes, zone_addr, zone_size);
 
-    
+
 
     // Map FrameBuffer
     offset_of_sys_pte_next_page = _mm_get_sys_pte_next_page();
@@ -765,15 +769,15 @@ static void mem_map_init()
     pml4t[PML4E_OFFSET_OF_FRAMEBUFFER].rw = 1;
     pml4t[PML4E_OFFSET_OF_FRAMEBUFFER].address = 
         ((sys_pte_pool_phys_addr + offset_of_sys_pte_next_page) >> PAGE_SHIFT);
-        
+
     zone_addr = _current_machine_info->graphics_info.FrameBufferBase;
     zone_size = _current_machine_info->graphics_info.FrameBufferSize;
 
     calculate_num_of_ptes(zone_addr, zone_size, &num_of_pdptes, 
-        &num_of_pdes, &num_of_ptes);
+            &num_of_pdes, &num_of_ptes);
 
     krnl_pdpt = map_zone(krnl_pdpt, num_of_pdptes, num_of_pdes,
-        num_of_ptes, zone_addr, zone_size);
+            num_of_ptes, zone_addr, zone_size);
 
 
 
@@ -800,13 +804,11 @@ static void mem_map_init()
 
 Routine Description:
 
-    The routine initializes PFN database. Its work is just walks the EFI_MEMORY_DESCRIPTOR
-structure array checks memory type, then sets the mmpfn::state member and adds to 
-corresponding linked list.
+   The routine initializes PFN database. Its work is just walks the EFI_MEMORY_DESCRIPTOR
+   structure array checks memory type, then sets the mmpfn::state member and adds to 
+   corresponding linked list.
 
 Parameters:
-
-    _pt_bitmap.offset = offset_of_first_free_sys_pte;
 
     None.
 
@@ -844,122 +846,122 @@ static void pfn_init()
         uint64_t phys_page_start = desc->PhysicalStart >> PAGE_SHIFT;
         switch (desc->Type)
         {
-        case EfiLoaderCode:
-        case EfiLoaderData:
-        case EfiBootServicesCode:
-        case EfiBootServicesData:
+            case EfiLoaderCode:
+            case EfiLoaderData:
+            case EfiBootServicesCode:
+            case EfiBootServicesData:
 
-        /*  contiguous free physical pages list */
-        {
-            for (i_pfn_element = phys_page_start;
-                 i_pfn_element < (desc->NumberOfPages + phys_page_start);
-                 i_pfn_element++)
-            {
-
-                _mm_pfn_db_start[i_pfn_element].state.page_state = free_page_list;
-
-                if (_mm_free_phys_page_list_head.flink == -1)
-                // This breach corresponds to the first time a member is added to the linked list.
+                /*  contiguous free physical pages list */
                 {
-                    _mm_free_phys_page_list_head.flink = _mm_free_phys_page_list_head.blink = i_pfn_element;
-                }
-
-                else
-                // add i_pfn_element to list.
-                {
-
-                    _mm_pfn_db_start[_mm_free_phys_page_list_head.blink].u1.flink = i_pfn_element;
-                    _mm_pfn_db_start[i_pfn_element].u2.blink = _mm_free_phys_page_list_head.blink;
-
-                    // the list rear points current item(i_pfn_element).
-                    _mm_free_phys_page_list_head.blink = i_pfn_element;
-
-                }
-
-                // update the total number of list members.
-                _mm_free_phys_page_list_head.total++;
-            }
-        }
-        break;
-
-        case EfiConventionalMemory:
-        case EfiPersistentMemory:
-
-
-        /*  contiguous free physical page list & contiguous active physical page list */
-        {
-            for (i_pfn_element = phys_page_start;
-                 i_pfn_element < (desc->NumberOfPages + phys_page_start);
-                 i_pfn_element++)
-            {
-                // Since we allocated a contiguous free physical memory space during os loading. Hence, we need to set
-                // pfn items of the allocated memory space to active state, then fill corresponding attributes
-                if (i_pfn_element >= krnl_space_start_page && i_pfn_element < krnl_space_end_page)
-                {
-                    _mm_pfn_db_start[i_pfn_element].state.page_state = active_and_valid;
-                    _mm_pfn_db_start[i_pfn_element].pte_addr =
-                        __get_pte_by_virt_addr((_mm_krnl_space_start + ((i_pfn_element - krnl_space_start_page) << 12)));
-                    _mm_pfn_db_start[i_pfn_element].u2.share_count++;
-                }
-                else
-                {
-                    _mm_pfn_db_start[i_pfn_element].state.page_state = free_page_list;
-
-                    if (_mm_free_phys_page_list_head.flink == -1)
+                    for (i_pfn_element = phys_page_start;
+                            i_pfn_element < (desc->NumberOfPages + phys_page_start);
+                            i_pfn_element++)
                     {
-                        _mm_free_phys_page_list_head.flink = _mm_free_phys_page_list_head.blink = i_pfn_element;
+
+                        _mm_pfn_db_start[i_pfn_element].state.page_state = free_page_list;
+
+                        if (_mm_free_phys_page_list_head.flink == -1)
+                            // This breach corresponds to the first time a member is added to the linked list.
+                        {
+                            _mm_free_phys_page_list_head.flink = _mm_free_phys_page_list_head.blink = i_pfn_element;
+                        }
+
+                        else
+                            // add i_pfn_element to list.
+                        {
+
+                            _mm_pfn_db_start[_mm_free_phys_page_list_head.blink].u1.flink = i_pfn_element;
+                            _mm_pfn_db_start[i_pfn_element].u2.blink = _mm_free_phys_page_list_head.blink;
+
+                            // the list rear points current item(i_pfn_element).
+                            _mm_free_phys_page_list_head.blink = i_pfn_element;
+
+                        }
+
+                        // update the total number of list members.
+                        _mm_free_phys_page_list_head.total++;
                     }
-                    else
+                }
+                break;
+
+            case EfiConventionalMemory:
+            case EfiPersistentMemory:
+
+
+                /*  contiguous free physical page list & contiguous active physical page list */
+                {
+                    for (i_pfn_element = phys_page_start;
+                            i_pfn_element < (desc->NumberOfPages + phys_page_start);
+                            i_pfn_element++)
                     {
-                        _mm_pfn_db_start[_mm_free_phys_page_list_head.blink].u1.flink = i_pfn_element;
-                        _mm_pfn_db_start[i_pfn_element].u2.blink = _mm_free_phys_page_list_head.blink;
-                        _mm_free_phys_page_list_head.blink = i_pfn_element;
+                        // Since we allocated a contiguous free physical memory space during os loading. Hence, we need to set
+                        // pfn items of the allocated memory space to active state, then fill corresponding attributes
+                        if (i_pfn_element >= krnl_space_start_page && i_pfn_element < krnl_space_end_page)
+                        {
+                            _mm_pfn_db_start[i_pfn_element].state.page_state = active_and_valid;
+                            _mm_pfn_db_start[i_pfn_element].pte_addr =
+                                __get_pte_by_virt_addr((_mm_krnl_space_start + ((i_pfn_element - krnl_space_start_page) << 12)));
+                            _mm_pfn_db_start[i_pfn_element].u2.share_count++;
+                        }
+                        else
+                        {
+                            _mm_pfn_db_start[i_pfn_element].state.page_state = free_page_list;
+
+                            if (_mm_free_phys_page_list_head.flink == -1)
+                            {
+                                _mm_free_phys_page_list_head.flink = _mm_free_phys_page_list_head.blink = i_pfn_element;
+                            }
+                            else
+                            {
+                                _mm_pfn_db_start[_mm_free_phys_page_list_head.blink].u1.flink = i_pfn_element;
+                                _mm_pfn_db_start[i_pfn_element].u2.blink = _mm_free_phys_page_list_head.blink;
+                                _mm_free_phys_page_list_head.blink = i_pfn_element;
+                            }
+                            _mm_free_phys_page_list_head.total++;
+                        }
                     }
-                    _mm_free_phys_page_list_head.total++;
                 }
-            }
-        }
-        break;
-        case EfiReservedMemoryType:
-        case EfiUnusableMemory:
-        case EfiRuntimeServicesCode:
-        case EfiRuntimeServicesData:
-        case EfiMemoryMappedIO:
-        case EfiMemoryMappedIOPortSpace:
-        case EfiPalCode:
-        case EfiUnacceptedMemoryType:
-        case EfiMaxMemoryType:
-            break;
+                break;
+            case EfiReservedMemoryType:
+            case EfiUnusableMemory:
+            case EfiRuntimeServicesCode:
+            case EfiRuntimeServicesData:
+            case EfiMemoryMappedIO:
+            case EfiMemoryMappedIOPortSpace:
+            case EfiPalCode:
+            case EfiUnacceptedMemoryType:
+            case EfiMaxMemoryType:
+                break;
 
-        case EfiACPIReclaimMemory:
-        case EfiACPIMemoryNVS:
-        
-        /*  ROM physical consecutive pages list */
-        {
-            for (i_pfn_element = phys_page_start;
-                 i_pfn_element < (desc->NumberOfPages + phys_page_start);
-                 i_pfn_element++)
-            {
+            case EfiACPIReclaimMemory:
+            case EfiACPIMemoryNVS:
 
-                _mm_pfn_db_start[i_pfn_element].state.page_state = rom_page_list;
-
-                if (_mm_rom_phys_page_list_head.flink == -1)
+                /*  ROM physical consecutive pages list */
                 {
-                    _mm_rom_phys_page_list_head.flink = _mm_rom_phys_page_list_head.blink = i_pfn_element;
-                }
-                else
-                {
-                    _mm_pfn_db_start[_mm_rom_phys_page_list_head.blink].u1.flink = i_pfn_element;
-                    _mm_pfn_db_start[i_pfn_element].u2.blink = _mm_rom_phys_page_list_head.blink;
-                    _mm_rom_phys_page_list_head.blink = i_pfn_element;
-                }
-                _mm_rom_phys_page_list_head.total++;
-            }
-        }
-        break;
+                    for (i_pfn_element = phys_page_start;
+                            i_pfn_element < (desc->NumberOfPages + phys_page_start);
+                            i_pfn_element++)
+                    {
 
-        default:
-            break;
+                        _mm_pfn_db_start[i_pfn_element].state.page_state = rom_page_list;
+
+                        if (_mm_rom_phys_page_list_head.flink == -1)
+                        {
+                            _mm_rom_phys_page_list_head.flink = _mm_rom_phys_page_list_head.blink = i_pfn_element;
+                        }
+                        else
+                        {
+                            _mm_pfn_db_start[_mm_rom_phys_page_list_head.blink].u1.flink = i_pfn_element;
+                            _mm_pfn_db_start[i_pfn_element].u2.blink = _mm_rom_phys_page_list_head.blink;
+                            _mm_rom_phys_page_list_head.blink = i_pfn_element;
+                        }
+                        _mm_rom_phys_page_list_head.total++;
+                    }
+                }
+                break;
+
+            default:
+                break;
         }
     }
 
@@ -977,7 +979,7 @@ static void pfn_init()
 
 Routine Description:
 
-    The routine initializes the memory pool for memory alloc&free functions.
+   The routine initializes the memory pool for memory alloc&free functions.
 
 Parameters:
 
@@ -996,11 +998,13 @@ static void memory_pool_init()
     // default kernel memory pool
     pool *pool;
 
+
     _mm_pools[POOL_INDEX_KERNEL_DEFAULT] = &_mm_krnl_pool;
 
-    non_paged_pool = _mm_non_paged_pool_start + 0x10000;
+    // The first 64KB of the non-paged pool is reserved for the loader_message_structure.
+    non_paged_pool = _mm_non_paged_pool_start + MACHINE_INFO_SIZE;
     free_root_entry = (pool_free_page_entry *)(non_paged_pool);
-    free_root_entry->number_of_pages = (_mm_non_paged_pool_size - 0x10000) >> PAGE_SHIFT;
+    free_root_entry->number_of_pages = (_mm_non_paged_pool_size - MACHINE_INFO_SIZE) >> PAGE_SHIFT;
 
     for (non_paged_pool += PAGE_SIZE; non_paged_pool < _mm_non_paged_pool_end; non_paged_pool += PAGE_SIZE)
     {
@@ -1016,20 +1020,22 @@ static void memory_pool_init()
     pool->pool_index = POOL_INDEX_KERNEL_DEFAULT;
     pool->pool_type = 0;
     memzero(&pool->list_heads, sizeof(list_node_t) * POOL_LIST_HEADS);
+
+
 }
 
 /*
 
 Routine Description:
 
-    The routine initializes the system page table entry pool. We use a bitmap 
-to manage the free system page table entries. We already used some ptes
-(use offset_of_first_free_sys_pte to record) before we initializing system pte pool.
-The reason is what we have not initialized the kernel memory allocator, we can't
-allocate memory for bitmap initialization. In this routine, we store the bitmap
-into non paged pool and set a portion of the pages at the beginning of sys pte pool
-as used(mark these bits to 1).
-    
+   The routine initializes the system page table entry pool. We use a bitmap 
+   to manage the free system page table entries. We already used some ptes
+   (use offset_of_first_free_sys_pte to record) before we initializing system pte pool.
+   The reason is what we have not initialized the kernel memory allocator, we can't
+   allocate memory for bitmap initialization. In this routine, we store the bitmap
+   into non paged pool and set a portion of the pages at the beginning of sys pte pool
+   as used(mark these bits to 1).
+
 
 Parameters:
 
@@ -1063,8 +1069,8 @@ static void sys_pte_pool_init()
 Routine Description:
 
     The routine maps physical pages that stores hardware information into virtual 
-address space, then sets the PFN item corresponding to these physical pages and fixes
-up the member of _current_machine_info that relates to these physical pages.
+    address space, then sets the PFN item corresponding to these physical pages and fixes
+    up the member of _current_machine_info that relates to these physical pages.
 
 Parameters:
 
@@ -1098,9 +1104,9 @@ static void map_rom_zone()
     uint64_t i;
 
     calculate_num_of_ptes(0,
-        (_mm_phys_page_lists[3]->total << PAGE_SHIFT),
-        &number_of_pdptes, &number_of_pdes, &number_of_ptes);
-    
+            (_mm_phys_page_lists[3]->total << PAGE_SHIFT),
+            &number_of_pdptes, &number_of_pdes, &number_of_ptes);
+
     // Allocate a page table for hardware pdpt.
     new_pt_addr = _pt_alloc();
     hardware_base_pdpt = pdpt = (mmpte_hardware_t*)new_pt_addr.virt_addr;
@@ -1110,7 +1116,7 @@ static void map_rom_zone()
     ((mmpte_hardware_t*)_mm_pt_pml4_start)[PML4E_OFFSET_OF_HARDWARE].rw = 1;
     ((mmpte_hardware_t*)_mm_pt_pml4_start)[PML4E_OFFSET_OF_HARDWARE].address = 
         ((new_pt_addr.phys_addr) >> PAGE_SHIFT);
-        
+
     // Allocate new page table for PD.
     new_pt_addr = _pt_alloc();
     hardware_base_pd = pd = (mmpte_hardware_t*)(new_pt_addr.virt_addr);
@@ -1143,7 +1149,7 @@ static void map_rom_zone()
         i++;
 
     } while (i < number_of_pdes);
-    
+
     pfn_index = _mm_phys_page_lists[3]->flink;
     for (i = 0; i < _mm_phys_page_lists[3]->total; i++)
     {
@@ -1168,9 +1174,9 @@ static void map_rom_zone()
 Routine Description:
 
     The routine maps application processors startup routine into corresponding virtual address
-space. The bootstrap processor will save datas that application processors needed in the space.
-The address of the memory space is located by UEFI allocated(The default address is located at 
-0x1000).
+    space. The bootstrap processor will save datas that application processors needed in the space.
+    The address of the memory space is located by UEFI allocated(The default address is located at 
+    0x1000).
 
 Parameters:
 
@@ -1201,7 +1207,7 @@ void unmap_startup_routine(uint64_t startup_addr, uint64_t number_of_pages)
     startup_pdpt->address = 0;
 
     mmpte_hardware_t *startup_pt = (mmpte_hardware_t*)(_pt_get_virt_addr_of_pt(startup_pd->address << PAGE_SHIFT));
-    
+
 
     mm_addr_t pt_addr = { 0 };
 
@@ -1344,75 +1350,75 @@ static void dynamic_memory_management_test()
 
 
     for (int i = 0; i < 1000; i++) {
-    
-
-    alloc0 = _mm_kmalloc(16);
-    alloc1 = _mm_kmalloc(16);
-    alloc1[0] = 0x123456789abcdef0;
-    alloc1[1] = 0x123456789abcdef0;
-    _mm_kfree(alloc1);
-    alloc2 = _mm_kmalloc(16);
-    alloc2[1] = 0x123456789abcdef0;
-    alloc2[0] = 0x123456789abcdef0;
-    _mm_kfree(alloc0);
-    _mm_kfree(alloc2);
-
-    status = _mm_alloc_pages(1 << PAGE_SHIFT, (void**)&alloc0);
-    if (ST_ERROR(status)) {
-        krnl_panic(NULL);
-    }
-    status = _mm_alloc_pages(1 << PAGE_SHIFT, (void**)&alloc1);
-    if (ST_ERROR(status)) {
-        krnl_panic(NULL);
-    }
-    status = _mm_alloc_pages(1 << PAGE_SHIFT, (void**)&alloc2);
-    if (ST_ERROR(status)) {
-        krnl_panic(NULL);
-    }
 
 
-    alloc0 = _mm_kmalloc_tag(8, '0D00');
-    _mm_kfree(alloc0);
+        alloc0 = _mm_kmalloc(16);
+        alloc1 = _mm_kmalloc(16);
+        alloc1[0] = 0x123456789abcdef0;
+        alloc1[1] = 0x123456789abcdef0;
+        _mm_kfree(alloc1);
+        alloc2 = _mm_kmalloc(16);
+        alloc2[1] = 0x123456789abcdef0;
+        alloc2[0] = 0x123456789abcdef0;
+        _mm_kfree(alloc0);
+        _mm_kfree(alloc2);
 
-    // case 1: 
-    alloc0 = _mm_kmalloc(sizeof(int64_t) * 8);
-    alloc1 = _mm_kmalloc(sizeof(int64_t) * 8);
-    alloc2 = _mm_kmalloc(sizeof(int64_t) * 8);
-    alloc3 = _mm_kmalloc(sizeof(int64_t) * 8);
+        status = _mm_alloc_pages(1 << PAGE_SHIFT, (void**)&alloc0);
+        if (ST_ERROR(status)) {
+            krnl_panic(NULL);
+        }
+        status = _mm_alloc_pages(1 << PAGE_SHIFT, (void**)&alloc1);
+        if (ST_ERROR(status)) {
+            krnl_panic(NULL);
+        }
+        status = _mm_alloc_pages(1 << PAGE_SHIFT, (void**)&alloc2);
+        if (ST_ERROR(status)) {
+            krnl_panic(NULL);
+        }
 
-    _mm_kfree(alloc2);
-    _mm_kfree(alloc1);
-    _mm_kfree(alloc0);
-    _mm_kfree(alloc3);
 
-    // case 2: 
-    alloc0 = _mm_kmalloc(sizeof(int64_t) * 8);
-    alloc1 = _mm_kmalloc(sizeof(int64_t) * 8);
-    alloc2 = _mm_kmalloc(sizeof(int64_t) * 8);
-    alloc3 = _mm_kmalloc(sizeof(int64_t) * 8);
-    _mm_kfree(alloc0);
-    _mm_kfree(alloc3);
-    _mm_kfree(alloc1);
-    _mm_kfree(alloc2);
+        alloc0 = _mm_kmalloc_tag(8, '0D00');
+        _mm_kfree(alloc0);
 
-    alloc1 = _mm_kmalloc(sizeof(int64_t) * 8);
-    alloc2 = _mm_kmalloc(sizeof(int64_t) * 18);
-    alloc3 = _mm_kmalloc(sizeof(int64_t) * 2);
-    alloc4 = _mm_kmalloc(sizeof(int64_t) * 3);
-    alloc5 = _mm_kmalloc(sizeof(int64_t) * 3);
-    alloc6 = _mm_kmalloc(sizeof(int64_t) * 25);
-    _mm_kfree(alloc4);
-    _mm_kfree(alloc3);
-    alloc7 = _mm_kmalloc(sizeof(int64_t) * 100);
-    _mm_kfree(alloc1);
-    alloc8 = _mm_kmalloc(sizeof(int64_t) * 1024);
-    _mm_kfree(alloc2);
-    alloc9 = _mm_kmalloc(sizeof(int64_t) * 97);
-    _mm_kfree(alloc5);
-    _mm_kfree(alloc6);
-    _mm_kfree(alloc7);
-    _mm_kfree(alloc8);
-    _mm_kfree(alloc9);
+        // case 1: 
+        alloc0 = _mm_kmalloc(sizeof(int64_t) * 8);
+        alloc1 = _mm_kmalloc(sizeof(int64_t) * 8);
+        alloc2 = _mm_kmalloc(sizeof(int64_t) * 8);
+        alloc3 = _mm_kmalloc(sizeof(int64_t) * 8);
+
+        _mm_kfree(alloc2);
+        _mm_kfree(alloc1);
+        _mm_kfree(alloc0);
+        _mm_kfree(alloc3);
+
+        // case 2: 
+        alloc0 = _mm_kmalloc(sizeof(int64_t) * 8);
+        alloc1 = _mm_kmalloc(sizeof(int64_t) * 8);
+        alloc2 = _mm_kmalloc(sizeof(int64_t) * 8);
+        alloc3 = _mm_kmalloc(sizeof(int64_t) * 8);
+        _mm_kfree(alloc0);
+        _mm_kfree(alloc3);
+        _mm_kfree(alloc1);
+        _mm_kfree(alloc2);
+
+        alloc1 = _mm_kmalloc(sizeof(int64_t) * 8);
+        alloc2 = _mm_kmalloc(sizeof(int64_t) * 18);
+        alloc3 = _mm_kmalloc(sizeof(int64_t) * 2);
+        alloc4 = _mm_kmalloc(sizeof(int64_t) * 3);
+        alloc5 = _mm_kmalloc(sizeof(int64_t) * 3);
+        alloc6 = _mm_kmalloc(sizeof(int64_t) * 25);
+        _mm_kfree(alloc4);
+        _mm_kfree(alloc3);
+        alloc7 = _mm_kmalloc(sizeof(int64_t) * 100);
+        _mm_kfree(alloc1);
+        alloc8 = _mm_kmalloc(sizeof(int64_t) * 1024);
+        _mm_kfree(alloc2);
+        alloc9 = _mm_kmalloc(sizeof(int64_t) * 97);
+        _mm_kfree(alloc5);
+        _mm_kfree(alloc6);
+        _mm_kfree(alloc7);
+        _mm_kfree(alloc8);
+        _mm_kfree(alloc9);
 
     }
     alloc0 = _mm_kmalloc(POOL_BUDDY_MAX);
@@ -1433,7 +1439,7 @@ static void dynamic_memory_management_test()
     // for (int i = 0; i < 1000; i++) {
     //     _mm_kfree(alloc[i]);
     // }
-    
+
 
 }
 
@@ -1442,8 +1448,8 @@ static void dynamic_memory_management_test()
 
 Routine Description:
 
-    The routine fixes up all address that points a file information in _current_machine_info.
-These addresses will correctly points file information in virtual address space.
+   The routine fixes up all address that points a file information in _current_machine_info.
+   These addresses will correctly points file information in virtual address space.
 
 Parameters:
 
@@ -1458,7 +1464,7 @@ Returned Value:
 static inline void fixup_machine_info()
 {
     uint64_t fixup = KERNEL_SPACE_BASE_ADDR - _mm_krnl_space_phys_base_addr;
-    
+
     _current_machine_info->font[0].ttf_addr += fixup;
     _current_machine_info->font[1].ttf_addr += fixup;
 
@@ -1471,9 +1477,9 @@ static inline void fixup_machine_info()
 Routine Descrption:
 
     The function divides kernel space layout and updates global variables at first. 
-And the second, it will build new kernel space page table which mapping PFN database, 
-non paged pool, system pte pool and hardware informations. At the end, It executes PFN 
-initialization, Non Paged Pool initiazation and System Pte Pool Initializaton separately.
+    And the second, it will build new kernel space page table which mapping PFN database, 
+    non paged pool, system pte pool and hardware informations. At the end, It executes PFN 
+    initialization, Non Paged Pool initiazation and System Pte Pool Initializaton separately.
 
 Parameters:
 
@@ -1516,7 +1522,7 @@ void mm_init()
 
     // Calculate the number of available free pages
     _mm_available_free_pages = _current_machine_info->memory_info.ram_size >> PAGE_SHIFT;
-    
+
     // Calculate the heigest addressable physical address on current machine
     _mm_highest_addressable_physical_addr = 
         _current_machine_info->memory_info.highest_physical_addr + PAGE_SIZE - 1;
@@ -1536,7 +1542,7 @@ void mm_init()
 
     // Calculate and set variables about Non paged pool 
     _mm_non_paged_pool_phys_start = page_aligned(_mm_pfn_db_phys_end);
-    
+
     /*
      * The size of the memory pool is half of the _mm_krnl_space_size.
      */
@@ -1571,7 +1577,7 @@ void mm_init()
     _mm_sys_pte_pool_size = _mm_krnl_space_size >> 2;
 
     _mm_sys_pte_pool_phys_end = page_aligned(_mm_sys_pte_pool_phys_start + 
-        _mm_sys_pte_pool_size);
+            _mm_sys_pte_pool_size);
 
 
     _mm_reserved_mem_phys_start = page_aligned(_mm_sys_pte_pool_phys_end);
@@ -1597,8 +1603,8 @@ void mm_init()
     map_rom_zone();
 
     mapping_startup_routine(
-        _current_machine_info->memory_space_info[3].base_address, 
-        _current_machine_info->memory_space_info[3].size >> PAGE_SHIFT
-    );
+            _current_machine_info->memory_space_info[3].base_address, 
+            _current_machine_info->memory_space_info[3].size >> PAGE_SHIFT
+            );
 
 }

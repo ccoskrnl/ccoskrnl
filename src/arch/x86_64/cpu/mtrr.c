@@ -93,12 +93,12 @@ void mtrr_init(void)
 
     if (support_mtrr) 
     {
-    
+
         cpuid(CPUID_MAX_PHYS_ADDR, &eax, &ebx, &ecx, &edx);
         mtrr_phys_addr_size = eax & 0xff;
         mtrr_lin_addr_size = (eax >> 8) & 0xff;
         mtrr_guest_phys_addr_size = (eax >> 16) & 0xff;
-    
+
         get_mtrr_state();
 
     }

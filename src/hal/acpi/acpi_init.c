@@ -63,7 +63,7 @@ void acpi_init()
             break;
         }
         s5addr++;
-        
+
     }
     if (dsdt_lenght > 0)
     {
@@ -107,13 +107,13 @@ void acpi_init()
 
         }
 
-        
+
     }
     else
     {
         puts(output_bsp, "[ERROR]::acpi_init()  _S5_ Object not found...");
     }
-        
+
 }
 
 static int acpi_enable()
@@ -145,8 +145,8 @@ static int acpi_enable()
                     }
                 }
             }
-            
-            
+
+
         }
         else
         {
@@ -154,10 +154,10 @@ static int acpi_enable()
             return -1;
         }
 
-        
+
     }
     return 0;
-    
+
 }
 
 
@@ -195,7 +195,7 @@ void power_off()
         putsxs(output_bsp, "Expected SLP_TYPa: ", SLP_TYPa, NULL);
         putsxs(output_bsp, ", but got ", current_slp_typa, ".\n");
     }
-    
+
 
     outw(PM1a_CNT, SLP_TYPa | SLP_EN);
     if (PM1b_CNT != 0)
@@ -204,5 +204,5 @@ void power_off()
     }
 
     puts(output_bsp, "ACPI power off failed.\n");
-    
+
 }

@@ -33,9 +33,9 @@ void* memcpy(void* dstptr, const void* srcptr, size_t size) {
         if (((uint64_t)dstptr & 0xF) == 0 && ((uint64_t)srcptr & 0xF) == 0) 
         {
             if (cpu_feature_support(X86_FEATURE_SSE3) 
-                || cpu_feature_support(X86_FEATURE_SSSE3)
-                || cpu_feature_support(X86_FEATURE_SSE41) 
-                || cpu_feature_support(X86_FEATURE_SSE42))
+                    || cpu_feature_support(X86_FEATURE_SSSE3)
+                    || cpu_feature_support(X86_FEATURE_SSE41) 
+                    || cpu_feature_support(X86_FEATURE_SSE42))
                 goto __128bits; 
             else
                 goto __64bits;
@@ -49,7 +49,7 @@ void* memcpy(void* dstptr, const void* srcptr, size_t size) {
 
     }
     else {
-    
+
         if (((uint64_t)dstptr & 0x7) == 0 && ((uint64_t)srcptr & 0x7) == 0) 
             goto __64bits; 
         else

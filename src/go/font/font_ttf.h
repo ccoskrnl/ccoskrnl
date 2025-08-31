@@ -131,13 +131,13 @@ status_t new_a_glyph(font_ttf_glyph_t **glyph);
 status_t del_a_glyph(font_ttf_glyph_t *glyph);
 
 status_t _op_text_out(
-    _in_ _out_ go_buf_t                         *buf,
-    _in_ wch_t                                  *string,
-    _in_ point_i_t                              origin,
-    _in_ font_ttf_t                             *font_family,
-    _in_ double                                 point_size,
-    _in_ go_blt_pixel_t                         color
-);
+        _in_ _out_ go_buf_t                         *buf,
+        _in_ wch_t                                  *string,
+        _in_ point_i_t                              origin,
+        _in_ font_ttf_t                             *font_family,
+        _in_ double                                 point_size,
+        _in_ go_blt_pixel_t                         color
+        );
 
 struct _installed_font_ttfs{
     int64_t num;

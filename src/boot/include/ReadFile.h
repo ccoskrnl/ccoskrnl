@@ -10,14 +10,14 @@ VOID ReadFileFnit();
 
 EFI_STATUS
 ReadFileToBuffer(
-    IN CHAR16 *FileName,
-    IN OUT VOID **Buffer,
-    IN OUT UINTN *BufferSize);
+        IN CHAR16 *FileName,
+        IN OUT VOID **Buffer,
+        IN OUT UINTN *BufferSize);
 
 EFI_STATUS
 ReadFileToBufferAt(
-    IN CHAR16 *FileName,
-    IN EFI_PHYSICAL_ADDRESS BufferAddress,
-    IN OUT UINTN *BufferSize);
+        IN CHAR16 *FileName,
+        IN EFI_PHYSICAL_ADDRESS BufferAddress,
+        IN OUT UINTN *BufferSize);
 
 #endif

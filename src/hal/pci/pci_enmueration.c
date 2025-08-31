@@ -33,7 +33,7 @@ Pci_func_t* pci_enumerate_function(uint16_t seg_grp, uint8_t bus, uint8_t device
      */
     uint64_t mmio_base_phys_addr = pci_seg_grp[seg_grp].base_addr
         + (bus << 20 | device << 15 | function << 12);
-    
+
     uint64_t mmio_base_virt_addr = mm_set_mmio(mmio_base_phys_addr, 1);
 
     pci_func->config_space = (pci_config_space_t*)mmio_base_virt_addr;
@@ -47,7 +47,7 @@ Pci_func_t* pci_enumerate_function(uint16_t seg_grp, uint8_t bus, uint8_t device
         pci_read_config_byte(bus, device, function, 0x19, &secondary_bus);
 
         pci_secondary_bus = pci_enumerate_bus(seg_grp, secondary_bus);
-        
+
         if (pci_secondary_bus != NULL) {
 
             pci_func->type = PCItoPCI_Bridge;
@@ -60,8 +60,8 @@ Pci_func_t* pci_enumerate_function(uint16_t seg_grp, uint8_t bus, uint8_t device
         }
         pci_secondary_bus = NULL;
     }
-        
-        
+
+
     return pci_func;
 }
 
@@ -76,7 +76,7 @@ Pci_dev_t* pci_enumerate_device(uint16_t seg_grp, uint8_t bus, uint8_t device)
     byte secondary_bus = 0;
 
     pci_read_config_dword(bus, device, function, 0x00, &vendor_id);
-    
+
     if (vendor_id == 0xFFFFFFFF) {
         // No device present
         return NULL;
@@ -95,7 +95,7 @@ Pci_dev_t* pci_enumerate_device(uint16_t seg_grp, uint8_t bus, uint8_t device)
         }
         pci_func = NULL;
     }
-    
+
 
     return pci_dev;
 }
@@ -113,12 +113,12 @@ Pci_bus_t* pci_enumerate_bus(uint16_t seg_grp, uint8_t bus) {
         {
             if (pci_bus == NULL)
                 pci_bus = (Pci_bus_t*)calloc(sizeof(*pci_bus)); 
-                
+
             pci_bus->dev_count++;
             pci_dev->bus = pci_bus;
             pci_dev->dev = device;
             _list_push(&pci_bus->devs, &pci_dev->dev_node);
-            
+
         }
         pci_dev = NULL;
     }
@@ -127,7 +127,7 @@ Pci_bus_t* pci_enumerate_bus(uint16_t seg_grp, uint8_t bus) {
 }
 
 void pci_enumerate_seg_grp(MCFG_ALLOCATION* mcfg) {
-    
+
     Pci_bus_t* bus = NULL;
 
     while (mcfg->Reserved == 0) {
@@ -136,16 +136,16 @@ void pci_enumerate_seg_grp(MCFG_ALLOCATION* mcfg) {
         pci_seg_grp[mcfg->PCIeSegmentGroup].start_bus_num = mcfg->StartBusNumber;
         pci_seg_grp[mcfg->PCIeSegmentGroup].end_bus_num = mcfg->EndBusNumber;
         pci_seg_grp[mcfg->PCIeSegmentGroup].seg_grp = mcfg->PCIeSegmentGroup;
-        
+
         // for (uint8_t i = mcfg->StartBusNumber; i < mcfg->EndBusNumber; i++) 
         // {
-            bus = pci_enumerate_bus(mcfg->PCIeSegmentGroup, 0);
-            if (bus != NULL) {
-                bus->seg_grp = mcfg->PCIeSegmentGroup;
-                bus->bus = 0;
-                _list_push(&pci_seg_grp[mcfg->PCIeSegmentGroup].buses, &bus->bus_node);
-            }
-            bus = NULL;
+        bus = pci_enumerate_bus(mcfg->PCIeSegmentGroup, 0);
+        if (bus != NULL) {
+            bus->seg_grp = mcfg->PCIeSegmentGroup;
+            bus->bus = 0;
+            _list_push(&pci_seg_grp[mcfg->PCIeSegmentGroup].buses, &bus->bus_node);
+        }
+        bus = NULL;
 
         // }
         mcfg++;

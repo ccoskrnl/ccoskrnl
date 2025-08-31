@@ -97,7 +97,7 @@ typedef struct _mtrr_state
     boolean fix;
     // Write-combining type is available
     boolean wc;
-    
+
     // Default memory type
     uint8_t type;
     // Default memory type

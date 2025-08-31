@@ -34,7 +34,7 @@ typedef struct _lapic_version
      *     0XH 82489DX discrete APIC.
      *     10H - 15H Integrated APIC.
      *     Other values reserved
-    **/
+     **/
     uint8_t version;
 
     // Shows the number of LVT entries minus 1.
@@ -182,7 +182,7 @@ extern lapic_ver_t lapic_ver;
  * For the INIT level de-assert delivery mode this flag must be set to 0; for all other delivery 
  * modes it must be set to 1. (This flag has no meaning in Pentium 4 and Intel Xeon processors, 
  * and will always be issued as a 1.)
-*/
+ */
 #define LOCAL_APIC_ICR_LEVEL_DEASSERT               0
 #define LOCAL_APIC_ICR_LEVEL_ASSERT                 1
 /**
@@ -218,10 +218,10 @@ typedef struct _lapic_icr
     uint64_t delivery_mode : 3;
 
     /**
-    * Destination Mode
-    * @brief Selects either physical or logical destination mode.
-    * @note The number of local APICs that can be addressed on the system bus may be restricted by hardware.
-    **/
+     * Destination Mode
+     * @brief Selects either physical or logical destination mode.
+     * @note The number of local APICs that can be addressed on the system bus may be restricted by hardware.
+     **/
     uint64_t dest_mode : 1;
 
     // Indicates the IPI delivery status: idle or send pending.
@@ -255,13 +255,13 @@ typedef struct _lapic_icr
      * through 63 contain the APIC ID of the target processor the for Pentium 4 and Intel Xeon 
      * processors. If the destination mode is set to logical, the interpretation of the 8-bit destination 
      * field depends on the settings of the DFR and LDR registers of the local APICs in all the processors in the system
-    **/
+     **/
 
     /**
      * @ref AMD Architecture Programmer Manual 
      * The field indicates the target local APIC when the destination mode=0 (physical), and the destination logical 
      * ID (as indicated by LDR and DFR) when the destination mode=1 (logical).
-    **/
+     **/
     uint64_t dest_field : 8;
 
 } __attribute__((packed))  lapic_icr_t;
@@ -318,7 +318,7 @@ uint32_t read_lapic_register(uint32_t reg);
  * The LAPIC is responsible for handling interrupts that are specific to the CPU 
  * core it is associated with.
 
- */
+*/
 extern volatile uint64_t local_apic_addr;
 
 /**
@@ -464,7 +464,7 @@ uint32_t read_ioapic_register(volatile uint32_t* ioapic_addr, uint32_t reg);
  * I/O APIC can manage another set of interrupt lines, allowing your system to 
  * support more devices.
 
- */  
+*/  
 extern volatile uint32_t *volatile ioapics[IOAPIC_ADDRESSES_MAX];
 
 typedef struct _ioapic_version
@@ -501,9 +501,9 @@ void get_ioapic_version(volatile uint32_t* ioapic, ioapic_version_t* ioapic_vers
  * @retval
  **/
 void map_lapic_and_ioapic(
-    _in_ uint64_t lapic_phys_addr, 
-    _in_ intr_ctr_struct_head_t* ioapic_intr_ctr_structure
-);
+        _in_ uint64_t lapic_phys_addr, 
+        _in_ intr_ctr_struct_head_t* ioapic_intr_ctr_structure
+        );
 
 
 

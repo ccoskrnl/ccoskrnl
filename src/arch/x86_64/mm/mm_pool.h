@@ -63,7 +63,7 @@ typedef struct _pool_header {
             uint16_t allocator_back_trace_index;
             uint16_t pool_tag_hash;
         };
-        
+
     };
 
 } pool_header;
@@ -104,7 +104,7 @@ typedef struct _pool {
 
     uint16_t pool_type : 7;
     uint16_t pool_index : 9;
-    
+
     // memory alignment, reserved.
     uint16_t reserved1;
     uint32_t reserved2;

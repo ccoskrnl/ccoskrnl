@@ -17,7 +17,7 @@ typedef struct _cpu_apm_def {
     /*
      * hardware P-state control. MSRC001_0061 [P-state Current Limit], MSRC001_0062 
      * [P-state Control] and MSRC001_0063 [P-state Status] exist. 
-    */
+     */
     uint32_t HwPstate : 1;
 
     /*
@@ -25,7 +25,7 @@ typedef struct _cpu_apm_def {
      * and stop grant transitions (such as STPCLK Throttling); therefore the TSC is suitable for use as a 
      * source of time. 0 = No such guarantee is made and software should avoid attempting to use the TSC 
      * as a source of time.
-    */
+     */
     uint32_t TscInvariant : 1;
 
     uint32_t cpb : 1;                           // core performance boost
@@ -34,7 +34,7 @@ typedef struct _cpu_apm_def {
      *  read-only effective frequency interface. 1=Indicates presence of MSRC000_00E7 
      * [Read-Only Max Performance Frequency Clock Count (MPerfReadOnly)] and MSRC000_00E8 
      * [Read-Only Actual Performance Frequency Clock Count (APerfReadOnly)].
-    */
+     */
     uint32_t EffFreqRO : 1;
 
 } cpu_apm_def_t;

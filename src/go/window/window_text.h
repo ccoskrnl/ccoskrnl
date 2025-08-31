@@ -14,34 +14,34 @@
 #define WINDOW_TEXT_CACHED_END_CODE                             128
 
 typedef status_t (*_window_text_register_t)(
-    _in_ void                   *_this,
-    _in_ font_ttf_t             *font_family,
-    _in_ double                 point_size,
-    _in_ int                    fix_line_gap
-);
+        _in_ void                   *_this,
+        _in_ font_ttf_t             *font_family,
+        _in_ double                 point_size,
+        _in_ int                    fix_line_gap
+        );
 
 typedef status_t (*_window_text_putc_t)(
-    _in_ void                                   *_this,
-    _in_ wch_t                                  wch,
-    _in_ go_blt_pixel_t                         color,
-    _in_ boolean                                update
-);
+        _in_ void                                   *_this,
+        _in_ wch_t                                  wch,
+        _in_ go_blt_pixel_t                         color,
+        _in_ boolean                                update
+        );
 
 typedef status_t (*_window_text_puts_t)(
-    _in_ void                                   *_this,
-    _in_ const char                             *string,
-    _in_ go_blt_pixel_t                         color
-);
+        _in_ void                                   *_this,
+        _in_ const char                             *string,
+        _in_ go_blt_pixel_t                         color
+        );
 
 typedef status_t (*_window_text_putws_t)(
-    _in_ void                                   *_this,
-    _in_ const wch_t                            *wstring,
-    _in_ go_blt_pixel_t                         color
-);
+        _in_ void                                   *_this,
+        _in_ const wch_t                            *wstring,
+        _in_ go_blt_pixel_t                         color
+        );
 
 typedef void (*_window_text_clear_window_t)(
-    _in_ void                   *_this
-);
+        _in_ void                   *_this
+        );
 
 typedef struct _window_text
 {

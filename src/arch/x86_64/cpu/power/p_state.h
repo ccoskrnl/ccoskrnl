@@ -20,7 +20,7 @@ MSRC001_0070 COFVID Control
 /**
  * MSRC001_0061 P-state Current Limit 
  * Read; GP-write; Per-compute-unit; Updated-by-hardware.
-*/
+ */
 #define AMD_MSR_P_STATE_CUR_LIMIT                                       0xC0010061
 /**
  * CurPstateLimit: current P-state limit. Specifies the highest-performance non-boosted P-state
@@ -28,7 +28,7 @@ MSRC001_0070 COFVID Control
  * Attempts to change the CurPstateLimit to a value greater (lower performance) than 
  * MSRC001_0061[PstateMaxVal] leaves CurPstateLimit unchanged. This field uses software P-state 
  * numbering.
-*/
+ */
 #define AMD_MSR_P_STATE_CUR_LIMIT_CurPstateLimit(msr_value)             ((uint64_t)msr_value & (uint64_t)0x7)
 
 /**
@@ -36,7 +36,7 @@ MSRC001_0070 COFVID Control
  * (highest non-boosted value) allowed. Attempts to change MSRC001_0062[PstateCmd] to a lower-
  * performance P-state (higher value) are clipped to the value of this field. This field uses software 
  * P-state numbering.
-*/
+ */
 #define AMD_MSR_P_STATE_CUR_LIMIT_PstateMaxVal(msr_value)               (((uint64_t)msr_value & (uint64_t)0x70) >> 4)
 
 
@@ -51,21 +51,21 @@ MSRC001_0070 COFVID Control
  * MSRC001_00[6B:64]. 0=P0, 1=P1, etc. P-state limits are applied to any P-state requests made 
  * through this register. Reads from this field return the last written value, regardless of whether any
  * limit are applied. This field uses software P-state numbering.
-*/
+ */
 #define AMD_MSR_P_STATE_CONTROL_PstateCmd(p_state_cmd)                  ((uint64_t)((uint64_t)(p_state_cmd) & 0x7))
 
 
 /**
  * MSRC001_0063 P-state Status 
  * Read; GP-write; Per-compute-unit; Updated-by-hardware.
-*/
+ */
 #define AMD_MSR_P_STATE_STATUS                                          0xC0010063
 /**
  * CurPstate: current P-state. Cold reset: Varies by product. This field provides the frequency
  * component of the current non-boosted P-state of the core (regardless of the source of the P-state change,
  * including MSRC001_0062[PstateCmd]. 0=P0, 1=P1, etc. The value of this field is updated when the
  * COF transitions to a new value associated with a P-state. This field uses software P-state numbering.
-*/
+ */
 #define AMD_MSR_P_STATE_CurPstate(msr_value)                            ((uint64_t)(msr_value) & (uint64_t)0x7)
 
 /**
@@ -89,7 +89,7 @@ typedef struct _amd_p_state
      * CpuFid[5:0]: core frequency ID. Read-write. Except as required by [Processor-Systemboard
      * Current Delivery Compatibility Check], software should not modify this field. Specifies the 
      * core frequency multiplier. The core COF is a function of CpuFid and CpuDid, and defined by Core COF.
-    */
+     */
     uint64_t CpuFid : 6;
 
     /**
@@ -103,7 +103,7 @@ typedef struct _amd_p_state
      *     3h Divide by 8
      *     4h Divide by 16
      *     7h-5h Reserved.
-    */
+     */
     uint64_t CpuDid : 3;
 
     /**

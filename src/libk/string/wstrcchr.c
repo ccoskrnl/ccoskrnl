@@ -12,5 +12,5 @@ wch_t * wstrrchr(const wch_t * wstr, wch_t ch)
         return((wch_t *)wstr);
 
     return NULL;
- 
+
 }

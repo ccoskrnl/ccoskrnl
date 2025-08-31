@@ -9,7 +9,7 @@ int64_t rand()
     // {
     //     ""
     // }
-    
-    
+
+
     return random;
 }

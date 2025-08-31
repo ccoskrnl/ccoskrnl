@@ -205,7 +205,7 @@ static status_t font_tty_init(void *this, uint8_t *font_bin_data) {
             font->hmtx.dir.offset = swap_endian_32(table_dirs[i].offset);
             font->hmtx.dir.length = swap_endian_32(table_dirs[i].length);
 
-            
+
         }
 
         // cmap 0x636d6170
@@ -950,7 +950,7 @@ status_t glyph_rasterize(void *_this, go_buf_t* buffer, point_i_t origin, double
             }
         }
     }
-        
+
     point_i_t p_fill_em;
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
@@ -965,7 +965,7 @@ status_t glyph_rasterize(void *_this, go_buf_t* buffer, point_i_t origin, double
 
 
     for (size_t i = 0; i < height; i++)
-    	free(flags[i]);
+        free(flags[i]);
     free(flags);
 
 #endif
@@ -1079,13 +1079,13 @@ status_t del_a_font(font_ttf_t *font) {
 }
 
 status_t _op_text_out(
-    _in_ _out_ go_buf_t                         *buf,
-    _in_ wch_t                                  *string,
-    _in_ point_i_t                              origin,
-    _in_ font_ttf_t                             *font_family,
-    _in_ double                                 point_size,
-    _in_ go_blt_pixel_t                         color
-)
+        _in_ _out_ go_buf_t                         *buf,
+        _in_ wch_t                                  *string,
+        _in_ point_i_t                              origin,
+        _in_ font_ttf_t                             *font_family,
+        _in_ double                                 point_size,
+        _in_ go_blt_pixel_t                         color
+        )
 {
     status_t status = ST_SUCCESS;
     font_ttf_glyph_t *glyph;
@@ -1106,37 +1106,37 @@ status_t _op_text_out(
         switch (string[i]) 
         {
 
-        case ' ':
-            origin.x += advance_width;
-            break;
+            case ' ':
+                origin.x += advance_width;
+                break;
 
-        case '\t':
-            origin.x += (advance_width) * TAB_SIZE;
-            break;
+            case '\t':
+                origin.x += (advance_width) * TAB_SIZE;
+                break;
 
-        case '\b':
-            // origin.x -= advance_width;
-            break;
+            case '\b':
+                // origin.x -= advance_width;
+                break;
 
-        default:
-            status = new_a_glyph(&glyph);
-            if (ST_ERROR(status)) 
-                krnl_panic(NULL);
+            default:
+                status = new_a_glyph(&glyph);
+                if (ST_ERROR(status)) 
+                    krnl_panic(NULL);
 
-            glyph->init(glyph, string[i], font_family);
-            status = glyph->rasterize(glyph, buf, origin, point_size, color);
-            if (ST_ERROR(status)) 
-                krnl_panic(NULL);
+                glyph->init(glyph, string[i], font_family);
+                status = glyph->rasterize(glyph, buf, origin, point_size, color);
+                if (ST_ERROR(status)) 
+                    krnl_panic(NULL);
 
-            origin.x += ceil(glyph->advance_width * scaling_factor);
-            del_a_glyph(glyph);
+                origin.x += ceil(glyph->advance_width * scaling_factor);
+                del_a_glyph(glyph);
 
-            break;
+                break;
         }
 
         if (origin.x >= buf->width) 
             break;
-        
+
     }
 
     return status;

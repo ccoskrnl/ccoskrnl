@@ -31,6 +31,5 @@
         "sdt.h": "c",
         "madt.h": "c"
     },
-    "C_Cpp.errorSquiggles": "disabled",
-    "editor.fontFamily": "'CaskaydiaCove Nerd Font', 'Cascadia Code', 'Consolas', 'Courier New', monospace"
+    "C_Cpp.errorSquiggles": "disabled"
 }

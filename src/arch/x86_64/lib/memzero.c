@@ -27,9 +27,9 @@ void memzero(void* dst, uint64_t size)
         {
 
             if (cpu_feature_support(X86_FEATURE_SSE3) 
-                || cpu_feature_support(X86_FEATURE_SSSE3)
-                || cpu_feature_support(X86_FEATURE_SSE41) 
-                || cpu_feature_support(X86_FEATURE_SSE42))
+                    || cpu_feature_support(X86_FEATURE_SSSE3)
+                    || cpu_feature_support(X86_FEATURE_SSE41) 
+                    || cpu_feature_support(X86_FEATURE_SSE42))
                 goto __128bits; 
             else
                 goto __64bits;

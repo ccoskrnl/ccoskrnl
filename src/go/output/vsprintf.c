@@ -94,7 +94,7 @@ static void float2str(double num, char* str, int after_point)
 
         long2str((long)float_part, str + i + 1, after_point, 10);
     }
-    
+
 }
 
 static char* number(char *str, uint64_t *num, int base, long size, uint64_t precision, uint32_t flags)
@@ -107,8 +107,8 @@ static char* number(char *str, uint64_t *num, int base, long size, uint64_t prec
 
     if (flags & SMALL)
         digits = "0123456789abcdefghijklmnopqrstuvwxyz";
-  
-    
+
+
 
     if (flags & SMALL)
     {
@@ -140,17 +140,17 @@ static char* number(char *str, uint64_t *num, int base, long size, uint64_t prec
     }
     else
         sign = (flags & PLUS) ? '+' : (flags & SPACE) ? ' ' : 0;
-    
+
     if (sign)
     {
         size--;
     }
-    
+
     if (flags & SPECIAL)
     {
         if (base == 16)
             size -= 2;
-        
+
         else if (base == 8)
             size--;
     }
@@ -200,7 +200,7 @@ static char* number(char *str, uint64_t *num, int base, long size, uint64_t prec
             *str++ = digits[33];
         }
     }
-    
+
 
     if (!(flags & LEFT))
     {
@@ -208,7 +208,7 @@ static char* number(char *str, uint64_t *num, int base, long size, uint64_t prec
         {
             *str++ = pad;
         }
-        
+
     }
 
     while (i < precision--)
@@ -221,12 +221,12 @@ static char* number(char *str, uint64_t *num, int base, long size, uint64_t prec
         *str++ = tmp[i];
     }
 
-    
+
     while (size-- > 0)
     {
         *str++ = ' ';
     }
-    
+
     return str;
 }
 
@@ -256,28 +256,28 @@ int64_t vsprintf(char* buf, const char *fmt, va_list args)
 
         flags = 0;
 
-    repeat:
+repeat:
 
         // ignore '%'
         ++fmt;        
 
         switch (*fmt)
         {
-        case '-':
-            flags |= LEFT;
-            goto repeat; 
-        case '+':
-            flags |= PLUS;
-            goto repeat;
-        case ' ':
-            flags |= SPACE;
-            goto repeat;
-        case '#':
-            flags |= SPECIAL;
-            goto repeat;
-        case '0':
-            flags |= ZEROPAD;
-            goto repeat;
+            case '-':
+                flags |= LEFT;
+                goto repeat; 
+            case '+':
+                flags |= PLUS;
+                goto repeat;
+            case ' ':
+                flags |= SPACE;
+                goto repeat;
+            case '#':
+                flags |= SPECIAL;
+                goto repeat;
+            case '0':
+                flags |= ZEROPAD;
+                goto repeat;
         }
 
         field_width = -1;
@@ -324,7 +324,7 @@ int64_t vsprintf(char* buf, const char *fmt, va_list args)
                 {
                     fmt++;
                 }
-                
+
             }
             else if (*fmt == '*')
             {
@@ -335,7 +335,7 @@ int64_t vsprintf(char* buf, const char *fmt, va_list args)
             {
                 precision = 0;
             }
-            
+
         }
 
         qualifier = -1;
@@ -348,126 +348,126 @@ int64_t vsprintf(char* buf, const char *fmt, va_list args)
         // handle conversion indicator
         switch (*fmt)
         {
-        // character
-        case 'c':
+            // character
+            case 'c':
 
-            // if flags not contains LEFT flag, we need 
-            // to fill the front of output field with whilespace 
-            if (!(flags & LEFT))
-            {
+                // if flags not contains LEFT flag, we need 
+                // to fill the front of output field with whilespace 
+                if (!(flags & LEFT))
+                {
+                    while (--field_width > 0)
+                    {
+                        *str++ = ' ';
+                    }
+                }
+                // copy char into buffer 
+                *str++ = (unsigned char)va_arg(args, long);
+
+                // if flags contains LEFT flag, then fill temporary string with whitespace
                 while (--field_width > 0)
                 {
                     *str++ = ' ';
                 }
-            }
-            // copy char into buffer 
-            *str++ = (unsigned char)va_arg(args, long);
 
-            // if flags contains LEFT flag, then fill temporary string with whitespace
-            while (--field_width > 0)
-            {
-                *str++ = ' ';
-            }
+                break;
 
-            break;
+                // string
+            case 's':       
 
-        // string
-        case 's':       
+                s = va_arg(args, char*);
 
-            s = va_arg(args, char*);
+                // get the length of the passed string
+                len = strlen(s);
 
-            // get the length of the passed string
-            len = strlen(s);
+                if (precision < 0)
+                {
+                    precision = len;
+                }
 
-            if (precision < 0)
-            {
-                precision = len;
-            }
+                // expand the precision to length of the caller passed string
+                else if (len > precision)
+                    len = precision; 
 
-            // expand the precision to length of the caller passed string
-            else if (len > precision)
-                len = precision; 
+                if (!(flags & LEFT))
+                {
+                    while (len < field_width--)
+                    {
+                        *str++ = ' ';
+                    }
+                }
 
-            if (!(flags & LEFT))
-            {
+                // copy caller passed string into formated buffer
+                for (i = 0; i < len; i++)
+                {
+                    *str++ = *s++;
+                }
+
                 while (len < field_width--)
                 {
                     *str++ = ' ';
                 }
-            }
+                break; 
 
-            // copy caller passed string into formated buffer
-            for (i = 0; i < len; i++)
-            {
-                *str++ = *s++;
-            }
-            
-            while (len < field_width--)
-            {
-                *str++ = ' ';
-            }
-            break; 
-        
-        case 'o':
-            num = va_arg(args, unsigned long);    
-            str = number(str, &num, 8, field_width, precision, flags);
-            break;
+            case 'o':
+                num = va_arg(args, unsigned long);    
+                str = number(str, &num, 8, field_width, precision, flags);
+                break;
 
-        case 'p':
-            if (field_width == -1)
-            {
-                field_width = 16;
-                flags |= ZEROPAD;
-            }
+            case 'p':
+                if (field_width == -1)
+                {
+                    field_width = 16;
+                    flags |= ZEROPAD;
+                }
 
-            num = va_arg(args, unsigned long);
-            str = number(str, &num, 16, field_width, precision, flags);
+                num = va_arg(args, unsigned long);
+                str = number(str, &num, 16, field_width, precision, flags);
 
-        case 'x':
-            flags |= SMALL;
-        case 'X':
-            num = va_arg(args, unsigned long);
-            str = number(str, &num, 16, field_width, precision, flags);
-            break;
+            case 'x':
+                flags |= SMALL;
+            case 'X':
+                num = va_arg(args, unsigned long);
+                str = number(str, &num, 16, field_width, precision, flags);
+                break;
 
-        // if convertion indicator is 'd' or 'i', so that corrresponding arg is signed integer
-        case 'd':
-        case 'i':
-            flags |= SIGN;    
+                // if convertion indicator is 'd' or 'i', so that corrresponding arg is signed integer
+            case 'd':
+            case 'i':
+                flags |= SIGN;    
 
-        // and if it is 'u',  the arg is unsigend interger;
-        case 'u':
+                // and if it is 'u',  the arg is unsigend interger;
+            case 'u':
 
-            num = va_arg(args, unsigned long);
-            str = number(str, &num, 10, field_width, precision, flags);
+                num = va_arg(args, unsigned long);
+                str = number(str, &num, 10, field_width, precision, flags);
 
-            break;
+                break;
 
-        case 'f':
-            flags |= SIGN;
-            flags |= DOUBLE;
-            double d = va_arg(args, double); 
+            case 'f':
+                flags |= SIGN;
+                flags |= DOUBLE;
+                double d = va_arg(args, double); 
 
-            str = number(str, (uint64_t*)&d, 10, field_width, precision, flags);
+                str = number(str, (uint64_t*)&d, 10, field_width, precision, flags);
 
-        case 'b':
-            num = va_arg(args, unsigned long);
-            str = number(str, &num, 2, field_width, precision, flags);
-            break;
+            case 'b':
+                num = va_arg(args, unsigned long);
+                str = number(str, &num, 2, field_width, precision, flags);
+                break;
 
-        default:
-            if (*fmt != '%')
-            {
-                *str++ = '%';
-            }
+            default:
+                if (*fmt != '%')
+                {
+                    *str++ = '%';
+                }
 
-            if (*fmt)
-                *str++ = *fmt; 
-            else
-                --fmt;
-            break;
+                if (*fmt)
+                    *str++ = *fmt; 
+                else
+                    --fmt;
+                break;
         }
-        
+
     }
 
     *str = '\0';

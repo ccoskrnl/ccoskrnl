@@ -1,12 +1,10 @@
 # ChengCheng OS
-ChengCheng OS (CCOS) is a hobby 64 bit operating system. I'm writing it on x86, because I like sadness and misery. This project was still in developing. I'm a beginner for operating system design. Many of the design concepts I have implemented are inspired by Windows NT such as ccldr (OS Loader for ChengCheng OS) and Memory manager. And, there is plenty more courses that I need to learn in the comming months. So, I will not update the project frequently.
 
+ChengCheng OS (CCOS) is a hobby 64 bit operating system. I'm writing it on x86, because I like sadness and misery. This project was still in developing. I'm a beginner for operating system design. Many of the design concepts I have implemented are inspired by Windows NT such as ccldr (OS Loader for ChengCheng OS) and Memory manager. And, there is plenty more courses that I need to learn in the comming months. So, I will not update the project frequently.
 
 ## Demo
 
-
 ![Sample](./demo/sample.png)
-
 
 ## Features
 
@@ -24,7 +22,7 @@ ChengCheng OS (CCOS) is a hobby 64 bit operating system. I'm writing it on x86, 
 
 - **TrueType**
 
-    CCOS displays characters on screen through rendering TrueType Fonts(Default font in CCOS is **Adobe Source Han Sans SC VF**). It's not worth to output characters using TrueType rendering. For early OS developing, using bitmap font is more recommended method of characters output. 
+    CCOS displays characters on screen through rendering TrueType Fonts(Default font in CCOS is **Adobe Source Han Sans SC VF**). It's not worth to output characters using TrueType rendering. For early OS developing, using bitmap font is more recommended method of characters output.
 
     Probably the greatest thing about storing characters as outlines is that only one outline per character is needed to produce all the sizes of that character OS will ever need. A single outline can be scaled to an enormous range of different sizes, some of which are illustrated below. This enables the same character to be displayed on monitors of different resolutions, and to be printed out at a large number of different sizes. To scale a character outline is a simple mathematical operation, as indeed are other transformations such as rotation and reflections.
 
@@ -44,7 +42,6 @@ ChengCheng OS (CCOS) is a hobby 64 bit operating system. I'm writing it on x86, 
 
     CCOS supports multi-windows, which means it can output text in different window on screen. It's uesful to debug multi-cores through open a text-output window to each core. Even if not have mouse driver, user also can use keyboard to select which window need to enter characters.
 
-
 ## TO-DO
 
 - [ ] Bug fix: Add spinlock to prevent conflicts of multiple windows output
@@ -62,7 +59,6 @@ ChengCheng OS (CCOS) is a hobby 64 bit operating system. I'm writing it on x86, 
 
 ## Requirements
 
-
 - **QEMU with 2 GiB RAM or higher**
 
     I just roughly divide the memory space such that the kernel space only use the quarter of availalbe RAM. But a problem need to noticed that GetMemoryMap() routine returned the incorrect memory map information when attempting to allocate higher RAM (larger than 2 GiB) for QEMU. I'm not trying other OVMF firmware so I guess such error may stem from my OVMF.
@@ -70,7 +66,6 @@ ChengCheng OS (CCOS) is a hobby 64 bit operating system. I'm writing it on x86, 
 - **x86_64 CPU (Intel or AMD) with AVX instruction set**
 
     There are slight differences on x86_64 architecture programming between Intel 64 and AMD64. I'm developing CCOS based on AMD CPU but use Intel® 64 and IA-32 architectures software developer's manuals as my x86_64 architechure reference manual. For now, though, whatever the cpu vendor.
-
 
 ## Installation
 
@@ -86,11 +81,9 @@ No license.
 
 ## Contact
 
-
 E-mail: 2010705797@qq.com
 
 ChengCheng OS: https://github.com/ccoskrnl/ccoskrnl
-
 
 ## Related Reading
 

@@ -17,7 +17,7 @@
  *      Each PCI bus can support up to 32 devices.
  * Functions per Device:
  *      Each device can have up to 8 functions.
-*/
+ */
 
 #define MAX_PCI_SEGMENT_GROUPS                                              65536
 #define MAX_PCI_BUSES                                                       256

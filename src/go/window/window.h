@@ -44,7 +44,7 @@ typedef struct _window_style
 
 typedef status_t (*_window_show_window_t)(
         _in_ void                               *_this
-);
+        );
 
 typedef struct _window
 {
@@ -111,18 +111,18 @@ typedef struct _window
 
 
 status_t new_a_window(
-    _in_ uint64_t                           tag,
-    _in_ WindowType                         type,
-    _in_ window_t                           *parent_window,
-    _in_ void                               *screen,
-    _in_ wch_t                              *window_title,
-    _in_ window_style_t                     style,
-    _in_ int                                x_of_upper_left_hand,
-    _in_ int                                y_of_upper_left_hand,
-    _in_ int                                width,
-    _in_ int                                height,
-    _in_ _out_ void                         **window
-);
+        _in_ uint64_t                           tag,
+        _in_ WindowType                         type,
+        _in_ window_t                           *parent_window,
+        _in_ void                               *screen,
+        _in_ wch_t                              *window_title,
+        _in_ window_style_t                     style,
+        _in_ int                                x_of_upper_left_hand,
+        _in_ int                                y_of_upper_left_hand,
+        _in_ int                                width,
+        _in_ int                                height,
+        _in_ _out_ void                         **window
+        );
 
 #define WINDOW_TITLE_POINT_SIZE                     18
 #define WINDOW_TITLE_LSB                            20

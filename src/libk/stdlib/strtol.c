@@ -72,7 +72,7 @@ long strtol(const char *str, char **endptr, int base)
 
         result = result * base + digit;
         s++;
-        
+
     }
 
     if (overflow)

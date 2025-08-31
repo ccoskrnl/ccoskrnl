@@ -11,5 +11,5 @@ char * strrchr(const char * str,int ch)
     if(*str == (char)ch)
         return((char *)str);
     return NULL;
- 
+
 }

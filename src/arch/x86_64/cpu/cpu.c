@@ -38,14 +38,14 @@ void __load_tr(uint16_t selector) {
  * @param[in]       msr             Address of Model Specific Register.
  * 
  * @retval                          Value of specific msr.
-*/
+ */
 uint64_t rdmsr(uint32_t msr) {
     uint32_t low, high;
     __asm__ volatile (
-        "rdmsr"
-        : "=a"(low), "=d"(high)
-        : "c"(msr)
-    );
+            "rdmsr"
+            : "=a"(low), "=d"(high)
+            : "c"(msr)
+            );
     return ((uint64_t)high << 32) | low;
 }
 
@@ -58,15 +58,15 @@ uint64_t rdmsr(uint32_t msr) {
  * 
  * @retval          none.
  * 
-*/
+ */
 void wrmsr(uint32_t msr, uint64_t value) {
     uint32_t low = (uint32_t)value;
     uint32_t high = (uint32_t)(value >> 32);
     __asm__ volatile (
-        "wrmsr"
-        :
-        : "c"(msr), "a"(low), "d"(high)
-    );
+            "wrmsr"
+            :
+            : "c"(msr), "a"(low), "d"(high)
+            );
 }
 
 
@@ -88,13 +88,13 @@ void wrmsr(uint32_t msr, uint64_t value) {
  *                                  information in the EAX, EBX, ECX, and EDX registers.
  *                                  The instruction’s output is dependent on the contents 
  *                                  of the leaf value upon execution.
-*/
+ */
 void cpuid(uint32_t leaf, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx) {
     __asm__ volatile (
-        "cpuid"
-        : "=a"(*eax), "=b"(*ebx), "=c"(*ecx), "=d"(*edx)
-        : "a"(leaf)
-    );
+            "cpuid"
+            : "=a"(*eax), "=b"(*ebx), "=c"(*ecx), "=d"(*edx)
+            : "a"(leaf)
+            );
 }
 
 
@@ -117,13 +117,13 @@ void cpuid(uint32_t leaf, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t 
  *                                  information in the EAX, EBX, ECX, and EDX registers.
  *                                  The instruction’s output is dependent on the contents 
  *                                  of the leaf value upon execution.
-*/
+ */
 void cpuid_ex(uint32_t leaf, uint32_t fn, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx) {
     __asm__ volatile (
-        "cpuid"
-        : "=a"(*eax), "=b"(*ebx), "=c"(*ecx), "=d"(*edx)
-        : "a"(leaf), "c"(fn)
-    );
+            "cpuid"
+            : "=a"(*eax), "=b"(*ebx), "=c"(*ecx), "=d"(*edx)
+            : "a"(leaf), "c"(fn)
+            );
 }
 
 uint32_t _cpuid_get_apic_id()
@@ -139,7 +139,7 @@ uint32_t _cpuid_get_apic_id()
  * Get the CPU cycle count. Read Time-Stamp Counter
  * 
  * @retval                          A uint64_t value which is Time-Stamp Counter.
-*/
+ */
 uint64_t rdtsc() {
     unsigned int lo, hi;
     __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
@@ -149,10 +149,10 @@ uint64_t rdtsc() {
 uint64_t read_xcr0() {
     uint32_t eax, edx;
     __asm__ volatile (
-        "xgetbv"
-        : "=a" (eax), "=d" (edx)
-        : "c" (0)
-    );
+            "xgetbv"
+            : "=a" (eax), "=d" (edx)
+            : "c" (0)
+            );
     return ((uint64_t)edx << 32) | eax;
 }
 
@@ -160,8 +160,8 @@ void write_xcr0(uint64_t value) {
     uint32_t eax = (uint32_t)value;
     uint32_t edx = (uint32_t)(value >> 32);
     __asm__ volatile (
-        "xsetbv"
-        :
-        : "a" (eax), "d" (edx), "c" (0)
-    );
+            "xsetbv"
+            :
+            : "a" (eax), "d" (edx), "c" (0)
+            );
 }

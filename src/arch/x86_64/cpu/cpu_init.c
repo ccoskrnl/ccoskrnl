@@ -48,9 +48,9 @@ void preparing_for_bsp(boolean is_first)
         // Because of we already defined GDT during OS loading, so we just need to copy defined gdt
         // into new gdt space.
         memcpyb(
-            gdt, 
-            (void*)(_current_machine_info->memory_space_info[1].base_address + MACHINE_INFO_SIZE + CCLDR_ROUTINE_SIZE), 
-            sizeof(seg_desc_t) * 3);
+                gdt, 
+                (void*)(_current_machine_info->memory_space_info[1].base_address + MACHINE_INFO_SIZE + CCLDR_ROUTINE_SIZE), 
+                sizeof(seg_desc_t) * 3);
 
         bsp.gdt = gdt;
         bsp.gdtr.limit = (sizeof(seg_desc_t) * SEG_DESC_MAXIMUM) - 1;
@@ -86,7 +86,7 @@ void preparing_for_bsp(boolean is_first)
                 xcr0 |= ((1 << 2) | (1 << 1));
                 write_xcr0(xcr0);
             }
-            
+
         }
     }
 
@@ -131,13 +131,13 @@ void preparing_for_bsp(boolean is_first)
         bsp.tag = CPU_CORE_TAG_BSP;
         cpu_cores_list.blink = &bsp.node;
         cpu_cores_list.flink = &bsp.node;
-        
+
         mtrr_init();
 
     }
-    
 
-    
+
+
 }
 
 cpu_core_desc_t* ap_setting(uint64_t lapic_id)
@@ -179,13 +179,13 @@ cpu_core_desc_t* ap_setting(uint64_t lapic_id)
             xcr0 |= ((1 << 2) | (1 << 1));
             write_xcr0(xcr0);
         }
-        
+
     }
 
 
     // TSS descriptor is at index 3 in the GDT
     __load_tr(3 << 3);
-    
+
     return cpu;
 }
 

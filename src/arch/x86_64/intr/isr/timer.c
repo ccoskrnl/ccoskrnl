@@ -165,7 +165,7 @@ void enable_timer_intr()
 
     // Thrermal and power management
     cpuid(CPUID_LEFT_THERMAL_AND_POWER_MANAGEMENT,
-          &eax, &ebx, &ecx, &edx);
+            &eax, &ebx, &ecx, &edx);
     support_apic_time_always_running = (boolean)((eax >> 2) & 1);
 
     cpuid(CPUID_EX_LEFT_APMF, &eax, &ebx, &ecx, &edx);
@@ -218,7 +218,7 @@ void enable_timer_intr()
 
         }
 
-        
+
     }
     else if (!memcmp(cpu_feat_id.vendor_id, CPUID_VENDOR_AMD, sizeof(CPUID_VENDOR_AMD)))
     {

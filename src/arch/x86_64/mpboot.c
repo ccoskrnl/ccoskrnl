@@ -21,25 +21,25 @@ static uint64_t* volatile lock_var;
 
 /*
 
-Routine Description:
+   Routine Description:
 
-    The routine fixes the all instructions that rely on relocation. We can't assume
-that the UEFI-boot always placed our startup routine at stationary address. In 
-default case, we use 0x1000 as the entrypoint address of our startup routine. 
-Different machine might have different memory layouts. Since the address
-0x1000 may was reserved for the other machine, so we need to fix manually these
-address references.
+   The routine fixes the all instructions that rely on relocation. We can't assume
+   that the UEFI-boot always placed our startup routine at stationary address. In 
+   default case, we use 0x1000 as the entrypoint address of our startup routine. 
+   Different machine might have different memory layouts. Since the address
+   0x1000 may was reserved for the other machine, so we need to fix manually these
+   address references.
 
 Parameters:
 
-    startip - The entrypoint of application processors.
+startip - The entrypoint of application processors.
 
-    ap_entry - Then entrypoint of application processors after they have been
+ap_entry - Then entrypoint of application processors after they have been
 initializated.
 
 Return Value:
 
-    None.
+None.
 
 */
 void fixup_reloc_of_entry(ptr_t startip, ptr_t ap_entry)
@@ -174,7 +174,7 @@ static void send_init_sequence(int lapic_id)
 
     write_lapic_register(LOCAL_APIC_ICR_HIGH, high);
     write_lapic_register(LOCAL_APIC_ICR_LOW, low);
-    
+
     while (retry--) 
     {
 
@@ -287,7 +287,7 @@ void ap_entry()
     while (true) {
         asm("nop");
     }
-    
+
 }
 
 void active_aps(void)
@@ -302,8 +302,8 @@ void active_aps(void)
         cpu_core_desc_t* core = struct_base(cpu_core_desc_t, node, core_node);
         if (core->lapic_id != bsp.lapic_id) 
             boot_processor(core->lapic_id, _current_machine_info->memory_space_info[3].base_address);
-    
+
         core_node = core_node->flink;
     }
-    
+
 }

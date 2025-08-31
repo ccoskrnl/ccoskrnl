@@ -44,7 +44,7 @@ typedef struct _processor_local_apic
     uint8_t acpi_processor_id; // ACPI processor ID
     uint8_t apic_id;       // Local APIC ID
     uint32_t flags;        // Flags (e.g., if the processor is enabled)
-						   // Flags (bit 0 = Processor Enabled) (bit 1 = Online Capable)
+                           // Flags (bit 0 = Processor Enabled) (bit 1 = Online Capable)
     list_node_t node;
 } __attribute__((packed)) processor_local_apic_t;
 
@@ -100,13 +100,13 @@ typedef struct _local_apic_addr_override
 
 struct _MADT {
 
-	struct _ACPISDTHeader h;
-	uint32_t local_apic_addr;
+    struct _ACPISDTHeader h;
+    uint32_t local_apic_addr;
 
-	uint32_t flags;			//	Flags (1 = Dual 8259 Legacy PICs Installed)
-							// 	If bit 0 in the flags field is set then you 
-							//  need to mask all the 8259 PIC's interrupts, 
-							//  but you should probably do this anyway.
+    uint32_t flags;			//	Flags (1 = Dual 8259 Legacy PICs Installed)
+                            // 	If bit 0 in the flags field is set then you 
+                            //  need to mask all the 8259 PIC's interrupts, 
+                            //  but you should probably do this anyway.
 } __attribute__((packed));
 
 #endif

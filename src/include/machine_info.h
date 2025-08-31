@@ -140,10 +140,10 @@ typedef struct
   @param Bitmap Points to the output bitmap.
 
   @param Screen Points to the EFI_GRAPHICS_OUTPUT_PROTOCOL which
-                describes the screen on which to draw the
-                specified image.
+  describes the screen on which to draw the
+  specified image.
 
-**/
+ **/
 
 typedef struct _LOADER_IMAGE_DESCRIPTOR
 {
@@ -214,7 +214,7 @@ typedef struct _LOADER_MACHINE_INFORMATION
     // 4th: start-up routine
     //
     LOADER_MEMORY_SPACE_DESCRIPTOR memory_space_info[4]; 
-    
+
     // Background Info
     LOADER_IMAGE_DESCRIPTOR bg; 
 

@@ -15,7 +15,7 @@ long stol(const char *str, int base) {
         krnl_panic(NULL);
         return 0;
     }
-    
+
 
     if (endptr == str) {
         // fprintf(stderr, "No digits were found\n");

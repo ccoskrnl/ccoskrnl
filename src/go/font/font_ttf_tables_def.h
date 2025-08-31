@@ -149,14 +149,14 @@ typedef struct _font_ttf_hhea_table {
 
 struct _font_ttf_long_hor_metric
 {
-  uint16_t advanceWidth;  // Advance width, in font design units.
-  int16_t lsb;            // Glyph left side bearing, in font design units.
+    uint16_t advanceWidth;  // Advance width, in font design units.
+    int16_t lsb;            // Glyph left side bearing, in font design units.
 }__attribute__((packed));
 
 typedef struct _font_ttf_hmtx_table
 {
-  struct _font_ttf_long_hor_metric* hMetrics;     // Paired advance width and left side bearing values for each glyph. Records are indexed by glyph ID.
-  int16_t* leftSideBearings;                      // Left side bearings for glyph IDs greater than or equal to numberOfHMetrics.
+    struct _font_ttf_long_hor_metric* hMetrics;     // Paired advance width and left side bearing values for each glyph. Records are indexed by glyph ID.
+    int16_t* leftSideBearings;                      // Left side bearings for glyph IDs greater than or equal to numberOfHMetrics.
 } font_ttf_hmtx_table_t ;
 
 #endif

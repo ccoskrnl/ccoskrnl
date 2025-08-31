@@ -14,71 +14,71 @@
 
 
 typedef status_t (*_go_blt_t)(
-    _in_ void                               *_this, 
-    _in_ _out_ go_blt_pixel_t               *blt_buffer,
-    _in_ GO_BLT_OPERATIONS                  blt_operation, 
-    _in_ uint64_t                           src_x,
-    _in_ uint64_t                           src_y, 
-    _in_ uint16_t                           src_buf_width, 
-    _in_ uint16_t                           src_buf_height, 
-    _in_ uint64_t                           dest_x,
-    _in_ uint64_t                           dest_y, 
-    _in_ uint16_t                           drawing_width,
-    _in_ uint16_t                           drawing_height, 
-    _in_ _optional_ int                     buffer_index
-);
+        _in_ void                               *_this, 
+        _in_ _out_ go_blt_pixel_t               *blt_buffer,
+        _in_ GO_BLT_OPERATIONS                  blt_operation, 
+        _in_ uint64_t                           src_x,
+        _in_ uint64_t                           src_y, 
+        _in_ uint16_t                           src_buf_width, 
+        _in_ uint16_t                           src_buf_height, 
+        _in_ uint64_t                           dest_x,
+        _in_ uint64_t                           dest_y, 
+        _in_ uint16_t                           drawing_width,
+        _in_ uint16_t                           drawing_height, 
+        _in_ _optional_ int                     buffer_index
+        );
 
 typedef status_t (*_go_swap_framebuffer_t)(
-	_in_ void                   *_this,
-	_in_ uint8_t                dest_buf_index,
-	_in_ uint8_t                src_buf_index
-);
+        _in_ void                   *_this,
+        _in_ uint8_t                dest_buf_index,
+        _in_ uint8_t                src_buf_index
+        );
 
 
 typedef status_t (*_go_draw_rectangle_t)(
-    _in_ void                                   *_this,
-    _in_ int                                    x,
-    _in_ int                                    y,
-    _in_ int                                    width,
-    _in_ int                                    height,
-    _in_ go_blt_pixel_t                         color,
-	_in_ int                            		buf_index
-);
+        _in_ void                                   *_this,
+        _in_ int                                    x,
+        _in_ int                                    y,
+        _in_ int                                    width,
+        _in_ int                                    height,
+        _in_ go_blt_pixel_t                         color,
+        _in_ int                            		buf_index
+        );
 
 typedef status_t (*_go_draw_hollow_rectangle_t)(
-	_in_ void                           	*_this,
-	_in_ uint32_t                       	x,
-	_in_ uint32_t                       	y,
-	_in_ uint32_t                       	width,
-	_in_ uint32_t                       	height,
-	_in_ uint32_t                       	stroke_size,
-	_in_ go_blt_pixel_t                 	color,
-	_in_ int                            	buf_index
-);
+        _in_ void                           	*_this,
+        _in_ uint32_t                       	x,
+        _in_ uint32_t                       	y,
+        _in_ uint32_t                       	width,
+        _in_ uint32_t                       	height,
+        _in_ uint32_t                       	stroke_size,
+        _in_ go_blt_pixel_t                 	color,
+        _in_ int                            	buf_index
+        );
 
 
 typedef status_t (*_go_draw_second_order_bezier_curve_t)(
-	_in_ void                       			*_this,
-	_in_ point_f_t                   			p0,
-	_in_ point_f_t                   			p1,
-	_in_ point_f_t                   			p2,
-	_in_ go_blt_pixel_t              			color
-);
+        _in_ void                       			*_this,
+        _in_ point_f_t                   			p0,
+        _in_ point_f_t                   			p1,
+        _in_ point_f_t                   			p2,
+        _in_ go_blt_pixel_t              			color
+        );
 
 typedef status_t (*_go_draw_bresenhams_line_t)(
-	_in_ void                       			*_this,
-	_in_ point_i_t                   			p0,
-	_in_ point_i_t                   			p1,
-	_in_ go_blt_pixel_t              			color
-);
+        _in_ void                       			*_this,
+        _in_ point_i_t                   			p0,
+        _in_ point_i_t                   			p1,
+        _in_ go_blt_pixel_t              			color
+        );
 
 typedef status_t (*_go_clear_screen_t)(
-	_in_ void 									*_this
-);
+        _in_ void 									*_this
+        );
 
 typedef status_t (*_go_clear_framebuffers_t)(
-	_in_ void                   				*_this
-);
+        _in_ void                   				*_this
+        );
 
 
 typedef struct _go_screen_desc
@@ -122,13 +122,13 @@ struct _installed_screens {
 
 
 void _go_install_a_screen(
-    struct _go_screen_desc* screen,
-    go_blt_pixel_t* frame_buf_base,
-    size_t frame_buf_size,
-    int horizontal_resolution,
-    int vertical_resolution,
-    int pixels_per_scan_line
-);
+        struct _go_screen_desc* screen,
+        go_blt_pixel_t* frame_buf_base,
+        size_t frame_buf_size,
+        int horizontal_resolution,
+        int vertical_resolution,
+        int pixels_per_scan_line
+        );
 
 
 extern struct _go_buffer *_go_default_wallpaper;

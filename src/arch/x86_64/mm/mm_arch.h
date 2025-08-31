@@ -1,6 +1,6 @@
 /*
 
-@file: mm.h
+   @file: mm.h
 
 */
 
@@ -27,16 +27,16 @@
 // The macro is used to set rsp register using inline assembly supported by GNU compiler.
 #define set_krnl_stack(rsp) \
     __asm__( \
-        "movq %0, %%rsp\n\t" \
-        : : "r"(rsp) :  \
-    )
+            "movq %0, %%rsp\n\t" \
+            : : "r"(rsp) :  \
+            )
 
 
-/*
- *  The structure is used to record virtual address and physical address
- *  respectively.
- */
-typedef struct _mm_addr
+        /*
+         *  The structure is used to record virtual address and physical address
+         *  respectively.
+         */
+        typedef struct _mm_addr
 {
     uint64_t virt_addr;
     uint64_t phys_addr;
@@ -77,14 +77,14 @@ typedef struct _mm_addr
 
 /*
 
-Kernel takes Page Directory Self-mapping scheme from Windows NT. 
+   Kernel takes Page Directory Self-mapping scheme from Windows NT. 
 
-The key of the scheme is that a item of PML4 points PML4 self. And the item is randomized
-, meaning the base address of PML4 also is randomized, which further means the base address
-is different every time the memory management is initialized. What's even more important is
-that PML4 entry, PDPT entry, PD entry and PT entry are all compatible. So that every entry in 
-PML4 also can be as PDPT entry. In the same way, PDPT entry, PD entry and PT entry are the 
-same as PML4 entry.
+   The key of the scheme is that a item of PML4 points PML4 self. And the item is randomized
+   , meaning the base address of PML4 also is randomized, which further means the base address
+   is different every time the memory management is initialized. What's even more important is
+   that PML4 entry, PDPT entry, PD entry and PT entry are all compatible. So that every entry in 
+   PML4 also can be as PDPT entry. In the same way, PDPT entry, PD entry and PT entry are the 
+   same as PML4 entry.
 
 */
 #define DEFAULT_OFFSET_OF_PML4T_BASE                0x199UL             // 110011001(binary represention)
@@ -121,8 +121,8 @@ typedef struct _mmpte_software_t {
 
 /* 
 
-Page Table Entry definiton.
-PTE can be reinterpreted by hardware or software.
+   Page Table Entry definiton.
+   PTE can be reinterpreted by hardware or software.
 
 */
 typedef struct _mm_pte {

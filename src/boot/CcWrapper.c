@@ -1,19 +1,19 @@
 #include "include/Wrapper.h"
 
 void* memcpy(void* restrict dstptr, const void* restrict srcptr, uint64_t size) {
-	unsigned char* dst = (unsigned char*) dstptr;
-	const unsigned char* src = (const unsigned char*) srcptr;
-	for (uint64_t i = 0; i < size; i++)
-		dst[i] = src[i];
-	return dstptr;
+    unsigned char* dst = (unsigned char*) dstptr;
+    const unsigned char* src = (const unsigned char*) srcptr;
+    for (uint64_t i = 0; i < size; i++)
+        dst[i] = src[i];
+    return dstptr;
 }
 
 VOID WpFileOpen(
-    IN EFI_FILE_PROTOCOL *This,
-    OUT EFI_FILE_PROTOCOL **NewHandle,
-    IN CHAR16 *FileName,
-    IN UINT64 OpenMode,
-    IN UINT64 Attributes)
+        IN EFI_FILE_PROTOCOL *This,
+        OUT EFI_FILE_PROTOCOL **NewHandle,
+        IN CHAR16 *FileName,
+        IN UINT64 OpenMode,
+        IN UINT64 Attributes)
 {
     EFI_STATUS Status;
     Status = This->Open(This, NewHandle, FileName, OpenMode, Attributes);
@@ -25,10 +25,10 @@ VOID WpFileOpen(
 }
 
 VOID WpFileRead(
-    IN EFI_FILE_PROTOCOL *This,
-    IN OUT UINTN *BufferSize,
-    OUT VOID *Buffer,
-    IN CHAR16 *FileName)
+        IN EFI_FILE_PROTOCOL *This,
+        IN OUT UINTN *BufferSize,
+        OUT VOID *Buffer,
+        IN CHAR16 *FileName)
 {
 
     EFI_STATUS Status;
@@ -41,11 +41,11 @@ VOID WpFileRead(
 }
 
 VOID WpCloseProtocol(
-    IN EFI_HANDLE Handle,
-    IN EFI_GUID *Protocol,
-    IN EFI_HANDLE AgentHandle,
-    IN EFI_HANDLE ControllerHandle,
-    IN CHAR16 *ProtocolName)
+        IN EFI_HANDLE Handle,
+        IN EFI_GUID *Protocol,
+        IN EFI_HANDLE AgentHandle,
+        IN EFI_HANDLE ControllerHandle,
+        IN CHAR16 *ProtocolName)
 {
     EFI_STATUS Status;
     Status = gBS->CloseProtocol(Handle, Protocol, AgentHandle, ControllerHandle);
@@ -54,25 +54,25 @@ VOID WpCloseProtocol(
         Print(L"Unable to close %s with error code: %d \n\r", ProtocolName, Status);
         switch (Status)
         {
-        case EFI_INVALID_PARAMETER:
-            Print(L"Handle or Protocol is NULL.\n\r");
-            break;
-        case EFI_NOT_FOUND:
-            Print(L"Handle does not support the protocol specified by Protocol.\n\r");
-            Print(L"Or, The protocol interface specified by Handle and Protocol is not currently open by AgentHandle and ControllerHandle.\n\r");
-            break;
-        default:
-            break;
+            case EFI_INVALID_PARAMETER:
+                Print(L"Handle or Protocol is NULL.\n\r");
+                break;
+            case EFI_NOT_FOUND:
+                Print(L"Handle does not support the protocol specified by Protocol.\n\r");
+                Print(L"Or, The protocol interface specified by Handle and Protocol is not currently open by AgentHandle and ControllerHandle.\n\r");
+                break;
+            default:
+                break;
         }
         UEFI_PANIC;
     }
 }
 
 VOID WpLocateProtocol(
-    IN EFI_GUID *Protocol,
-    IN VOID *Registration OPTIONAL,
-    OUT VOID **Interface,
-    IN CHAR16 *ProtocolName)
+        IN EFI_GUID *Protocol,
+        IN VOID *Registration OPTIONAL,
+        OUT VOID **Interface,
+        IN CHAR16 *ProtocolName)
 {
     EFI_STATUS Status;
     Status = gBS->LocateProtocol(Protocol, Registration, Interface);
@@ -82,22 +82,22 @@ VOID WpLocateProtocol(
         switch (Status)
         {
 
-        case EFI_INVALID_PARAMETER:
-            Print(L"Interface is NULL. Protocol is NULL.\n\r");
-            break;
-        case EFI_NOT_FOUND:
-            Print(L"No protocol instances were found that match Protocol and Registration.\n\r");
-            break;
-        default:
-            break;
+            case EFI_INVALID_PARAMETER:
+                Print(L"Interface is NULL. Protocol is NULL.\n\r");
+                break;
+            case EFI_NOT_FOUND:
+                Print(L"No protocol instances were found that match Protocol and Registration.\n\r");
+                break;
+            default:
+                break;
         }
         UEFI_PANIC;
     }
 }
 
 VOID WpFileClose(
-    IN EFI_FILE_PROTOCOL *This,
-    IN CHAR16 *FileName)
+        IN EFI_FILE_PROTOCOL *This,
+        IN CHAR16 *FileName)
 {
     EFI_STATUS Status;
     Status = This->Close(This);
