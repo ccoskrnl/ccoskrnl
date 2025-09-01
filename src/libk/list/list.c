@@ -26,6 +26,42 @@ inline void _list_push(list_node_t* list, list_node_t* node)
 
 }
 
+list_node_t* _list_pop(list_node_t* list)
+{
+
+    if (list->flink == NULL && list->blink == NULL)
+    {
+        return NULL;
+    }
+
+    list_node_t* removed_node = list->blink;
+    if (list->blink != NULL)
+    {
+
+        if (list->flink == list->blink)
+        {
+            _list_init(list);
+            return removed_node;
+        }
+
+        list->blink = removed_node->blink;
+        if (list->blink != NULL)
+        {
+            // We ensured that the blink is not NULL.
+            // We need to update the flink pointer of the new blink node.
+            list->blink->flink = NULL;
+        }
+    }
+
+    return removed_node;
+}
+
+/**
+ * @brief Dequeue the front item from the list
+ * 
+ * @param list 
+ * @return list_node_t* 
+ */
 list_node_t* _list_dequeue(list_node_t *list)
 {
     list_node_t *front = list->flink;
@@ -48,7 +84,7 @@ list_node_t* _list_dequeue(list_node_t *list)
     return front;
 }
 
-void _list_remove_from_list(list_node_t* list, list_node_t* node)
+void _list_remove(list_node_t* list, list_node_t* node)
 {
 
     // the node is only one in list

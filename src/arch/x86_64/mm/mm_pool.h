@@ -3,6 +3,8 @@
 
 #include "mm_arch.h"
 #include "mm_pfn.h"
+#include "../../../include/libk/rbtree.h"
+#include "../../../include/libk/hashtable.h"
 
 /* ================================================================================ */
 /* ========================= Non Paged Pool Definition ============================ */
@@ -68,6 +70,10 @@ typedef struct _pool_header {
 
 } pool_header;
 
+
+#define POOL_TAG_NO_TAG                         0x0
+
+
 //  free block type
 #define POOL_TYPE_FREE                          0x0
 //  active block type
@@ -121,8 +127,73 @@ typedef struct _pool {
 
 // Dynamically memory-management functions.
 void* _mm_kmalloc(uint64_t size);
-void *_mm_kmalloc_tag(uint64_t size, uint32_t tag);
+void *_mm_kmemleak_alloc(uint64_t size, uint32_t tag);
 void _mm_kfree(void* addr);
 
+
+// #define MM_MEMLEAK_TRACING_RECORD_USING_RBTREE  1
+
+typedef struct _allocation_record {
+
+    uintptr_t ptr;
+    size_t size;
+    uint32_t tag;
+
+    list_node_t node;
+
+#ifdef MM_MEMLEAK_TRACING_RECORD_USING_RBTREE
+    rbtree_node_t rbnode;
+#endif
+
+} mm_allocation_record_t;;
+
+typedef struct _mm_memleak_tracing_tag_manager {
+
+    uint32_t tag;
+
+    // For more efficient allocation tracking
+    rbtree_t* alloc_record_rbtree;
+
+
+    // Manage allocation records
+    list_node_t alloc_record_list;
+
+    // Managed by _mm_memleak_tracing_tag_table
+    list_node_t tag_list_node;
+
+} mm_memleak_tracing_tag_manager_t;
+
+#define MM_MEMLEAK_TRACING_TAG_MANAGER_HASH_SIZE  64
+
+#define MM_ALLOCATION_TRACING_NO_MEMLEAK        ST_SUCCESS
+#define MM_ALLOCATION_TRACING_MEMLEAK           99
+
+/**
+ * @brief Global hashtable that maps tags to their corresponding tag managers.
+ * 
+ */
+extern hashtable_t* _mm_memleak_tracing_tag_table;
+
+/**
+ * @brief Initialize memory leak tracing.
+ *
+ */
+void _mm_memleak_tracing_init();
+
+/**
+ * @brief Create a new tag manager.
+ *
+ * @param tag The tag to associate with the new manager.
+ * @return status_t The status of the operation.
+ */
+status_t _mm_new_tag_manager(uint32_t tag);
+
+/**
+ * @brief Delete a tag manager.
+ *
+ * @param tag The tag associated with the manager to delete.
+ * @return status_t The status of the operation.
+ */
+status_t _mm_del_tag_manager(uint32_t tag);
 
 #endif

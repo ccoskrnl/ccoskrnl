@@ -7,7 +7,7 @@ void krnl_panic(wch_t * wstr)
 {
     if (_go_has_been_initialize && wstr != NULL) 
     {
-        putws(output_bsp, wstr); 
+        putws(bsp_window, wstr); 
     }
     __asm__("hlt\n\t");
 

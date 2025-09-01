@@ -34,17 +34,20 @@ struct _font_ttf* _font_family_SourceHanSansSCVF;
 // all installed font family
 struct _installed_font_ttfs _go_font_ttfs;
 
+#define GO_DEFAULT_TEXT_OUTPUT_NUMBER               32
 
 /**
  * Windows
  */
 extern uint32_t _cpuid_get_apic_id();
-int output_bsp;
+int bsp_window;
+int dbg_window = GO_DEFAULT_TEXT_OUTPUT_NUMBER - 1;
 
-window_text_t *_go_cpu_output_window[32];
+window_text_t *_go_cpu_output_window[GO_DEFAULT_TEXT_OUTPUT_NUMBER];
 window_text_t *_go_ciallo_output_window;
+window_text_t *_go_debugging_output_window;
 
-wch_t *_go_weclome_texts[32] = 
+wch_t *_go_weclome_texts[GO_DEFAULT_TEXT_OUTPUT_NUMBER] = 
 {
     L"Bootstrap Processor",
     L"Application Processor 1",
@@ -145,17 +148,17 @@ void op_init_for_bsp()
 {
     status_t status;
 
-    output_bsp = _cpuid_get_apic_id();
+    bsp_window = _cpuid_get_apic_id();
 
     // In initialization phrase, we create a text window for bootstrap processor.
     window_text_t *win = NULL;
 
     status = new_a_window(
-            output_bsp,
+            bsp_window,
             WindowText,
             NULL,
             _go_def_screen,
-            _go_weclome_texts[output_bsp],
+            _go_weclome_texts[bsp_window],
             def_wnd,
             20,
             20,
@@ -176,17 +179,23 @@ void op_init_for_bsp()
             );
 
     win->ShowWindow(win);
-    _go_cpu_output_window[output_bsp] = win; 
+    _go_cpu_output_window[bsp_window] = win; 
 
+
+    window_style_t ciallo_wnd = { 
+        WINDOW_STYLE_COLOR,
+        {87,169,46}, 
+        { 0 }
+    };
 
     _go_ciallo_output_window = NULL;
     status = new_a_window(
-            'yozu',
+            'yuzu',
             WindowText,
             NULL,
             _go_def_screen,
             L"Ciallo～(∠・ω< )⌒★",
-            def_wnd,
+            ciallo_wnd,
             1000,
             40,
             600,
@@ -205,14 +214,45 @@ void op_init_for_bsp()
             0
             );
 
-    win->ShowWindow(win);
+    _go_ciallo_output_window->ShowWindow(_go_ciallo_output_window);
 
     go_blt_pixel_t color;
-    color.Red = 238;
-    color.Green = 44;
-    color.Blue = 44;
+    color.Red = 255;
+    color.Green = 192;
+    color.Blue = 203;
 
     _go_ciallo_output_window->PutWString(_go_ciallo_output_window, L"Ciallo～(∠・ω< )⌒★", color);
+
+
+    _go_debugging_output_window = NULL;
+    status = new_a_window(
+            ' dbg',
+            WindowText,
+            NULL,
+            _go_def_screen,
+            L"Debug Informations",
+            def_wnd,
+            1000,
+            550,
+            600,
+            400,
+            (void**)&_go_debugging_output_window
+            );
+
+    if (ST_ERROR(status)) {
+        krnl_panic(NULL);
+    }
+
+    _go_debugging_output_window->Register(
+            _go_debugging_output_window,
+            _font_family_SourceHanSansSCVF,
+            14,
+            0
+            );
+
+    _go_debugging_output_window->ShowWindow(_go_debugging_output_window);
+
+    _go_cpu_output_window[dbg_window] = _go_debugging_output_window;
 
 }
 

@@ -16,7 +16,8 @@ typedef enum _PREDEFINED_COLOR
 
 } PREDEFINED_COLOR;
 
-extern int output_bsp;
+extern int bsp_window;
+extern int dbg_window;
 
 /*  Put a wide character with specific color */
 void putwcc(int window_index, wch_t wch, go_blt_pixel_t color);

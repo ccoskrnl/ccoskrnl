@@ -19,6 +19,9 @@ extern void pci_init();
 extern void intr_init();
 extern void active_aps(void);
 
+
+extern void mm_alloc_test();
+
 extern wch_t* tengwangge;
 extern wch_t* chushibiao;
 
@@ -149,38 +152,40 @@ void krnl_init()
 
     // Output Initialization
     op_init();
-    put_check(output_bsp, true, L"Ccoskrnl loaded.\n");
-    put_check(output_bsp, true, L"Bootstrap Processor has already been initializated.\n");
-    put_check(output_bsp, -1, L"Memory Manager perparing...\n");
-    put_check(output_bsp, true, L"Dynamic memory allocator is ready to be used.\n");
-    put_check(output_bsp, true, L"Default font family has been parsed completely.\n");
+    put_check(bsp_window, true, L"Ccoskrnl loaded.\n");
+    put_check(bsp_window, true, L"Bootstrap Processor has already been initializated.\n");
+    put_check(bsp_window, -1, L"Memory Manager perparing...\n");
+    put_check(bsp_window, true, L"Dynamic memory allocator is ready to be used.\n");
+    put_check(bsp_window, true, L"Default font family has been parsed completely.\n");
 
     // Interrupt module initialization. 
-    put_check(output_bsp, -1, L"Interrupt module initializing...\n");
+    put_check(bsp_window, -1, L"Interrupt module initializing...\n");
     intr_init();
-    put_check(output_bsp, true, L"Interrupt module has already been initialized.\n");
-    put_check(output_bsp, true, L"Interrupt enabled.\n");
+    put_check(bsp_window, true, L"Interrupt module has already been initialized.\n");
+    put_check(bsp_window, true, L"Interrupt enabled.\n");
 
     // Set interrupt flag, os can handle interrupts or exceptions.
     __asm__ ("sti"); 
 
     // Initialize OSPM
-    put_check(output_bsp, -1, L"OSPM initializing...\n");
+    put_check(bsp_window, -1, L"OSPM initializing...\n");
     acpi_init();
     // transition_to_p0();
 
-    put_check(output_bsp, true, L"OSPM has already been initialized.\n");
+    put_check(bsp_window, true, L"OSPM has already been initialized.\n");
 
-    putc(output_bsp, '\n');
+    putc(bsp_window, '\n');
+
+    mm_alloc_test();
 
     // Initialize PCIe
-    // put_check(output_bsp, -1, L"PCIe initializing...\n");
+    // put_check(bsp_window, -1, L"PCIe initializing...\n");
     // pci_init();
-    // put_check(output_bsp, true, L"PCIe has already been initialized.\n");
+    // put_check(bsp_window, true, L"PCIe has already been initialized.\n");
 
     // active_aps();
 
-    // put_check(output_bsp, false, L"Power Off.\n");
+    // put_check(bsp_window, false, L"Power Off.\n");
 
 
     krnl_exit();

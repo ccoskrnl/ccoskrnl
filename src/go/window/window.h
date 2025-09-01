@@ -110,6 +110,22 @@ typedef struct _window
 
 
 
+/**
+ * @brief Create a new window.
+ * 
+ * @param tag 
+ * @param type 
+ * @param parent_window 
+ * @param screen 
+ * @param window_title 
+ * @param style 
+ * @param x_of_upper_left_hand 
+ * @param y_of_upper_left_hand 
+ * @param width 
+ * @param height 
+ * @param window 
+ * @return status_t 
+ */
 status_t new_a_window(
         _in_ uint64_t                           tag,
         _in_ WindowType                         type,

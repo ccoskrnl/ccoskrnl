@@ -20,7 +20,7 @@ int64_t printk(const char* fmt, ...)
 
     for (int64_t i = 0; i < len; i++)
     {
-        putc(output_bsp, buf[i]);
+        putc(bsp_window, buf[i]);
     }
 
     return len;

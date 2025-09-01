@@ -71,6 +71,7 @@ typedef struct _rbtree
     rbtree_node_t                               *root;
     rbtree_node_t                               *nil;
     rbtree_node_t                               node_nil;
+    uint64_t                                    num_of_nodes;
 
     _rbtree_search_t                            Search;
     _rbtree_insert_t                            Insert;

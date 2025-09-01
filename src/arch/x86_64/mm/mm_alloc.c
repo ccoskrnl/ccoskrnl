@@ -1,12 +1,209 @@
 #include "../../../include/types.h"
 #include "../../../include/libk/stdlib.h"
 #include "../../../include/libk/string.h"
+#include "../../../include/libk/hashtable.h"
+
+
+
+#define MM_MEMLEAK_TRACING_DEBUG_INFORMATION                0x0d00
+
+#ifdef MM_MEMLEAK_TRACING_DEBUG_INFORMATION
+#include "../../../include/go/go.h"
+#endif 
+
+
 #include "mm_arch.h"
 #include "mm_pfn.h"
 #include "mm_pool.h"
 
 extern pool* _mm_pools[12];
 extern pool_free_list_head _mm_non_paged_pool_free_list_array[NON_PAGED_POOL_LIST_HEADS_MAXIMUM];
+
+hashtable_t* _mm_memleak_tracing_tag_table;
+
+void _mm_memleak_tracing_init()
+{
+    _mm_memleak_tracing_tag_table = hashtable_create(MM_MEMLEAK_TRACING_TAG_MANAGER_HASH_SIZE);
+}
+
+status_t _mm_new_tag_manager(uint32_t tag)
+{
+    status_t status = ST_SUCCESS;
+
+    // allocate memory for the new tag bucket
+    mm_memleak_tracing_tag_manager_t* new_tag_manager = (mm_memleak_tracing_tag_manager_t*)_mm_kmalloc(sizeof(mm_memleak_tracing_tag_manager_t));
+    if (new_tag_manager == NULL)
+    {
+        krnl_panic(L"Can not allocate memory for new tag manager...");
+        return ST_FAILED;
+    }
+
+    new_tag_manager->tag = tag;
+    new_tag_manager->alloc_record_list.flink = NULL;
+    new_tag_manager->alloc_record_list.blink = NULL;
+
+
+#ifdef MM_MEMLEAK_TRACING_RECORD_USING_RBTREE
+    status = new_a_rbtree(&new_tag_manager->alloc_record_rbtree);
+    if (ST_ERROR(status))
+    {
+        krnl_panic(L"Can not initialize rbtree for new tag manager...");
+        return status;
+    }
+#endif
+
+    hashtable_insert(_mm_memleak_tracing_tag_table, (byte*)&tag, sizeof(uint32_t), new_tag_manager);
+
+    return status;
+}
+
+status_t _mm_del_tag_manager(uint32_t tag)
+{
+    status_t status;
+
+    mm_memleak_tracing_tag_manager_t* removed_tag_manager = 
+        (mm_memleak_tracing_tag_manager_t*)hashtable_remove(
+            _mm_memleak_tracing_tag_table, (byte*)&tag, sizeof(uint32_t));
+
+
+#ifdef MM_MEMLEAK_TRACING_RECORD_USING_RBTREE
+    if (removed_tag_manager->alloc_record_rbtree->num_of_nodes != 0)
+        status = MM_ALLOCATION_TRACING_MEMLEAK;
+    else
+        status = MM_ALLOCATION_TRACING_NO_MEMLEAK;
+#else
+    if (removed_tag_manager->alloc_record_list.flink != NULL 
+        || removed_tag_manager->alloc_record_list.blink != NULL)
+        status = MM_ALLOCATION_TRACING_MEMLEAK;
+    else
+        status = MM_ALLOCATION_TRACING_NO_MEMLEAK;
+
+#endif
+
+    if (status == MM_ALLOCATION_TRACING_MEMLEAK)
+    {
+
+#ifdef MM_MEMLEAK_TRACING_DEBUG_INFORMATION
+        puts(dbg_window, "Check memory leaks. Automatic freeing...\n");
+#endif
+
+        // cleanup the allocation records.
+
+        // situation 1, only one allocation record exists
+        if (removed_tag_manager->alloc_record_list.flink == removed_tag_manager->alloc_record_list.blink)
+        {
+            _mm_kfree(removed_tag_manager->alloc_record_list.flink);
+        }
+        else 
+        {
+            // situation 2, multiple allocation records exist
+            list_node_t* removed_node = _list_pop(&removed_tag_manager->alloc_record_list);
+            while (removed_node != NULL)
+            {
+                mm_allocation_record_t* alloc_record = (mm_allocation_record_t*)struct_base(mm_allocation_record_t, node, removed_node);
+
+#ifdef MM_MEMLEAK_TRACING_DEBUG_INFORMATION
+                char tag_str[5] = { 0 };
+                *(uint32_t*)tag_str = swap_endian_32(alloc_record->tag);
+                tag_str[4] = '\0';
+                putsxs(dbg_window, "Allocate Address: ", alloc_record->ptr, ", ");
+                putsds(dbg_window, "Size: ", alloc_record->size, ", ");
+                putss(dbg_window, "TAG: ", tag_str);
+                puts(dbg_window, "\n");
+#endif
+                _mm_kfree(alloc_record);
+                removed_node = _list_pop(&removed_tag_manager->alloc_record_list);
+            }
+        
+        }
+    }
+
+    _mm_kfree(removed_tag_manager);
+    return status;
+}
+
+static status_t insert_alloc_record(uint32_t tag, uintptr_t allocated_address, size_t allocated_size)
+{
+    status_t status = ST_SUCCESS;
+
+    // find the tag manager
+    mm_memleak_tracing_tag_manager_t* tag_manager = (mm_memleak_tracing_tag_manager_t*)hashtable_search(_mm_memleak_tracing_tag_table, (byte*)&tag, sizeof(uint32_t));
+    if (!tag_manager)
+    {
+        return ST_FAILED;
+    }
+
+    // allocate memory for the new allocation record
+    mm_allocation_record_t* alloc_record = (mm_allocation_record_t*)_mm_kmalloc(sizeof(mm_allocation_record_t));
+    alloc_record->ptr = allocated_address;
+    alloc_record->size = allocated_size;
+    alloc_record->tag = tag;
+
+#ifdef MM_MEMLEAK_TRACING_RECORD_USING_RBTREE
+    // insert the record into the red-black tree
+    alloc_record->rbnode.key = allocated_address;
+    tag_manager->alloc_record_rbtree->Insert(tag_manager->alloc_record_rbtree, &alloc_record->rbnode);
+#endif
+
+    // insert the record into the linked list
+    _list_push(&tag_manager->alloc_record_list, &alloc_record->node);
+
+    return status;
+}
+
+static status_t remove_alloc_record(uint32_t tag, uintptr_t allocated_address, size_t allocated_size)
+{
+    status_t status = ST_SUCCESS;
+    mm_allocation_record_t* alloc_record = NULL;
+
+    // find the tag manager
+    mm_memleak_tracing_tag_manager_t* tag_manager = (mm_memleak_tracing_tag_manager_t*)hashtable_search(_mm_memleak_tracing_tag_table, (byte*)&tag, sizeof(uint32_t));
+    if (!tag_manager)
+    {
+        return ST_FAILED;
+    }
+
+#ifdef MM_MEMLEAK_TRACING_RECORD_USING_RBTREE
+
+    // find the allocation record
+    mm_allocation_record_t* alloc_record = 
+        (mm_allocation_record_t*)struct_base(
+            mm_allocation_record_t, 
+            rbnode, 
+            tag_manager->alloc_record_rbtree->Search(tag_manager->alloc_record_rbtree, allocated_address));
+
+    // remove the record from the red-black tree
+    tag_manager->alloc_record_rbtree->Delete(tag_manager->alloc_record_rbtree, &alloc_record->rbnode);
+
+#else
+
+    // iterate through the tag_manager.alloc_record_list to find the allocation record
+    list_node_t* current = tag_manager->alloc_record_list.flink;
+    while (current)
+    {
+        alloc_record = (mm_allocation_record_t*)struct_base(mm_allocation_record_t, node, current);
+        if (alloc_record->ptr == allocated_address)
+        {
+            // found the record
+            break;
+        }
+        current = current->flink;
+    }
+
+#endif
+
+    // check if the record is valid
+    assert(alloc_record->size == allocated_size);
+
+    // remove the record from the linked list
+    _list_remove(&tag_manager->alloc_record_list, &alloc_record->node);
+
+    // free the memory allocated for the record
+    _mm_kfree(alloc_record);
+
+    return status;
+}
+
 
 status_t _mm_alloc_pages(uint64_t size, void **addr)
 {
@@ -419,7 +616,8 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index, uint32_t tag)
             _list_push(free_list, separate_block);
 
             // return constructed block a moment ago.
-            return (void *)ret_block;
+            goto __exit_ret_block;
+            // return (void *)ret_block;
         }
     }
 
@@ -458,9 +656,10 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index, uint32_t tag)
         if (ret_block->blink == 0) {
             krnl_panic(NULL);
         }
-        _list_remove_from_list(free_list, ret_block);
+        _list_remove(free_list, ret_block);
 
-        return (void *)ret_block;
+        goto __exit_ret_block;
+        // return (void *)ret_block;
     }
 
 
@@ -477,7 +676,7 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index, uint32_t tag)
         if (separate_block->blink == 0) {
             krnl_panic(NULL);
         }
-        _list_remove_from_list(free_list, separate_block);
+        _list_remove(free_list, separate_block);
 
         separate_block_head->block_size -= ((size + POOL_HEAD_OVERHEAD) >> POOL_BLOCK_SHIFT);
 
@@ -527,7 +726,7 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index, uint32_t tag)
         if (ret_block->blink == 0) {
             krnl_panic(NULL);
         }
-        _list_remove_from_list(free_list, ret_block);
+        _list_remove(free_list, ret_block);
 
 
         separate_block_head->prev_size = ret_block_head->block_size;
@@ -543,6 +742,24 @@ void *_mm_malloc(uint64_t size, uint16_t pool_index, uint32_t tag)
 
         free_list = &pool_desc->list_heads[separate_block_head->block_size];
         _list_push(free_list, separate_block);
+    }
+
+__exit_ret_block:
+
+    ret_block_head = (pool_header*)((uint64_t)ret_block - POOL_HEAD_OVERHEAD);
+    if (ret_block_head->pool_tag != POOL_TAG_NO_TAG)
+    {
+        status_t status = insert_alloc_record(
+            ret_block_head->pool_tag, 
+            (uintptr_t)ret_block, 
+            size
+        );
+
+        if (ST_ERROR(status))
+        {
+            _mm_kfree((void*)ret_block);
+            ret_block = NULL;
+        }
     }
 
     return (void *)ret_block;
@@ -597,12 +814,19 @@ void _mm_free(void *addr, uint16_t pool_index)
         krnl_panic(NULL);
     }
 
-    // // "tag mechanism", not be implemented.
-    // if (released_block_head->pool_tag != P)
-    // {
-    //     // Buggy
-    //     krnl_panic(NULL);
-    // }
+    if (released_block_head->pool_tag != POOL_TAG_NO_TAG)
+    {
+        status_t status = remove_alloc_record(
+            released_block_head->pool_tag, 
+            (uintptr_t)addr, 
+            released_block_head->block_size << POOL_BLOCK_SHIFT
+        );
+
+        if (ST_ERROR(status))
+        {
+            krnl_panic(L"Cannot remove allocation record with tag.");
+        }
+    }
 
     // record releasalbe size.
     free_size = (released_block_head->block_size << POOL_BLOCK_SHIFT) + POOL_HEAD_OVERHEAD;
@@ -645,7 +869,7 @@ void _mm_free(void *addr, uint16_t pool_index)
             if (next_block->blink == 0) {
                 krnl_panic(NULL);
             }
-            _list_remove_from_list(free_list, next_block);
+            _list_remove(free_list, next_block);
 
             // check if address of next_block_head is outside the scope of current page.
             if (((uint64_t)next_block + (next_block_head->block_size << POOL_BLOCK_SHIFT)) >= page_aligned(released_block))
@@ -686,7 +910,7 @@ void _mm_free(void *addr, uint16_t pool_index)
                 if (prev_block->blink == 0) {
                     krnl_panic(NULL);
                 }
-                _list_remove_from_list(free_list, prev_block);
+                _list_remove(free_list, prev_block);
 
                 // If the prev_block is the first block in current page.
                 if (prev_block_head->prev_size == 0)
@@ -792,10 +1016,10 @@ __free_released_block:
 // default kernel memory pool
 void *_mm_kmalloc(uint64_t size)
 {
-    return _mm_malloc(size, POOL_INDEX_KERNEL_DEFAULT, 1);
+    return _mm_malloc(size, POOL_INDEX_KERNEL_DEFAULT, 0);
 }
 
-void *_mm_kmalloc_tag(uint64_t size, uint32_t tag)
+void *_mm_kmemleak_alloc(uint64_t size, uint32_t tag)
 {
     return _mm_malloc(size, POOL_INDEX_KERNEL_DEFAULT, tag);
 }

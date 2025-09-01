@@ -3,7 +3,7 @@
 
 #include "../types.h"
 
-#define ITEM_BITS                  0x8
+#define ITEM_BITS                               0x8
 #define ITEM_SHIFT                              0x3
 
 #define ITEM                                    uint8_t

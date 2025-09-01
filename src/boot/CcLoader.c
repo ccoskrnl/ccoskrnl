@@ -208,8 +208,8 @@ UefiMain(
     // Status
     EFI_STATUS Status;
 
-    UINT32 PNGWidth;
-    UINT32 PNGHeight;
+    // UINT32 PNGWidth;
+    // UINT32 PNGHeight;
 
     // Current Machine Information
     EFI_PHYSICAL_ADDRESS InfoAddress;
@@ -467,9 +467,9 @@ UefiMain(
     MachineInfo->SumOfSizeOfFilesInPages += (PAGE_ALIGNED(FileSize) >> EFI_PAGE_SHIFT);
     FileBuffer = KrnlImageBase + (MachineInfo->SumOfSizeOfFilesInPages << EFI_PAGE_SHIFT);
     ReadFileToBufferAt(BG_PATH, FileBuffer, &FileSize);
-    GetPNGSize(BG_PNG_PATH, &PNGWidth, &PNGHeight);
-    MachineInfo->Background.Width = (UINT16)PNGWidth;
-    MachineInfo->Background.Height = (UINT16)PNGHeight;
+    // GetPNGSize(BG_PNG_PATH, &PNGWidth, &PNGHeight);
+    MachineInfo->Background.Width = (UINT16)1920;
+    MachineInfo->Background.Height = (UINT16)1080;
     MachineInfo->Background.Addr = (UINTN)FileBuffer;
     MachineInfo->Background.Size = (UINT32)FileSize;
 

@@ -21,9 +21,9 @@ Pci_func_t* pci_enumerate_function(uint16_t seg_grp, uint8_t bus, uint8_t device
         return NULL;
     }
 
-    putsd(output_bsp, "Device found at bus ", bus);
-    putsd(output_bsp, ", device ", device);
-    putsds(output_bsp, ", function ", function, ".\n");
+    putsd(bsp_window, "Device found at bus ", bus);
+    putsd(bsp_window, ", device ", device);
+    putsds(bsp_window, ", function ", function, ".\n");
 
     pci_func = (Pci_func_t*)calloc(sizeof(*pci_func));
 

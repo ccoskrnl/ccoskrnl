@@ -252,6 +252,8 @@ static void insert(void* _this, rbtree_node_t* z)
     // Correct any violations of red-black properties.
     insert_fixup(this, z);
 
+    // update the node counter.
+    this->num_of_nodes++;
 }
 
 static void delete_fixup(void* _this, rbtree_node_t* x)
@@ -474,6 +476,10 @@ static void delete(void* _this, rbtree_node_t* z)
     if (y_original_color == RBTreeNodeBlack)
         delete_fixup(this, x);
 
+
+    // update the node counter.
+    this->num_of_nodes--;
+
 }
 
 static rbtree_node_t* search(void *_this, uint64_t key)
@@ -569,6 +575,7 @@ status_t new_a_rbtree(rbtree_t **rbtree)
     (*rbtree)->node_nil.color = RBTreeNodeBlack;
     (*rbtree)->nil = &(*rbtree)->node_nil;
     (*rbtree)->root = (*rbtree)->nil;
+    (*rbtree)->num_of_nodes = 0;
 
     (*rbtree)->Search = search;
     (*rbtree)->Insert = insert;

@@ -729,7 +729,7 @@ static void mem_map_init()
 
 
     // Upate MM variables
-    _mm_non_paged_pool_start = (uint64_t)(_mm_pfn_db_start + ((num_of_pdptes) << PDPT_SHIFT));
+    _mm_non_paged_pool_start = (uint64_t)((uint64_t)_mm_pfn_db_start + ((num_of_pdptes) << PDPT_SHIFT));
     _mm_non_paged_pool_end = _mm_non_paged_pool_size + _mm_non_paged_pool_start;
 
     // Map non paged pool
@@ -1021,7 +1021,7 @@ static void memory_pool_init()
     pool->pool_type = 0;
     memzero(&pool->list_heads, sizeof(list_node_t) * POOL_LIST_HEADS);
 
-
+    _mm_memleak_tracing_init();
 }
 
 /*
@@ -1377,9 +1377,6 @@ static void dynamic_memory_management_test()
         }
 
 
-        alloc0 = _mm_kmalloc_tag(8, '0D00');
-        _mm_kfree(alloc0);
-
         // case 1: 
         alloc0 = _mm_kmalloc(sizeof(int64_t) * 8);
         alloc1 = _mm_kmalloc(sizeof(int64_t) * 8);
@@ -1440,6 +1437,20 @@ static void dynamic_memory_management_test()
     //     _mm_kfree(alloc[i]);
     // }
 
+    _mm_new_tag_manager('0D00');
+    alloc0 = _mm_kmemleak_alloc(8, '0D00');
+    alloc1 = _mm_kmemleak_alloc(16, '0D00');
+    _mm_kfree(alloc0);
+    _mm_kfree(alloc1);
+    
+    _mm_new_tag_manager('0721');
+
+    _mm_del_tag_manager('0D00');
+
+    alloc0 = _mm_kmemleak_alloc(80, '0721');
+    alloc1 = _mm_kmemleak_alloc(160, '0721');
+
+    _mm_del_tag_manager('0721');
 
 }
 

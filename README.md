@@ -46,8 +46,8 @@ ChengCheng OS (CCOS) is a hobby 64 bit operating system. I'm writing it on x86, 
 
 - [ ] Bug fix: Add spinlock to prevent conflicts of multiple windows output
 
-- [ ] Dynamic memory manager with memory leaks detection
-- [ ] System PTE management
+- [x] Dynamic memory manager with memory leaks detection
+- [x] System PTE management
 
 - [ ] PCIe management
 - [ ] NVMe Driver
