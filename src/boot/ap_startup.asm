@@ -96,12 +96,12 @@ ap_entry_point:
     add esp, temporary_stack_top_offset
 
     ; Load GDTR
-    mov eax, 0x99000
+    mov eax, 0x99000    ; temporary gdtr address, we need to fixup this address
     db 0x66
     lgdt[eax]
     
     ; Load IDTR
-    mov eax, 0x99000
+    mov eax, 0x99000    ; temporary idtr address, we need to fixup this address
     db 0x66
     lidt[eax]
 

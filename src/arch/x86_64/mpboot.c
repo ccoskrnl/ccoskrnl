@@ -55,23 +55,38 @@ void fixup_reloc_of_entry(ptr_t startip, ptr_t ap_entry)
 
     // fixup lgdt
     uint32_t gdtr_addr = (0xf0 + startip);
-    // mov eax, gdtr_addr
+
+    /*
+       mov eax, 0x99000 ; temporary gdtr address
+       db 0x66
+       lgdt [eax]
+    */
+    // we need to fixup the address 0x99000 to gdtr_addr
     uint32_t* lgdt = (uint32_t*)(0x3e + startip);
     *lgdt = gdtr_addr;
 
     // fixup idtr
+    /*
+        mov eax, 0x99000 ; temporary idtr address
+        db 0x66
+        lidt [eax]
+    */
+    // we need to fixup the address 0x99000 to idtr_addr
     uint32_t idtr_addr = (0x120 + startip);
     uint32_t* lidt = (uint32_t*)(0x49 + startip);
     *lidt = idtr_addr;
 
+    // fixup jump protection mode entry
     uint32_t pm_entry = 0x64 + startip; 
     uint32_t* jmp2pm = (uint32_t*)(0x5e + startip);
     *jmp2pm = pm_entry;
 
+    // fixup jump long mode entry
     uint32_t lm_entry = 0xb8 + startip;
     uint32_t* jmp2lm = (uint32_t*)(0xb2 + startip);
     *jmp2lm = lm_entry;
 
+    // fixup jump to actually ap entry.
     uint64_t* jmp2entry = (uint64_t*)(0xdf + startip);
     *jmp2entry = ap_entry;
 }
@@ -294,6 +309,9 @@ void active_aps(void)
 {
 
     save_cpu_info_at_shared_data_area(_current_machine_info->memory_space_info[3].base_address);
+
+    // we can assume that the ap_startup code is loaded at 0x1000 address, so we
+    // need to fixup all the relocation address references.
     fixup_reloc_of_entry(_current_machine_info->memory_space_info[3].base_address, (ptr_t)ap_entry);
 
     list_node_t *core_node = cpu_cores_list.flink;

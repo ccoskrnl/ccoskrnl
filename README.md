@@ -1,91 +1,74 @@
-# ChengCheng OS
+# CCOSKRNL
 
-ChengCheng OS (CCOS) is a hobby 64 bit operating system. I'm writing it on x86, because I like sadness and misery. This project was still in developing. I'm a beginner for operating system design. Many of the design concepts I have implemented are inspired by Windows NT such as ccldr (OS Loader for ChengCheng OS) and Memory manager. And, there is plenty more courses that I need to learn in the comming months. So, I will not update the project frequently.
+`ccoskrnl`  是一个运行在`x86_64` 架构的64位操作系统项目，该项目只是处于学习和研究的目的一时兴起而开发的，该项目仍然处于早期开发阶段。由于生活和学业等原因，该项目并不会频繁更新。
 
-## Demo
+我之前也学习过玩具级别的操作系统开发，国内也有很多类似的课程，比如在`QEMU`或者`Bochs`上开发一个玩具级的只可在虚拟机上运行的操作系统。这确实一个非常不错的实验项目，通过对这些实验的学习，学生可以亲自编写它们自己的内核，体会到内核开发的乐趣。不过缺点也是显而易见的，现在计算机系统早已与几十年前相去甚远，而现在的多数计算机系统课程仍然只停留在科普层面。在多数情况下，一个通用性处理器系统的设计难度远超过专用处理器系统的设计，通过对个人PC和服务器硬件的操作系统开发，学生可以很明显的感受到这一点。该项目与它们不同之处就在于，在设计之初就不只为了在虚拟机运行，而是一个真正的，可在实际物理机上运行的，并且与现代硬件进行交互。
 
-![Sample](./demo/sample.png)
+## 演示
 
-## Features
+![demo](./demo/sample.png)
 
-- **UEFI**
+## 实现
 
-    CCOS uses UEFI to bootstrap ccoskrnl. UEFI greatly facilitates OS Loader developing. Developer can directly call the interfaces provided by UEFI (Use C language instead of assembly). There is one thing to note here, that CCOS still needs ccldr (another binary executable file) to load ccoskrnl. It is a bit like "a second stage boot loader". But in fact, BOOTX64.efi just simply divides kernel space and searches for a suitable physical memory space for ccoskrnl image loading. Then ccldr will map kernel space into high address of virtual address space and set GDT(Global Descriptor Table, a significant structure for x86 architecture.)
+### x86_64
 
-- **Multi-Cores**
+`x86_64` 是个人PC选用的最多的架构，也是一个历史非常悠久的架构，拥有极强的向前兼容和通用性。`ccoskrnl` 在实现过程中同时参考了 `intel-sdm` 和 `amd64手册`，在开发过程中尽量去为两种架构的细微差异去做适配调整。
 
-    Multi-cores support is an enormous challenge for me. I do not guarantee a good implementation of multi-cores system. For now, CCOS can correctly active other application cores. Not like other operating system demo, CCOS puts application cores initialization routine at a isolated binary file and load it into the first 1 MiB of physical memory and construct separately the page table for the memory space. Before of application cores running, CCOS will fix the citation of relative address of the binary program. I have to admit, this is a foolish design.
+### UEFI
 
-- **APIC**
+`ccoskrnl` 使用UEFI作为引导，UEFI非常适合操作系统加载器的开发。开发者可以直接调用UEFI提供好的接口，与传统引导（legacy）相比，开发者不再需要使用0号扇区，在狭小的512字节中使用BIOS提供的int功能调用来编写紧凑的汇编代码来进行繁琐的硬件探测和内存类型探测等一些启动检查。
 
-    APIC(Advanced Programmable Interrupt Controller) is a critical component in modern computer system. It provides the possibility for multi-cores system and supports multilevel interrupt priority on the hardware level. Unfortunately, APIC is complicated. Since to fully understand APIC needs sound knowledge of computer system, I only implement the basic driver of APIC.
+事实上，`BOOTX64.efi`在进行一些检查和系统硬件信息收集工作之后就简单的记录和划分内核空间，并进入到内核启动的下一个阶段。`ccoskrnl` 在启动过程中仍然需要一个二进制程序(`ccldr`)，这个二进制程序完全由汇编编写。它被加载到内存中，在UEFI服务结束之后跳转到这个程序。`ccldr` 把内核地址空间映射到虚拟内存的高地址处，并设置GDT等一些必要的数据结构，最后跳转到内核初始化代码。
 
-- **TrueType**
+### 多核
 
-    CCOS displays characters on screen through rendering TrueType Fonts(Default font in CCOS is **Adobe Source Han Sans SC VF**). It's not worth to output characters using TrueType rendering. For early OS developing, using bitmap font is more recommended method of characters output.
+多核支持对我来说是一个艰难的挑战。`ccoskrnl` 将应用核心的初始化例程放在了一个单独的二进制文件`ap_startup`中。这个二进制程序同样由UEFI进行加载，由于`x86_64`的要求，AP的初始化只能在低1MiB的地址空间进行。同时我们需要构造一个临时的页表，在BSP的内存管理初始化时我们设置PML4的首个项（因为`x86_64`要求这段代码必须在低1MiB处）。当BSP需要在虚拟内存空间中对该程序进行手动重定位，修复GDT和IDT项目，并设置AP的初始化代码地址。[多核的激活参考](https://stackoverflow.com/questions/56384291/what-happens-to-a-startup-ipi-sent-to-an-active-ap-that-is-not-in-a-wait-for-sip)
 
-    Probably the greatest thing about storing characters as outlines is that only one outline per character is needed to produce all the sizes of that character OS will ever need. A single outline can be scaled to an enormous range of different sizes, some of which are illustrated below. This enables the same character to be displayed on monitors of different resolutions, and to be printed out at a large number of different sizes. To scale a character outline is a simple mathematical operation, as indeed are other transformations such as rotation and reflections.
+### APIC
 
-    The structure of TrueType is complex, I only implemented the font rasterizer without hinting of TrueType. Hinting is at the heart of TrueType. Its inventors, mindful of the diversity of opinion on the "correct" way to hint type, decided there was no single hinting paradigm that they would impose upon type developers. Instead, they linked a relatively simple rasterizer to a new interpreted programming language. For font readability, however, this is enough.
+APIC 是'x86_64'架构中的一个非常重要的组件。APIC同时也是一个非常复杂的设置，想要完全理解它需要深厚的计算机系统知识。`ccoskrnl` 目前仅实现了中断管理。
 
-    These is a cirtical issus here, which is that the preformence of text output of CCOS is very pool. The badly performing will seriously slow down the running of ccos. I don't know how to optimize the function because the font drawing is a relatively complex process. Another method is use bitmap font to instead the TrueType font.
+### 字符渲染
 
-- **Wide Char**
+`ccoskrnl` 一开始并没有选择使用位图字体，而是尝试进行`Truetype` 字体渲染，但是我并没有提供一个良好的字体渲染引擎，而对于字体`Hint`和字符填充则是完全没有实现。并且轮廓线绘制算法也是非常糟糕，涉及到字体缩放时又由于没有进行`Hint`，导致渲染出来的字体非常不美观。后续可能会抛弃`TrueType` 转向位图字体。 
 
-    CCOS offers two character type, "char" and "wch_t"(wide char, 4-bytes), for storing all characters. Regardless of the character type, CCOS always converts wch_t first, then outputs a wide string. In fact, TrueType parser in CCOS only uses "Unicode 2.0 and onwards semantics", which platform ID = 0 and Encoding ID = 3 in cmap(cmap — Character to Glyph Index Mapping Table, a struture in TrueType.). Therefore, it exclusively supports Unicode Basic Multilingual Plane characters (U+0000 to U+FFFF).
+### 内存管理
 
-- **Memory Manager**
+内存管理的设计来自于早期的Windows NT内核，借鉴了WRK项目。`ccoskrnl` 与Windows NT一样，使用了PFN数据库来管理所有的物理内存。对于动态内存管理则是通过页链表和块查表共同管理。此外`ccoskrnl` 也实现了Windows NT中的页目录自映射机制，这使得每次系统启动，页表的位置都是随机的，增强了操作系统的内存安全性。
 
-    The design ideas of memory management is inspired by Window NT, which contains PFN database, Lookside, Page-Directory self mapping scheme, lamination memory pool management and so on, but not all.
+### 图形输出
 
-- **Graphics Output with multi-windows**
-
-    CCOS supports multi-windows, which means it can output text in different window on screen. It's uesful to debug multi-cores through open a text-output window to each core. Even if not have mouse driver, user also can use keyboard to select which window need to enter characters.
+`ccoskrnl` 并没有实现显卡驱动，所有的图像输出都是依赖于CPU的`AVX`指令集来加快帧缓冲区的更新。尽管我打算实现多窗口管理，不过这一功能还处在构想阶段。
 
 ## TO-DO
 
-- [ ] Bug fix: Add spinlock to prevent conflicts of multiple windows output
+- [ ] Bug fix: 为多窗口更新添加自旋锁
+- [x] 为动态管理器添加内存泄露检测
+- [x] 系统PTE管理
+- [ ] PCIe 管理
+- [ ] NVMe 驱动
+- [ ] 使用位图字体而不是TrueType字体输出字符。
+- [ ] 电源管理
+- [ ] CPU功耗管理
 
-- [x] Dynamic memory manager with memory leaks detection
-- [x] System PTE management
+## 需求
 
-- [ ] PCIe management
-- [ ] NVMe Driver
-- [ ] Keyboard Driver (Not urgent)
+- QEMU，2 GiB内存或更高
+- x86_64 CPU (Intel or AMD) 支持AVX 指令集
 
-- [ ] Use bitmap fonts rather than TypeTrue Fonts rendering.
-- [ ] Power Management.
-- [ ] CPU prefromence management.
+测试机：机械革命S2 Air(R5 4600H/16GB/512GB)
 
-## Requirements
+## 安装
 
-- **QEMU with 2 GiB RAM or higher**
+项目构建和安装请参考 [ccoskrnl build](https://github.com/ccoskrnl/ccoskrnl/wiki/Installation)
 
-    I just roughly divide the memory space such that the kernel space only use the quarter of availalbe RAM. But a problem need to noticed that GetMemoryMap() routine returned the incorrect memory map information when attempting to allocate higher RAM (larger than 2 GiB) for QEMU. I'm not trying other OVMF firmware so I guess such error may stem from my OVMF.
-
-- **x86_64 CPU (Intel or AMD) with AVX instruction set**
-
-    There are slight differences on x86_64 architecture programming between Intel 64 and AMD64. I'm developing CCOS based on AMD CPU but use Intel® 64 and IA-32 architectures software developer's manuals as my x86_64 architechure reference manual. For now, though, whatever the cpu vendor.
-
-## Installation
-
-For installation, please refer to the [ccoskrnl build](https://github.com/ccoskrnl/ccoskrnl/wiki/Installation)
-
-## Contributing
-
-The math library(reflibs/libm.a) was provided by @Estrella
-
-## License
-
-No license.
-
-## Contact
+## 联系
 
 E-mail: 2010705797@qq.com
 
 ChengCheng OS: https://github.com/ccoskrnl/ccoskrnl
 
-## Related Reading
+## 相关阅读
 
 - [**Intel® 64 and IA-32 architectures software developer's manuals**](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html)
 
@@ -98,3 +81,7 @@ ChengCheng OS: https://github.com/ccoskrnl/ccoskrnl
 - [**ACPI Specification**](https://uefi.org/htmlspecs/ACPI_Spec_6_4_html/Frontmatter/Overview/Overview.html)
 
 - [**UEFI Specification**](https://uefi.org/specs/UEFI/2.10/01_Introduction.html)
+
+## 许可证
+
+No license.
