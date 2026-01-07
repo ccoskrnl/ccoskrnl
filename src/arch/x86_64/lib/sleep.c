@@ -20,3 +20,27 @@ void sleep(uint32_t seconds)
         pit_perform_sleep();
     }
 }
+
+void sleep_ms(uint64_t milliseconds)
+{
+    if (milliseconds == 0)
+        return;
+    
+    uint64_t microseconds = milliseconds * 1000;
+    uint64_t ten_ms_units = milliseconds / 10;
+
+    uint64_t remaining_ms = milliseconds % 10;
+    uint64_t remaining_us = remaining_ms * 1000;
+
+    for (uint64_t i = 0; i < ten_ms_units; i++) 
+    {
+        pit_prepare_sleep(10000);
+        pit_perform_sleep();
+    }
+
+    if (remaining_us > 0) 
+    {
+        pit_prepare_sleep(remaining_us);
+        pit_perform_sleep();
+    }
+}

@@ -515,10 +515,10 @@ status_t _go_install_a_screen(
     screen->secondary_buf = screen->frame_bufs[BACKBUFFER_INDEX].buf;
 
     // Initialize window tree to manage windows on this screen
-    status = new_a_rbtree(&screen->windows);
-    if (ST_ERROR(status)) {
-        krnl_panic(NULL);
-    }
+    // status = new_a_rbtree(&screen->windows);
+    // if (ST_ERROR(status)) {
+    //     krnl_panic(NULL);
+    // }
 
     spinlock_init(&screen->spinlock);
 

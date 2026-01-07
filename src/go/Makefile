@@ -3,7 +3,7 @@ ARCH!=../../conf/uname.sh
 include ../../conf/target.conf
 
 BUILD_DIR = ../../build/go
-SRC_DIRS = . font output window
+SRC_DIRS = . font output window 3d
 
 SRCS = $(foreach dir, $(SRC_DIRS), $(wildcard $(dir)/*.c))
 OBJS = $(patsubst %.c,$(BUILD_DIR)/%.o,$(SRCS))
@@ -32,6 +32,11 @@ $(BUILD_DIR)/%.o: output/%.c
 	@$(CC) $(CFLAGS) -c -o $@ $<
 
 $(BUILD_DIR)/%.o: window/%.c
+	$(shell mkdir -p $(dir $@))
+	@echo "	Compiling $<"
+	@$(CC) $(CFLAGS) -c -o $@ $<
+
+$(BUILD_DIR)/%.o: 3d/%.c
 	$(shell mkdir -p $(dir $@))
 	@echo "	Compiling $<"
 	@$(CC) $(CFLAGS) -c -o $@ $<

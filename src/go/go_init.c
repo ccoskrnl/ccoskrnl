@@ -8,6 +8,8 @@
 #include "../include/libk/stdlib.h"
 #include "../include/machine_info.h"
 
+#include "3d/3d.h"
+
 
 /* Default Wallpaper */
 static struct _go_buffer background;
@@ -103,7 +105,7 @@ void op_init()
             _current_machine_info->graphics_info.HorizontalResolution,
             _current_machine_info->graphics_info.VerticalResolution,
             _current_machine_info->graphics_info.PixelsPerScanLine
-        );
+            );
 
     _go_installed_screens.num++;
     _go_installed_screens.screen[0] = &screen0;
@@ -143,9 +145,11 @@ void op_init()
     _go_has_been_initialize = true;
 
 
+    test_for_3d();
     op_init_for_bsp();
 
 }
+
 
 void op_init_for_bsp()
 {

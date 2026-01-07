@@ -8,6 +8,7 @@
 
 #include "../../include/libk/math.h"
 #include "../../include/libk/stdlib.h"
+#include "../../include/libk/list.h"
 #include "../../include/arch/lib.h"
 
 
@@ -180,6 +181,46 @@ static status_t show_window(
     set_intr_state(saved_if);
 
     return status;;
+}
+
+status_t common_window_draw_rectangle(
+        _in_ void                                   *_this,
+        _in_ int                                    x,
+        _in_ int                                    y,
+        _in_ int                                    width,
+        _in_ int                                    height,
+        _in_ go_blt_pixel_t                         color
+)
+{
+
+    window_t *this = _this;
+
+    status_t status;
+    go_blt_pixel_t col = color;
+    uint32_t c = *(uint32_t*)&col;
+
+    go_blt_pixel_t* buf = this->framebuffer.buf + y * this->width + x;
+
+    if (   x >= this->width 
+            || y >= this->height
+            || width > this->width
+            || height > this->height 
+       ) 
+    {
+        status = ST_INVALID_PARAMETER;
+        return status;
+    }
+
+    int drawing_width = x + width <= this->width ? width : this->width - x;
+    int drawing_height = y + height <= this->height ? height : this->height - y;
+
+    for (int i = 0; i < drawing_height; i++) 
+        memsetd((uint32_t*)(buf + i * this->width), c, drawing_width);
+
+    show_window(this);
+
+    return status;
+
 }
 
 
@@ -551,6 +592,7 @@ status_t new_a_window(
             *(_window_register_t*)((uint64_t)win + element_offset(window_common_t, Register)) = register_common_window;
             *(_window_show_t*)((uint64_t)win + element_offset(window_common_t, ShowWindow)) = show_window;
             *(_window_clear_t*)((uint64_t)win + element_offset(window_common_t, ClearWindow)) = clear_window;
+            *(_window_draw_rectangle_t*)((uint64_t)win + element_offset(window_common_t, DrawRectangle)) = common_window_draw_rectangle;
             break;
         case WindowText:
             win = malloc(sizeof(window_text_t));
@@ -568,7 +610,7 @@ status_t new_a_window(
     }
 
 
-    win->node.key = tag;
+    win->tag = tag;
     win->screen = screen;
     win->parent_window = parent_window;
     win->window_title = window_title;
@@ -595,7 +637,9 @@ status_t new_a_window(
     }
 
     *window = win;
-    screen_desc->windows->Insert(screen_desc->windows, (rbtree_node_t*)((uint64_t)win + element_offset(window_t, node)));
+
+    // screen_desc->windows->Insert(screen_desc->windows, (rbtree_node_t*)((uint64_t)win + element_offset(window_t, node)));
+    _list_push(&screen_desc->windows, (list_node_t*)((uint64_t)win + element_offset(window_t, node)));
 
     return status;
 }

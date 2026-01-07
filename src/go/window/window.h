@@ -3,6 +3,7 @@
 
 #include "../../include/types.h"
 #include "../../include/libk/rbtree.h"
+#include "../../include/libk/list.h"
 #include "../font/font_ttf.h"
 #include "../graphics.h"
 
@@ -61,7 +62,12 @@ typedef struct _window
     /**
      * @brief tag to mark this window instance.
      */
-    rbtree_node_t               node;
+    uint32_t                  tag;
+
+    /**
+     * @brief node to link this window in screen's window list.
+     */
+    list_node_t               node;
 
     /**
      * @brief Mark the window type.

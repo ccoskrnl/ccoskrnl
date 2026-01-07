@@ -38,6 +38,7 @@ typedef struct _window_common_t {
     _window_register_t         Register;
     _window_show_t             ShowWindow;
     _window_clear_t            ClearWindow;
+    _window_draw_rectangle_t    DrawRectangle;
 
 } window_common_t;
 

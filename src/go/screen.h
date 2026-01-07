@@ -3,6 +3,7 @@
 
 #include "../include/types.h"
 #include "../include/libk/rbtree.h"
+#include "../include/libk/list.h"
 #include "../include/libk/lock.h"
 #include "graphics.h"
 #include "./font/font_ttf.h"
@@ -96,7 +97,8 @@ typedef struct _go_screen_desc
     int64_t pixels_per_scanline;
 
     spinlock_t spinlock;
-    rbtree_t *windows;
+    // rbtree_t *windows;
+    list_node_t windows;
 
     window_common_t *screen_window;
 
