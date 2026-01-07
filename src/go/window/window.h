@@ -8,7 +8,7 @@
 
 typedef enum
 {
-    WindowNone = 0,
+    WindowCommon = 0,
     WindowText = 1
 
 } WindowType;
@@ -17,22 +17,36 @@ typedef enum
  * @brief Window Style Flags
  */
 
-//  This flag indicate the window not has background. Whether the bg member
+//  This flag indicates the window not has background. Whether the bg member
 //  or color member has been set. We don't use them. In earily designing, this
 //  flag is used to create no background window. We discard now.
 #define WINDOW_STYLE_NONE                                       0
 
-//  This flag indicate the window background is prue RGB color.
+
+//  This flag indicates the window bg is transparent. 
+#define WINDOW_STYLE_BG_NONE                                      0x00
+
+
+//  This flag indicates the window background is prue RGB color.
 //  When this flag is set. color member will be used. But bg member
 //  will be ignored.
-#define WINDOW_STYLE_COLOR                                      1
+#define WINDOW_STYLE_BG_COLOR                                      0x01
 
-//  This flag indicate the window background is determined by bg member.
+
+//  This flag indicates the window background is determined by bg member.
 //  In this case, color member will be ignored.
-#define WINDOW_STYLE_BG                                         2
+#define WINDOW_STYLE_BG_IMAGE                                         0x02
 
-//  This flag indicate the window not have window border.
-#define WINDOW_NO_WINDOW_BORDER                                 0x100000000
+
+//  This flag indicates the window not have window border. And we don't paint the window title bar.
+#define WINDOW_STYLE_NO_BORDER                                  0x100
+
+// // This flag indicates that the window will not have a title.
+// #define WINDOW_STYLE_NO_TITLE                                   0x1000
+//
+
+#define WINDOW_STYLE_BG(flag)                                   (flag & 0x3)
+
 
 typedef struct _window_style
 {
@@ -41,10 +55,6 @@ typedef struct _window_style
     struct _go_buffer bg;
 
 } window_style_t;
-
-typedef status_t (*_window_show_window_t)(
-        _in_ void                               *_this
-        );
 
 typedef struct _window
 {

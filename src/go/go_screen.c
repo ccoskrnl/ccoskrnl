@@ -8,6 +8,9 @@
 #include "../include/libk/lock.h"
 #include "../include/types.h"
 
+#include "../include/go/window.h"
+#include "window/window.h"
+
 /**
  * @brief Clear all framebuffers.
  *
@@ -471,29 +474,36 @@ static status_t draw_rectangle(
     return status;
 }
 
-void _go_install_a_screen(
+status_t _go_install_a_screen(
         _in_ _out_ struct _go_screen_desc       *screen,
         _in_ go_blt_pixel_t                     *frame_buf_base, 
         _in_ size_t                             frame_buf_size,
         _in_ int                                horizontal_resolution, 
         _in_ int                                vertical_resolution,
         _in_ int                                pixels_per_scan_line
-        ) 
+) 
 {
+    status_t status;
 
     memzero(screen, sizeof(*screen));
 
+    // Initialize screen framebuffer info
     screen->frame_buf_base = frame_buf_base;
     screen->frame_buf_size = frame_buf_size;
+
+
+    // Initialize screen resolution info
     screen->horizontal = horizontal_resolution;
     screen->vertical = vertical_resolution;
     screen->pixels_per_scanline = pixels_per_scan_line;
 
+    // Initialize screen primary framebuffer
     screen->frame_bufs[0].buf = screen->frame_buf_base;
     screen->frame_bufs[0].size = screen->frame_buf_size;
     screen->frame_bufs[0].height = screen->vertical;
     screen->frame_bufs[0].width = screen->horizontal;
 
+    // Initialize screen secondary framebuffers
     for (int i = 1; i < MAX_FRAMEBUFFER; i++) {
         screen->frame_bufs[i].buf = (go_blt_pixel_t *)malloc(screen->frame_buf_size);
         screen->frame_bufs[i].size = screen->frame_buf_size;
@@ -501,14 +511,17 @@ void _go_install_a_screen(
         screen->frame_bufs[i].width = screen->horizontal;
     }
 
+    // Set secondary buffer pointer
     screen->secondary_buf = screen->frame_bufs[BACKBUFFER_INDEX].buf;
 
-    status_t status = new_a_rbtree(&screen->windows);
+    // Initialize window tree to manage windows on this screen
+    status = new_a_rbtree(&screen->windows);
     if (ST_ERROR(status)) {
         krnl_panic(NULL);
     }
 
     spinlock_init(&screen->spinlock);
+
 
     screen->Blt = blt;
     screen->SwapTwoBuffers = swap_framebuffer;
@@ -518,4 +531,6 @@ void _go_install_a_screen(
     screen->DrawBresenhamsLine = draw_bresenhams_line;
     screen->ClearFrameBuffers = clear_framebuffer;
     screen->ClearScreen = clear_screen;
+
+    return status;
 }

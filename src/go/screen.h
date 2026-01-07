@@ -7,6 +7,9 @@
 #include "graphics.h"
 #include "./font/font_ttf.h"
 
+#include "./window/window.h"
+#include "./window/window_common.h"
+
 #define MAX_INSTALLED_SCREEN					                    16
 #define FRAMEBUFFER_INDEX                                           0
 #define BACKBUFFER_INDEX					                        1
@@ -95,6 +98,8 @@ typedef struct _go_screen_desc
     spinlock_t spinlock;
     rbtree_t *windows;
 
+    window_common_t *screen_window;
+
     _go_blt_t Blt;
     _go_swap_framebuffer_t SwapTwoBuffers;
     _go_draw_rectangle_t DrawRectangle;
@@ -121,7 +126,7 @@ struct _installed_screens {
     desc->frame_bufs[buf_id].buf[(uint16_t)p.y * desc->horizontal + (uint16_t)p.x] = color
 
 
-void _go_install_a_screen(
+status_t _go_install_a_screen(
         struct _go_screen_desc* screen,
         go_blt_pixel_t* frame_buf_base,
         size_t frame_buf_size,

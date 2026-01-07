@@ -176,7 +176,7 @@ void krnl_init()
 
     putc(bsp_window, '\n');
 
-    mm_alloc_test();
+    // mm_alloc_test();
 
     // Initialize PCIe
     // put_check(bsp_window, -1, L"PCIe initializing...\n");

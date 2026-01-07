@@ -13,6 +13,10 @@
 #define WINDOW_TEXT_CACHED_START_CODE                           0x21
 #define WINDOW_TEXT_CACHED_END_CODE                             128
 
+typedef status_t (*_window_text_show_t)(
+        _in_ void                   *_this
+);
+
 typedef status_t (*_window_text_register_t)(
         _in_ void                   *_this,
         _in_ font_ttf_t             *font_family,
@@ -52,7 +56,7 @@ typedef struct _window_text
     window_t                    window;
 
     _window_text_register_t     Register;
-    _window_show_window_t       ShowWindow;
+    _window_text_show_t         ShowWindow;
     _window_text_clear_window_t ClearWindow;
     _window_text_putc_t         PutChar;
     _window_text_puts_t         PutString;

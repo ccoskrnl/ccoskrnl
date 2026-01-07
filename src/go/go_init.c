@@ -69,7 +69,7 @@ wch_t *_go_weclome_texts[GO_DEFAULT_TEXT_OUTPUT_NUMBER] =
 
 
 static window_style_t def_wnd = { 
-    WINDOW_STYLE_COLOR,
+    WINDOW_STYLE_BG_COLOR,
     {0xc0,0xc0,0xc0}, 
     { 0 }
 };
@@ -90,6 +90,11 @@ void op_init()
 
     status_t status;
 
+    background.buf = (go_blt_pixel_t*)_current_machine_info->bg.addr;
+    background.height = _current_machine_info->bg.height;
+    background.width = _current_machine_info->bg.width;
+    background.size = _current_machine_info->bg.size;
+
     // initialize first screen.
     _go_install_a_screen(
             &screen0,
@@ -97,7 +102,8 @@ void op_init()
             _current_machine_info->graphics_info.FrameBufferSize,
             _current_machine_info->graphics_info.HorizontalResolution,
             _current_machine_info->graphics_info.VerticalResolution,
-            _current_machine_info->graphics_info.PixelsPerScanLine);
+            _current_machine_info->graphics_info.PixelsPerScanLine
+        );
 
     _go_installed_screens.num++;
     _go_installed_screens.screen[0] = &screen0;
@@ -106,10 +112,6 @@ void op_init()
     // clear screen
     _go_def_screen->ClearFrameBuffers(_go_def_screen);
 
-    background.buf = (go_blt_pixel_t*)_current_machine_info->bg.addr;
-    background.height = _current_machine_info->bg.height;
-    background.width = _current_machine_info->bg.width;
-    background.size = _current_machine_info->bg.size;
     _go_default_wallpaper = &background;
 
 
@@ -139,6 +141,7 @@ void op_init()
         memcpy(_go_def_screen->frame_buf_base, _go_default_wallpaper->buf, _go_default_wallpaper->size);
 
     _go_has_been_initialize = true;
+
 
     op_init_for_bsp();
 
@@ -183,7 +186,7 @@ void op_init_for_bsp()
 
 
     window_style_t ciallo_wnd = { 
-        WINDOW_STYLE_COLOR,
+        WINDOW_STYLE_BG_COLOR,
         {87,169,46}, 
         { 0 }
     };

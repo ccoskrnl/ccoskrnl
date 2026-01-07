@@ -4,6 +4,8 @@
 #include "../font/font_ttf.h"
 #include "./window.h"
 #include "./window_text.h"
+#include "./window_common.h"
+
 #include "../../include/libk/math.h"
 #include "../../include/libk/stdlib.h"
 #include "../../include/arch/lib.h"
@@ -17,16 +19,9 @@ static void clear_window(
 
     // background origin in window with decoration
     point_i_t win_bg_origin = { 0 };
-    uint32_t window_bg_flag = this->style.flags & 0xFFFFFFFF;
+    uint32_t window_bg_flag = WINDOW_STYLE_BG(this->style.flags);
 
-    // if this window have window decoration, we need to adjust bg's origin point and size.
-    if (!(this->style.flags & WINDOW_NO_WINDOW_BORDER)) 
-    {
-        win_bg_origin.x = WINDOW_BORDER_STROKE_SIZE;
-        win_bg_origin.y = WINDOW_BORDER_STROKE_SIZE + WINDOW_TITLE_DECORATION_SIZE;
-    }
-
-    if (window_bg_flag == WINDOW_STYLE_BG) 
+    if (window_bg_flag == WINDOW_STYLE_BG_IMAGE) 
     {
         assert((this->style.bg.height == this->height) && (this->style.bg.width == this->width));
         for (int i = 0; i < this->height; i++) 
@@ -37,7 +32,7 @@ static void clear_window(
                   );
 
     }
-    else if (window_bg_flag == WINDOW_STYLE_COLOR)
+    else if (window_bg_flag == WINDOW_STYLE_BG_COLOR)
     {
         for (int i = 0; i < this->height; i++) 
             memsetd(
@@ -49,15 +44,6 @@ static void clear_window(
 
 }
 
-static void text_window_clear_window(
-        _in_ void                   *_this
-        )
-{
-    clear_window(_this);
-    window_text_t *this = _this;
-    this->cursor.x = this->lsb;
-    this->cursor.y = 0;
-}
 
 static status_t init_window_framebuffer(
         _in_ void                                   *_this
@@ -70,89 +56,12 @@ static status_t init_window_framebuffer(
     uint16_t win_width = this->framebuffer.width;
     uint16_t win_height = this->framebuffer.height;
 
-
-
-    if (!(this->style.flags & WINDOW_NO_WINDOW_BORDER))
-    {
-        // Set window decoration
-        win_width += (WINDOW_BORDER_STROKE_SIZE << 1);
-        win_height += ((WINDOW_BORDER_STROKE_SIZE << 1) + WINDOW_TITLE_DECORATION_SIZE);
-
-        this->framebuffer.buf = (go_blt_pixel_t*)malloc(sizeof(go_blt_pixel_t) * (win_height * win_width));
-
-        assert(this->framebuffer.buf != NULL);
-
-        // Actually, we can directly draw window decoration without the aid of any other GDI functions.
-        win_bg_origin.x = WINDOW_BORDER_STROKE_SIZE;
-        win_bg_origin.y = WINDOW_BORDER_STROKE_SIZE + WINDOW_TITLE_DECORATION_SIZE;
-
-        go_blt_pixel_t border_color = WINDOW_BORDER_COLOR;
-        int start_y, start_x;
-
-        // draw top side
-        start_y = 0;
-        start_x = 0;
-        for (int i = 0; i < (WINDOW_TITLE_DECORATION_SIZE + WINDOW_BORDER_STROKE_SIZE); i++) 
-            memsetd(
-                    (uint32_t*)this->framebuffer.buf + (i + start_y) * win_width + start_x, 
-                    *(uint32_t*)&border_color, 
-                    win_width);
-
-        // draw buttom side
-        start_y = (WINDOW_TITLE_DECORATION_SIZE + WINDOW_BORDER_STROKE_SIZE) + this->framebuffer.height;
-        for (int i = 0; i < (WINDOW_BORDER_STROKE_SIZE); i++) 
-            memsetd(
-                    (uint32_t*)this->framebuffer.buf + (i + start_y) * win_width + start_x, 
-                    *(uint32_t*)&border_color, 
-                    win_width);
-
-        // draw left side
-        start_y = (WINDOW_TITLE_DECORATION_SIZE + WINDOW_BORDER_STROKE_SIZE);
-        for (int i = 0; i < this->framebuffer.height; i++) 
-            memsetd(
-                    (uint32_t*)this->framebuffer.buf + (i + start_y) * win_width + start_x, 
-                    *(uint32_t*)&border_color, 
-                    WINDOW_BORDER_STROKE_SIZE);
-
-        // draw right side 
-        start_x = WINDOW_BORDER_STROKE_SIZE + this->framebuffer.width;
-        for (int i = 0; i < this->framebuffer.height; i++) 
-            memsetd(
-                    (uint32_t*)this->framebuffer.buf + (i + start_y) * win_width + start_x, 
-                    *(uint32_t*)&border_color, 
-                    WINDOW_BORDER_STROKE_SIZE);
-
-        this->framebuffer.width = win_width;
-        this->framebuffer.height = win_height;
-
-        this->origin.x = WINDOW_BORDER_STROKE_SIZE;
-        this->origin.y = WINDOW_BORDER_STROKE_SIZE + WINDOW_TITLE_DECORATION_SIZE;
-
-        // Draw window title
-        point_i_t origin = { WINDOW_TITLE_LSB, 0 };
-        go_blt_pixel_t title_color = WINDOW_TITLE_COLOR;
-        if (this->window_title != NULL)
-            _op_text_out(
-                    &this->framebuffer, 
-                    this->window_title, 
-                    origin, 
-                    _go_font_ttfs.fonts[0], 
-                    WINDOW_TITLE_POINT_SIZE, 
-                    title_color
-                    );
-
-    }
-    else 
-    {
-        this->origin.x = 0;
-        this->origin.y = 0;
-        this->framebuffer.buf = (go_blt_pixel_t*)malloc(sizeof(go_blt_pixel_t) * (win_height * win_width));
-        assert(this->framebuffer.buf != NULL);
-    }
+    this->origin.x = 0;
+    this->origin.y = 0;
+    this->framebuffer.buf = (go_blt_pixel_t*)malloc(sizeof(go_blt_pixel_t) * (win_height * win_width));
+    assert(this->framebuffer.buf != NULL);
 
     clear_window(this);
-
-
 
     return status;
 }
@@ -178,8 +87,13 @@ static status_t show_window(
     }
     screen = this->screen;
 
+    int max_width = screen->horizontal - (WINDOW_BORDER_STROKE_SIZE << 1);
+    int max_height = screen->vertical - (WINDOW_BORDER_STROKE_SIZE << 1) - WINDOW_TITLE_DECORATION_SIZE;
+
     uint16_t win_width = this->framebuffer.width;
     uint16_t win_height = this->framebuffer.height;
+    int start_x = this->upper_left_hand.x;
+    int start_y = this->upper_left_hand.y;
 
     boolean saved_if = intr_disable();
     spinlock_acquire(&screen->spinlock);
@@ -187,72 +101,78 @@ static status_t show_window(
     // backup framebuffer into backbuffer
     screen->SwapTwoBuffers(screen, BACKBUFFER_INDEX, FRAMEBUFFER_INDEX);
 
-    // draw window
-    if ((this->style.flags & 0xFFFFFFFF) != WINDOW_STYLE_NONE) 
+
+    // if it has window decoration
+    if (!(this->style.flags & WINDOW_STYLE_NO_BORDER)) 
     {
-        if (this->upper_left_hand.x + win_width <= 0
-                || this->upper_left_hand.y + win_height <= 0
-                || this->upper_left_hand.x >= screen->horizontal
-                || this->upper_left_hand.y >= screen->vertical
-           ) 
-        {
-            return status;
-        }
+        // add border size and title decoration size to window size
+        win_width += (WINDOW_BORDER_STROKE_SIZE << 1);
+        win_height += ((WINDOW_BORDER_STROKE_SIZE << 1) + WINDOW_TITLE_DECORATION_SIZE);
 
-        point_i_t src_point = { 0, 0 };
-        point_i_t dest_point = { 0, 0 };
-        int drawing_width, drawing_height;
+        go_blt_pixel_t border_color = WINDOW_BORDER_COLOR;
+        start_x = this->upper_left_hand.x - WINDOW_BORDER_STROKE_SIZE;
+        start_y = this->upper_left_hand.y - WINDOW_BORDER_STROKE_SIZE - WINDOW_TITLE_DECORATION_SIZE;
 
-        if (this->upper_left_hand.x < 0) 
-        {
-            src_point.x = abs(this->upper_left_hand.x);
-            drawing_width = win_width + this->upper_left_hand.x;
-            dest_point.x = 0;
-        }
-        else 
-        {
-            dest_point.x = this->upper_left_hand.x;
-            drawing_width = win_width;
-        }
-        drawing_width = (dest_point.x + drawing_width < screen->horizontal ? 
-                drawing_width : screen->horizontal - dest_point.x);
+        start_x = start_x < 0 ? 0 : start_x;
+        start_y = start_y < 0 ? 0 : start_y;
 
-        if (this->upper_left_hand.y < 0)
-        {
-            src_point.y = abs(this->upper_left_hand.y);
-            drawing_height = win_height + this->upper_left_hand.y;
-            dest_point.y = 0;
-        }
-        else
-        {
-            dest_point.y = this->upper_left_hand.y;
-            drawing_height = win_height;
-        }
+        if (start_x + win_width > screen->horizontal)
+            win_width = max_width - start_x;
+        if (start_y + win_height > screen->vertical)
+            win_height = max_height - start_y;
 
-        drawing_height = (dest_point.y + drawing_height < screen->vertical ?
-                drawing_height : screen->vertical - dest_point.y);
-
-        status = screen->Blt(
+        status = screen->DrawRectangle(
                 screen,
-                this->framebuffer.buf,
-                GoBltBufferToVideo,
-                src_point.x,
-                src_point.y,
+                start_x,
+                start_y,
                 win_width,
                 win_height,
-                dest_point.x,
-                dest_point.y,
-                drawing_width,
-                drawing_height,
+                border_color,
                 BACKBUFFER_INDEX
-                );
+        );
+
         if (ST_ERROR(status))
         {
             krnl_panic(NULL);
         }
 
-    } 
+        point_i_t origin = { WINDOW_TITLE_LSB + start_x, start_y};
+        go_blt_pixel_t title_color = WINDOW_TITLE_COLOR;
 
+        _op_text_out(
+            &screen->frame_bufs[BACKBUFFER_INDEX],
+            this->window_title,
+            origin, 
+            _go_font_ttfs.fonts[0], 
+            WINDOW_TITLE_POINT_SIZE, 
+            title_color
+        );
+
+        start_x += WINDOW_BORDER_STROKE_SIZE;
+        start_y += WINDOW_BORDER_STROKE_SIZE + WINDOW_TITLE_DECORATION_SIZE;
+
+
+    }
+
+    status = screen->Blt(
+            screen,
+            this->framebuffer.buf,
+            GoBltBufferToVideo,
+            0,
+            0,
+            this->framebuffer.width,
+            this->framebuffer.height,
+            start_x,
+            start_y,
+            this->framebuffer.width,
+            this->framebuffer.height,
+            BACKBUFFER_INDEX
+            );
+
+    if (ST_ERROR(status)) 
+    {
+        krnl_panic(NULL);
+    }
 
     screen->SwapTwoBuffers(screen, FRAMEBUFFER_INDEX, BACKBUFFER_INDEX);
 
@@ -261,6 +181,49 @@ static status_t show_window(
 
     return status;;
 }
+
+
+static status_t register_common_window(
+        _in_ void                   *_this
+        )
+{
+    status_t status = ST_SUCCESS;
+
+    if (_this == NULL) {
+        status = ST_INVALID_PARAMETER;
+        return status;
+    }
+
+    window_t *this = _this;
+
+    status = init_window_framebuffer(this);
+    if (ST_ERROR(status)) {
+        krnl_panic(NULL);
+    }
+
+    return status;
+}
+
+
+
+
+
+
+
+
+
+
+
+static void text_window_clear_window(
+        _in_ void                   *_this
+        )
+{
+    clear_window(_this);
+    window_text_t *this = _this;
+    this->cursor.x = this->lsb;
+    this->cursor.y = 0;
+}
+
 
 static status_t text_window_scroll_screen(
         _in_ void                                   *_this
@@ -548,6 +511,13 @@ static status_t register_text_window(
 }
 
 
+
+
+
+
+
+
+
 status_t new_a_window(
         _in_ uint64_t                           tag,
         _in_ WindowType                         type,
@@ -574,17 +544,20 @@ status_t new_a_window(
 
     switch (type) 
     {
-        case WindowNone:
-            win = malloc(sizeof(window_t));
+        case WindowCommon:
+            win = malloc(sizeof(window_common_t));
             assert(win != NULL);
             memzero(win, sizeof(*win));
+            *(_window_register_t*)((uint64_t)win + element_offset(window_common_t, Register)) = register_common_window;
+            *(_window_show_t*)((uint64_t)win + element_offset(window_common_t, ShowWindow)) = show_window;
+            *(_window_clear_t*)((uint64_t)win + element_offset(window_common_t, ClearWindow)) = clear_window;
             break;
         case WindowText:
             win = malloc(sizeof(window_text_t));
             assert(win != NULL);
             memzero(win, sizeof(*win));
             *(_window_text_register_t*)((uint64_t)win + element_offset(window_text_t, Register)) = register_text_window;
-            *(_window_show_window_t*)((uint64_t)win + element_offset(window_text_t, ShowWindow)) = show_window;
+            *(_window_text_show_t*)((uint64_t)win + element_offset(window_text_t, ShowWindow)) = show_window;
             *(_window_text_clear_window_t*)((uint64_t)win + element_offset(window_text_t, ClearWindow)) = text_window_clear_window;
             *(_window_text_putc_t*)((uint64_t)win + element_offset(window_text_t, PutChar)) = text_window_putc;
             *(_window_text_puts_t*)((uint64_t)win + element_offset(window_text_t, PutString)) = text_window_puts;
@@ -599,13 +572,27 @@ status_t new_a_window(
     win->screen = screen;
     win->parent_window = parent_window;
     win->window_title = window_title;
-    win->width = width;
-    win->height = height;
-    win->framebuffer.height = height;
-    win->framebuffer.width = width;
     win->style = style;
     win->upper_left_hand.x = x_of_upper_left_hand;
     win->upper_left_hand.y = y_of_upper_left_hand;
+
+    if (style.flags & WINDOW_STYLE_NO_BORDER)
+    {
+        win->width = width > screen_desc->horizontal ? screen_desc->horizontal : width;
+        win->height = height > screen_desc->vertical ? screen_desc->vertical : height;
+        win->framebuffer.height = win->height;
+        win->framebuffer.width = win->width;
+    }
+    else 
+    {
+        int max_width = screen_desc->horizontal - (WINDOW_BORDER_STROKE_SIZE << 1);
+        int max_height = screen_desc->vertical - (WINDOW_BORDER_STROKE_SIZE << 1) - WINDOW_TITLE_DECORATION_SIZE;
+
+        win->width = width > max_width ? max_width : width;
+        win->height = height > max_height ? max_height : height;
+        win->framebuffer.height = height;
+        win->framebuffer.width = width;
+    }
 
     *window = win;
     screen_desc->windows->Insert(screen_desc->windows, (rbtree_node_t*)((uint64_t)win + element_offset(window_t, node)));
