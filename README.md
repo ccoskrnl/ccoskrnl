@@ -4,12 +4,12 @@
 
 ## 关于我
 
-我的兴趣比较广：从 x86/amd64 架构设计到操作系统内核开发，从编译器前端语法分析到后端优化、以及程序混淆与反混淆，再到病毒分析、免杀技术、二进制逆向和网络安全。喜欢深入底层，也爱折腾各种对抗与防护手段。
+目前从事逆向分析工作。我的主要兴趣是操作系统、Hypervisor、编译优化、程序分析等偏底层一些的软件和相关的安全机制。
 
-- 写过 x64 架构的操作系统内核，熟悉从 BIOS初始化 到内存管理、中断、进程调度的基本实现  
-- 研究过编译器中间表示（IR）上的优化框架，比如控制流分析、SSA、数据流分析、常量传播和符号执行  
-- 对反射式 DLL 加载、无文件注入、免杀手法有实践经验，并用 Rust 写过辅助工具  
-- 逆向过一些恶意程序，也尝试分析它们的混淆和隐藏技巧  
+- `ccOS`: 尝试写过的UEFI引导的x64架构操作系统内核，不过目前已经不做相关的开发了  
+- `cc-pass-python`: 研究编译器IR优化时写的demo，比如实现了一些控制流分析、SSA、数据流分析、常量传播和符号执行等算法。
+- `ReflectiveDLL`: 学习别人的反射DLL项目，自己做了一些优化。  
+- `cc-hypervisor`: 还在学习中，打算往调试器、监控分析方向开发。
 
 欢迎交流底层技术、安全对抗、编译原理以及任何有趣的话题。
 
@@ -27,17 +27,17 @@
 
 ## About Me
 
-Broad interests: x86/amd64 architecture & OS kernel development, compiler frontend parsing & backend IR optimizations, program obfuscation & deobfuscation, malware analysis, evasion techniques, binary reverse engineering, and cybersecurity. I love diving into low‑level details and tinkering with both defensive and offensive sides.
+I currently work in reverse engineering. My main interests lie in low-level software and related security mechanisms, such as operating systems, hypervisors, compiler optimizations, and program analysis.
 
-- Built an x64 hobby OS kernel – from BIOS initializing to memory management, interrupts, and basic scheduling  
-- Explored compiler optimization frameworks on IR: control flow analysis, SSA, dataflow analysis, constant propagation, symbolic execution  
-- Hands‑on experience with reflective DLL loading, fileless injection, and evasion methods; wrote a few tools in Rust as well  
-- Reverse‑engineered real‑world malware and studied their obfuscation & stealth tricks  
+- `ccOS`: A UEFI-booted x64 operating system kernel I once attempted to write, though I'm no longer actively developing it.
+- `cc-pass-python`: Demos I wrote while studying compiler IR optimizations, implementing algorithms like control flow analysis, SSA, data flow analysis, constant propagation, and symbolic execution.
+- `ReflectiveDLL`: A project where I studied others' reflective DLL implementations and made some optimizations of my own.
+- `cc-hypervisor`: Still under study, with plans to develop it towards debugging and monitoring.
 
-Always open to discussions about low‑level programming, security, compilers, or any other interesting topics.
+I'm always open to discussing low-level technology, security countermeasures, compiler principles, and any other interesting topics.
 
 ## Blog & Contact
 
-📝 Tech notes: [ccoskrnl.github.io/notes](https://ccoskrnl.github.io/notes/)  
+📝 Technical Notes: [ccoskrnl.github.io/notes](https://ccoskrnl.github.io/notes/)  
 🐙 GitHub: [ccoskrnl](https://github.com/ccoskrnl)  
-💬 Best way to reach me is via GitHub Issues or email
+💬 Best way to reach me is via Issue or email.
